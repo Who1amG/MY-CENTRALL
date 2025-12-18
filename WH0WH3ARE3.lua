@@ -205,78 +205,6 @@ local function playerHasTool(toolName)
 	return false
 end
 
---==================== SERVER HOP AVANZADO (ANTI SAME SERVER) ====================
-local PlaceID = game.PlaceId
-local AllIDs = {}
-local foundAnything = ""
-local actualHour = os.date("!*t").hour
-
-pcall(function()
-    AllIDs = HttpService:JSONDecode(readfile("NotSameServers.json"))
-end)
-
-if not AllIDs or #AllIDs == 0 then
-    AllIDs = {actualHour}
-    writefile("NotSameServers.json", HttpService:JSONEncode(AllIDs))
-end
-
-local function TPReturner()
-    local site
-    if foundAnything == "" then
-        site = HttpService:JSONDecode(
-            game:HttpGet(
-                "https://games.roblox.com/v1/games/" .. PlaceID .. "/servers/Public?sortOrder=Asc&limit=100"
-            )
-        )
-    else
-        site = HttpService:JSONDecode(
-            game:HttpGet(
-                "https://games.roblox.com/v1/games/" .. PlaceID ..
-                "/servers/Public?sortOrder=Asc&limit=100&cursor=" .. foundAnything
-            )
-        )
-    end
-
-    if site.nextPageCursor then
-        foundAnything = site.nextPageCursor
-    end
-
-    for _,v in pairs(site.data) do
-        if v.playing < v.maxPlayers then
-            local id = tostring(v.id)
-            local allowed = true
-
-            for _,used in pairs(AllIDs) do
-                if id == tostring(used) then
-                    allowed = false
-                    break
-                end
-            end
-
-            if allowed then
-                table.insert(AllIDs, id)
-                writefile("NotSameServers.json", HttpService:JSONEncode(AllIDs))
-                TeleportService:TeleportToPlaceInstance(PlaceID, id, LocalPlayer)
-                task.wait(4)
-            end
-        end
-    end
-end
-
-local function ServerHop()
-	AddLog("🔁 ServerHop iniciado")
-	Notify("🔁 Buscando nuevo servidor...", true)
-
-	pcall(function()
-		TPReturner()
-		if foundAnything ~= "" then
-			TPReturner()
-		end
-	end)
-end
-
-
-
 --==================== UI ROOT ====================
 local UI = Instance.new("ScreenGui")
 UI.Name = "GlassmasUI"
@@ -1132,6 +1060,110 @@ local function makeDropdownHeaderDynamic(parent, titleText)
 	return headerBtn, container, list
 end
 
+--==================== APPLE CLEANING SCREEN ====================
+local function showCleaningScreen(duration)
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "MoneyCleaningScreen"
+	gui.IgnoreGuiInset = true
+	gui.ResetOnSpawn = false
+	gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+	gui.Parent = PlayerGui
+
+	local bg = Instance.new("Frame", gui)
+	bg.Size = UDim2.new(1,0,1,0)
+	bg.BackgroundColor3 = Color3.new(0,0,0)
+	bg.BackgroundTransparency = 1
+	bg.ZIndex = 1000
+
+	local text = Instance.new("TextLabel", bg)
+	text.AnchorPoint = Vector2.new(0.5,0.5)
+	text.Position = UDim2.new(0.5,0,0.5,0)
+	text.Size = UDim2.new(0,520,0,80)
+	text.BackgroundTransparency = 1
+	text.TextWrapped = true
+	text.Text = "🧼 LIMPIANDO DINERO\n⏳ ESPERA 30 SEGUNDOS"
+	text.Font = Fonts[CurrentFontName]
+	text.TextSize = 26
+	text.TextColor3 = Color3.fromRGB(240,240,240)
+	text.TextTransparency = 1
+	text.ZIndex = 1001
+
+	-- fade in
+	TweenService:Create(bg, TweenInfo.new(0.6, Enum.EasingStyle.Quad), {
+		BackgroundTransparency = 0.01
+	}):Play()
+
+	TweenService:Create(text, TweenInfo.new(0.6, Enum.EasingStyle.Quad), {
+		TextTransparency = 0
+	}):Play()
+
+	-- animación flotante estilo Apple
+	task.spawn(function()
+		while gui.Parent do
+			TweenService:Create(text, TweenInfo.new(1.8, Enum.EasingStyle.Sine), {
+				Position = UDim2.new(0.5,0,0.5,-6)
+			}):Play()
+			task.wait(1.8)
+			TweenService:Create(text, TweenInfo.new(1.8, Enum.EasingStyle.Sine), {
+				Position = UDim2.new(0.5,0,0.5,6)
+			}):Play()
+			task.wait(1.8)
+		end
+	end)
+
+	-- cerrar automático
+	task.delay(duration, function()
+		if gui.Parent then
+			TweenService:Create(bg, TweenInfo.new(0.5), {
+				BackgroundTransparency = 1
+			}):Play()
+			TweenService:Create(text, TweenInfo.new(0.5), {
+				TextTransparency = 1
+			}):Play()
+			task.wait(0.6)
+			gui:Destroy()
+		end
+	end)
+end
+
+
+--==================== TOOLTIP (HOVER INFO) ====================
+local function attachTooltip(button, text)
+	local tip = Instance.new("TextLabel", UI)
+	tip.BackgroundColor3 = Color3.fromRGB(20,20,20)
+	tip.BackgroundTransparency = 0.12
+	tip.BorderSizePixel = 0
+	tip.TextWrapped = true
+	tip.TextXAlignment = Enum.TextXAlignment.Left
+	tip.TextYAlignment = Enum.TextYAlignment.Top
+	tip.Font = Fonts[CurrentFontName]
+	tip.TextSize = 13
+	tip.TextColor3 = Color3.fromRGB(245,245,245)
+	tip.Text = text
+	tip.Visible = false
+	tip.ZIndex = 999
+	tip.Size = UDim2.new(0, 280, 0, 58)
+	Instance.new("UICorner", tip).CornerRadius = UDim.new(0, 10)
+
+	button.MouseEnter:Connect(function()
+		local pos = UserInputService:GetMouseLocation()
+		tip.Position = UDim2.fromOffset(pos.X + 14, pos.Y + 14)
+		tip.Visible = true
+	end)
+
+	button.MouseLeave:Connect(function()
+		tip.Visible = false
+	end)
+
+	UserInputService.InputChanged:Connect(function(i)
+		if tip.Visible and i.UserInputType == Enum.UserInputType.MouseMovement then
+			local pos = UserInputService:GetMouseLocation()
+			tip.Position = UDim2.fromOffset(pos.X + 14, pos.Y + 14)
+		end
+	end)
+end
+
+
 --==================== PAGE AUTO (placeholder limpio) ====================
 do
 	local hint = Instance.new("TextLabel", PageAuto)
@@ -1769,6 +1801,93 @@ for name,_ in pairs(Fonts) do
 end
 fontToggles[CurrentFontName].Set(true)
 
+-- ==================== CAMERA SETUP (EXACT) ====================
+local Camera = workspace.CurrentCamera
+
+local BASE_CAMERA_CFRAME = CFrame.new(
+	-720.347595, 48.588726, 261.107269,
+	-0.999807477, -0.00462738099, -0.0190718602,
+	 0.00142769329,  0.952079952, -0.305846155,
+	 0.0195732024, -0.305814475, -0.951889932
+)
+
+local function SetCameraOnceExact()
+	local cam = Camera
+	local oldType = cam.CameraType
+	local oldSubject = cam.CameraSubject
+	local oldFOV = cam.FieldOfView
+
+	cam.CameraType = Enum.CameraType.Scriptable
+	cam.CFrame = BASE_CAMERA_CFRAME
+
+	-- 1 frame EXACTO
+	RunService.RenderStepped:Wait()
+
+	cam.CameraType = oldType
+	cam.CameraSubject = oldSubject
+	cam.FieldOfView = oldFOV
+end
+
+--==================== MONEY DRYER INSTANT (A→B) ====================
+local function runMoneyDryer()
+	local Workspace = game:GetService("Workspace")
+	local RunService = game:GetService("RunService")
+	local ProximityPromptService = game:GetService("ProximityPromptService")
+
+	if not fireproximityprompt then return end
+
+	for _, v in ipairs(Workspace:GetDescendants()) do
+		if v:IsA("ProximityPrompt") then
+			v.HoldDuration = 0
+			v.RequiresLineOfSight = false
+		end
+	end
+
+	local dryersFolder = Workspace:WaitForChild("MoneyDryers")
+	local dryers = dryersFolder:GetChildren()
+	if #dryers < 2 then return end
+
+	local PromptA = dryers[4]:WaitForChild("WashingPromptPart"):WaitForChild("ProximityPrompt")
+	local PromptB = dryers[5]:WaitForChild("WashingPromptPart"):WaitForChild("ProximityPrompt")
+
+	local _, hum, hrp = getCharParts()
+	if not (hum and hrp) then return end
+
+	-- cámara exacta (1 frame, sin lock)
+SetCameraOnceExact()
+
+-- TP exacto A↔B
+local pA = PromptA.Parent.Position
+local pB = PromptB.Parent.Position
+local mid = (pA + pB) / 2
+hrp.CFrame = CFrame.new(mid, mid + (pA - pB).Unit)
+
+
+	local SPAM_ON = true
+	local INTERVAL = 1 / 60
+	local acc = 0
+
+	local conn
+	conn = RunService.Heartbeat:Connect(function(dt)
+		if not SPAM_ON then
+			conn:Disconnect()
+			return
+		end
+		acc += dt
+		while acc >= INTERVAL do
+			acc -= INTERVAL
+			fireproximityprompt(PromptA)
+			fireproximityprompt(PromptB)
+		end
+	end)
+
+	hum:ChangeState(Enum.HumanoidStateType.Jumping)
+
+	task.delay(30, function()
+		SPAM_ON = false
+	end)
+end
+
 -- ==================== MONEY LAUNDER HELPERS (NO TOCAR) ====================
 local moneyWashRunning = false
 local MONEY_WASH_TIME = 30
@@ -2222,15 +2341,6 @@ local FlyHeader, FlyContainer = makeDropdownHeaderDynamic(MiscLeft, "⚡ Velocid
 FlyHeader.LayoutOrder = 2
 FlyContainer.LayoutOrder = 3
 
--- (pega aquí tu slider de velocidad original, no lo cambies)
-
-do
-    local SliderFrame = Instance.new("Frame", FlyContainer)
-    -- ... (el slider que ya tenías, no lo toques)
-    -- (copia el slider completo de tu script original aquí)
-end
-
--- (El slider de velocidad que ya tenías lo dejas igual)
 
 -- Snowmans
 makeAppleAction(MiscLeft, "☃️ Recolectar Snowmans (ONE SHOT)", 4, function()
@@ -2241,10 +2351,66 @@ makeAppleAction(MiscLeft, "☃️ Recolectar Snowmans (ONE SHOT)", 4, function()
 	startCollectSnowmans()
 end)
 
--- Dinero
-makeAppleAction(MiscLeft, "💰🔥 DUPE DINERO x2 (MÁXIMO RATE)", 5, function()
-	washMoney(true)
-end)
+-- Dinero (DESACTIVADO - SOLO INFO)
+-- Dinero (LIMPIEZA TOTAL REAL)
+-- Dinero (LIMPIEZA TOTAL REAL)
+-- Dinero (LIMPIEZA TOTAL REAL)
+local dupeMoneyBtn = makeAppleAction(
+	MiscLeft,
+	"💰 LIMPIAR TODO EL DINERO",
+	5,
+	function()
+		if moneyWashRunning then
+			Notify("⏳ Ya se está limpiando dinero...", false)
+			return
+		end
+
+		-- 📍 GUARDAR POSICIÓN EXACTA
+		local _, _, hrp = getCharParts()
+		if not hrp then
+			Notify("❌ Character no listo", false)
+			return
+		end
+		local originalCF = hrp.CFrame
+
+		AddLog("🧼 Limpieza total iniciada")
+
+		-- 🖤 pantalla negra SOLO 8 segundos
+		showCleaningScreen(8)
+
+		-- 🚀 ejecutar dryer
+		task.spawn(runMoneyDryer)
+
+		-- ⏱️ REGRESAR A LOS 6 SEGUNDOS
+		task.delay(6, function()
+			local _, _, hrp2 = getCharParts()
+			if hrp2 then
+				hrp2.CFrame = originalCF
+				AddLog("↩️ Posición original restaurada")
+			end
+		end)
+	end
+)
+
+dupeMoneyBtn:SetAttribute("NoDrag", true)
+dupeMoneyBtn.TextSize = 14
+
+-- Tooltip SIN click
+attachTooltip(
+	dupeMoneyBtn,
+	"LIMPIA TODO TU DINERO DE UNA\n\nRECOMENDACIÓN:\nTener de 30K a 100K en rojo (avaces falla🔴) "
+)
+
+
+
+dupeMoneyBtn:SetAttribute("NoDrag", true)
+dupeMoneyBtn.TextSize = 14
+
+-- Tooltip SIN click
+attachTooltip(
+	dupeMoneyBtn,
+	"LIMPIA TODO TU DINERO DE UNA\n\nRECOMENDACIÓN:\nTener de 30K a 100K en rojo (avaces falla🔴) "
+)
 
 do
 	local SliderFrame = Instance.new("Frame", FlyContainer)
