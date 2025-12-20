@@ -1,7 +1,6 @@
 -- 🦈 Glassmas UI • Principal (Apple Glass Christmas) • Single Script
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
--- WHO WHE ARE TEAM 
 
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -1612,31 +1611,39 @@ end)
     end)
 end
 
--- color (MISMO BOTÓN / MISMA FUNCIÓN)
+-- 🎨 COLOR DEL ESP (VERSIÓN SEGURA – SIN RULETA)
 do
-    local colorBtn = Instance.new("TextButton", ESPContainer)
-    colorBtn.Size = UDim2.new(1, 0, 0, 44)
-    colorBtn:SetAttribute("NoDrag", true)
-    colorBtn.BackgroundColor3 = ESPColor
-    colorBtn.Text = "🎨 Color del ESP"
-    colorBtn.Font = Fonts[CurrentFontName]
-    colorBtn.TextSize = 14
-    colorBtn.TextColor3 = Color3.new(1, 1, 1)
-    colorBtn.BorderSizePixel = 0
-    Instance.new("UICorner", colorBtn).CornerRadius = UDim.new(0, 14)
+	local colorBtn = Instance.new("TextButton", ESPContainer)
+	colorBtn.Size = UDim2.new(1, 0, 0, 44)
+	colorBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
+	colorBtn.BackgroundTransparency = 0.88
+	colorBtn.BorderSizePixel = 0
+	colorBtn.Text = "🎨 Color del ESP"
+	colorBtn.Font = Fonts[CurrentFontName]
+	colorBtn.TextSize = 14
+	colorBtn.TextColor3 = Theme.Text
+	colorBtn.ZIndex = 41
+	colorBtn.AutoButtonColor = false
+	colorBtn:SetAttribute("NoDrag", true)
+	Instance.new("UICorner", colorBtn).CornerRadius = UDim.new(0, 14)
 
-    local hue = 0
-    colorBtn.MouseButton1Click:Connect(function()
-        if shouldIgnoreClick() then return end
-        playOptionSound()
-        hue = (hue + 0.12) % 1
-        ESPColor = Color3.fromHSV(hue, 1, 1)
-        colorBtn.BackgroundColor3 = ESPColor
+	-- ⬛ preview SOLO visual
+	local preview = Instance.new("Frame", colorBtn)
+	preview.Size = UDim2.new(0, 26, 0, 26)
+	preview.Position = UDim2.new(1, -34, 0.5, -13)
+	preview.BackgroundColor3 = ESPColor
+	preview.BorderSizePixel = 0
+	preview.ZIndex = 42
+	preview:SetAttribute("NoDrag", true)
+	Instance.new("UICorner", preview).CornerRadius = UDim.new(0, 6)
 
-        applyESPColor()
-        AddLog("ESP Color actualizado")
-    end)
+	colorBtn.MouseButton1Click:Connect(function()
+		if shouldIgnoreClick() then return end
+		playOptionSound()
+		Notify("🎨 Selector de color desactivado (próxima versión)", false)
+	end)
 end
+
 
 -- === Loops ultra ligeros (sin scans / sin destruir y recrear sin motivo) ===
 -- 1) offsets + sanity de player esp (0.25s)
