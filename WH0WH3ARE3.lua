@@ -15,6 +15,15 @@ local HttpService = game:GetService("HttpService")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+--==================== AUTOLOAD CHECK ====================
+-- ❌ Si NO viene de Rejoin with Script, NO abrir UI
+if not getgenv().Glassmas_AutoLoad then
+    warn("[GlassmasUI] AutoLoad desactivado. UI no iniciada.")
+    return
+end
+
+-- limpiar flag para que NO quede permanente
+getgenv().Glassmas_AutoLoad = nil
 
 
 --==================== ANTI DUPLICATE (FIXED - CIERRA LA VIEJA) ====================
@@ -2871,13 +2880,15 @@ local rejoinWithScriptBtn = makeAppleAction(
         AddLog("🔁 Rejoin with Script iniciado")
 
         -- 🔒 Script en cola (se ejecuta al entrar)
-        if queue_on_teleport then
-            queue_on_teleport([[
-                pcall(function()
-                    loadstring(game:HttpGet("https://raw.githubusercontent.com/Who1amG/MY-CENTRALL/refs/heads/main/WH0WH3ARE3.lua"))()
-                end)
-            ]])
-        end
+       if queue_on_teleport then
+    queue_on_teleport([[
+        getgenv().Glassmas_AutoLoad = true
+        pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/Who1amG/MY-CENTRALL/refs/heads/main/WH0WH3ARE3.lua"))()
+        end)
+    ]])
+end
+
 
         local ts = game:GetService("TeleportService")
         local p = game:GetService("Players").LocalPlayer
