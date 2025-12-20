@@ -17,15 +17,12 @@ local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 --==================== AUTOLOAD CHECK ====================
 -- ❌ Si NO viene de Rejoin with Script, NO abrir UI
---==================== AUTOLOAD CHECK (ONLY REJOIN WITH SCRIPT) ====================
-if not getgenv().Glassmas_AutoLoad then
-    warn("[GlassmasUI] Inicio bloqueado (no viene de Rejoin with Script)")
-    return
+--==================== AUTOLOAD CHECK (SAFE) ====================
+local AutoLoaded = false
+if getgenv().Glassmas_AutoLoad then
+    AutoLoaded = true
+    getgenv().Glassmas_AutoLoad = nil
 end
-
--- limpiar flag para que no quede permanente
-getgenv().Glassmas_AutoLoad = nil
-
 
 
 --==================== ANTI DUPLICATE (FIXED - CIERRA LA VIEJA) ====================
