@@ -2850,6 +2850,38 @@ rejoinBtn.Size = UDim2.new(1, 0, 0, 44)
 rejoinBtn.TextSize = 14
 rejoinBtn:SetAttribute("NoDrag", true)
 
+-- 🔁 REJOIN WITH SCRIPT (AUTO LOAD)
+local rejoinWithScriptBtn = makeAppleAction(
+    MiscRight,
+    "🔁 Rejoin with Script",
+    8, -- debajo de Rejoin Server
+    function()
+        Drag.active = false
+        Drag.pending = false
+
+        Notify("🔁 Rejoin + auto script...", true)
+        AddLog("🔁 Rejoin with Script iniciado")
+
+        -- 🔒 Script en cola (se ejecuta al entrar)
+        if queue_on_teleport then
+            queue_on_teleport([[
+                pcall(function()
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/Who1amG/MY-CENTRALL/refs/heads/main/WH0WH3ARE3.lua"))()
+                end)
+            ]])
+        end
+
+        local ts = game:GetService("TeleportService")
+        local p = game:GetService("Players").LocalPlayer
+        ts:Teleport(game.PlaceId, p)
+    end
+)
+
+rejoinWithScriptBtn.Size = UDim2.new(1, 0, 0, 44)
+rejoinWithScriptBtn.TextSize = 14
+rejoinWithScriptBtn:SetAttribute("NoDrag", true)
+
+
 
 
 --==================== MINIMIZE / CLOSE ====================
