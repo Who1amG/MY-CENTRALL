@@ -16,6 +16,7 @@ local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
+
 --==================== ANTI DUPLICATE (FIXED - CIERRA LA VIEJA) ====================
 if getgenv().GlassmasUI_Running then
     pcall(function()
@@ -42,6 +43,9 @@ local function getCharParts()
 	if not (hum and hrp) then return end
 	return char, hum, hrp
 end
+--==================== UI SPACING GLOBAL ====================
+local UI_ITEM_HEIGHT = 44      -- altura exacta de tus botones buenos
+local UI_ITEM_PADDING = 4      -- separación EXACTA como en la imagen
 
 --==================== FLY (CORE SIMPLE - FIX TOTAL 2025) ====================
 local FlyEnabled = false   -- estado del toggle / keybind
@@ -84,18 +88,15 @@ local function startFly()
 	FlyVelocity.Velocity = Vector3.zero
 	FlyVelocity.Parent = hrp
 
-	-- noclip
-	FlyNoclipConn = RunService.Stepped:Connect(function()
-		if not FlyEnabled then return end
-		for _,v in ipairs(char:GetDescendants()) do
-			if v:IsA("BasePart") then
-				v.CanCollide = false
-			end
-		end
-	end)
+	-- noclip SOLO una vez
+for _,v in ipairs(char:GetDescendants()) do
+	if v:IsA("BasePart") then
+		v.CanCollide = false
+	end
+end
 
 	-- movimiento
-	FlyConn = RunService.RenderStepped:Connect(function()
+	FlyConn = RunService.Heartbeat:Connect(function()
 		if not FlyEnabled then return end
 		local cam = workspace.CurrentCamera
 		local dir =
@@ -106,7 +107,9 @@ local function startFly()
 		FlyVelocity.Velocity =
 			dir.Magnitude > 0 and dir.Unit * FlySpeed or Vector3.zero
 
-		FlyGyro.CFrame = cam.CFrame
+		if dir.Magnitude > 0 then
+	FlyGyro.CFrame = cam.CFrame
+end
 	end)
 
 	Notify("🕊️ Fly ACTIVADO", true)
@@ -205,6 +208,16 @@ local function playerHasTool(toolName)
 	return false
 end
 
+-- restaurar colisiones
+local char = LocalPlayer.Character
+if char then
+	for _,v in ipairs(char:GetDescendants()) do
+		if v:IsA("BasePart") then
+			v.CanCollide = true
+		end
+	end
+end
+
 --==================== UI ROOT ====================
 local UI = Instance.new("ScreenGui")
 UI.Name = "GlassmasUI"
@@ -216,6 +229,16 @@ getgenv().GlassmasUI_Shutdown = function()
     
     -- Apagar Fly
     if FlyEnabled then stopFly() end
+	    -- 🔥 Apagar ESP refactor (si existe)
+    pcall(function()
+    if getgenv().GlassmasUI_ESP_Stop then
+        getgenv().GlassmasUI_ESP_Stop()
+    else
+        -- fallback por si no existe
+        clearESP()
+        disableESP()
+    end
+end)
     
     -- Borrar ESP
     clearESP()
@@ -289,8 +312,8 @@ local Fonts = {
 	["Fredoka"] = Enum.Font.FredokaOne,
 }
 
-local CurrentStyle = "Red"
-local CurrentFontName = "Gotham"
+local CurrentStyle = "Black"   -- 🔥 inicia en negro
+local CurrentFontName = "Fredoka"
 -- color glass para logs (mismo theme, más profundo)
 local function getLogsGlassColor(baseColor)
     -- mezcla con negro para hacerlo más opaco sin perder el tono
@@ -316,7 +339,7 @@ NotifHost.ZIndex = 999
 
 local NotifList = Instance.new("UIListLayout", NotifHost)
 NotifList.SortOrder = Enum.SortOrder.LayoutOrder
-NotifList.Padding = UDim.new(0, 10)
+NotifList.Padding = UDim.new(0, UI_ITEM_PADDING)
 NotifList.HorizontalAlignment = Enum.HorizontalAlignment.Right
 NotifList.VerticalAlignment = Enum.VerticalAlignment.Top
 
@@ -453,7 +476,7 @@ SnowLayer.BackgroundTransparency = 1
 SnowLayer.Size = UDim2.new(1, 0, 1, 0)
 SnowLayer.Active = false
 SnowLayer.Selectable = false
-SnowLayer.ZIndex = 11
+SnowLayer.ZIndex = 50
 SnowLayer.ClipsDescendants = true
 
 local SnowEnabled = true
@@ -471,9 +494,9 @@ local function spawnSnowflake()
 	flake.BorderSizePixel = 0
 	flake.Active = false
 	flake.Selectable = false
-	flake.ZIndex = 11
+	flake.ZIndex = 51
 
-	local sz = math.random(2, 5)
+	local sz = math.random(3, 5)
 	flake.Size = UDim2.new(0, sz, 0, sz)
 	flake.Position = UDim2.new(math.random(), 0, -0.08, 0)
 	flake.BackgroundColor3 = Color3.fromRGB(255,255,255)
@@ -546,6 +569,12 @@ local TabVisual,  TabVisualStroke = makeTabButton("👁 Visual")
 local TabSettings,TabSetStroke = makeTabButton("⚙️ Settings")
 local TabMisc,    TabMiscStroke = makeTabButton("🧩 Misc")
 
+TabAuto.LayoutOrder = 1
+TabVisual.LayoutOrder = 2
+TabMisc.LayoutOrder = 3
+TabSettings.LayoutOrder = 4
+
+
 --==================== CONTENT ====================
 local Content = Instance.new("Frame", Window)
 Content.BackgroundTransparency = 1
@@ -569,7 +598,7 @@ local PageAuto = newPageFrame()
 
 local PageVisual = Instance.new("ScrollingFrame", Content)
 PageVisual.BackgroundTransparency = 1
-PageVisual.Size = UDim2.new(1, 0, 1, 0)
+PageVisual.Size = UDim2.new(1, 0, 1, -6)
 PageVisual.CanvasSize = UDim2.new(0, 0, 0, 0)
 PageVisual.ScrollBarThickness = 4
 PageVisual.ScrollBarImageColor3 = Theme.Accent
@@ -577,12 +606,15 @@ PageVisual.Visible = false
 PageVisual.ZIndex = 30
 PageVisual.Active = true
 PageVisual:SetAttribute("NoDrag", true)
+PageVisual.BorderSizePixel = 0
+PageVisual.ScrollBarImageTransparency = 0
+
 
 local PageSettings = newPageFrame()
 
 local PageMisc = Instance.new("ScrollingFrame", Content)
 PageMisc.BackgroundTransparency = 1
-PageMisc.Size = UDim2.new(1, 0, 1, 0)
+PageMisc.Size = UDim2.new(1, 0, 1, -6)
 PageMisc.CanvasSize = UDim2.new(0, 0, 0, 0)
 PageMisc.ScrollBarThickness = 4
 PageMisc.ScrollBarImageColor3 = Theme.Accent
@@ -590,6 +622,8 @@ PageMisc.Visible = false
 PageMisc.ZIndex = 30
 PageMisc.Active = true
 PageMisc:SetAttribute("NoDrag", true)
+PageMisc.BorderSizePixel = 0
+PageMisc.ScrollBarImageTransparency = 0
 
 --==================== VISUAL CONTENT ====================
 local VisualContent = Instance.new("Frame", PageVisual)
@@ -609,11 +643,11 @@ VisualRight.Size = UDim2.new(0.5, -6, 1, 0)
 VisualRight.Position = UDim2.new(0.5, 6, 0, 0)
 
 local VisualLeftList = Instance.new("UIListLayout", VisualLeft)
-VisualLeftList.Padding = UDim.new(0, 10)
+VisualLeftList.Padding = UDim.new(0, UI_ITEM_PADDING)
 VisualLeftList.SortOrder = Enum.SortOrder.LayoutOrder
 
 local VisualRightList = Instance.new("UIListLayout", VisualRight)
-VisualRightList.Padding = UDim.new(0, 10)
+VisualRightList.Padding = UDim.new(0, UI_ITEM_PADDING)
 VisualRightList.SortOrder = Enum.SortOrder.LayoutOrder
 
 local function updateVisualCanvas()
@@ -637,18 +671,22 @@ local MiscLeft = Instance.new("Frame", MiscContent)
 MiscLeft.BackgroundTransparency = 1
 MiscLeft.Size = UDim2.new(0.5, -6, 1, 0)
 MiscLeft.Position = UDim2.new(0, 0, 0, 0)
+MiscLeft.ClipsDescendants = true
+
 
 local MiscRight = Instance.new("Frame", MiscContent)
 MiscRight.BackgroundTransparency = 1
 MiscRight.Size = UDim2.new(0.5, -6, 1, 0)
 MiscRight.Position = UDim2.new(0.5, 6, 0, 0)
+MiscRight.ClipsDescendants = true
+
 
 local MiscLeftList = Instance.new("UIListLayout", MiscLeft)
-MiscLeftList.Padding = UDim.new(0, 10)
+MiscLeftList.Padding = UDim.new(0, UI_ITEM_PADDING)
 MiscLeftList.SortOrder = Enum.SortOrder.LayoutOrder
 
 local MiscRightList = Instance.new("UIListLayout", MiscRight)
-MiscRightList.Padding = UDim.new(0, 10)
+MiscRightList.Padding = UDim.new(0, UI_ITEM_PADDING)
 MiscRightList.SortOrder = Enum.SortOrder.LayoutOrder
 
 
@@ -657,7 +695,8 @@ local function updateMiscCanvas()
 		MiscLeftList.AbsoluteContentSize.Y,
 		MiscRightList.AbsoluteContentSize.Y
 	)
-	PageMisc.CanvasSize = UDim2.new(0, 0, 0, h + 20)
+	PageMisc.CanvasSize = UDim2.new(0, 0, 0, h + 80)
+
 end
 
 MiscLeftList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateMiscCanvas)
@@ -698,7 +737,7 @@ LogsTitle:SetAttribute("NoDrag", true)
 local LogsList = Instance.new("ScrollingFrame", LogsContainer)
 LogsList.BackgroundTransparency = 1
 LogsList.Position = UDim2.new(0, 6, 0, 36)
-LogsList.Size = UDim2.new(1, -12, 1, -42)
+LogsList.Size = UDim2.new(1, -12, 1, -48)
 LogsList.CanvasSize = UDim2.new(0, 0, 0, 0)
 LogsList.ScrollBarThickness = 4
 LogsList.ScrollBarImageColor3 = Theme.Accent
@@ -728,21 +767,20 @@ LogsUI_List = LogsList
 
 
 local Drag = {pending=false, active=false, startPos=nil, startMouse=nil, threshold=6}
+local SliderDragging = false
 
 local function beginDrag(input)
 	if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
 
-	-- ⛔ si el click fue sobre algo marcado como NoDrag → NO mover UI
-	local mousePos = UserInputService:GetMouseLocation()
+	-- ❌ si un slider está siendo arrastrado, NO mover UI
+	if SliderDragging then
+		return
+	end
 
-	for _,obj in ipairs(Window:GetDescendants()) do
-		if obj:IsA("GuiObject") and obj:GetAttribute("NoDrag") then
-			local p = obj.AbsolutePosition
-			local s = obj.AbsoluteSize
-			if mousePos.X >= p.X and mousePos.X <= p.X + s.X
-			and mousePos.Y >= p.Y and mousePos.Y <= p.Y + s.Y then
-				return -- 🚫 NO iniciar drag del UI
-			end
+	-- si está minimizado, SOLO drag desde header
+	if minimized then
+		if not input.Target:IsDescendantOf(Header) then
+			return
 		end
 	end
 
@@ -1031,7 +1069,7 @@ local function makeDropdownHeaderDynamic(parent, titleText)
 	container.ZIndex = 41
 
 	local list = Instance.new("UIListLayout", container)
-	list.Padding = UDim.new(0, 8)
+	list.Padding = UDim.new(0, UI_ITEM_PADDING)
 	list.SortOrder = Enum.SortOrder.LayoutOrder
 	list.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
@@ -1177,280 +1215,367 @@ do
 	hint.Text = "🏠 Auto listo. (Aquí metemos tus autos/farm si quieres)"
 end
 
---==================== VISUAL: ESP ====================
+--==================== VISUAL: ESP (REFACTOR ULTRA LIGERO) ====================
 local ESPEnabled = false
 local ESPItemsEnabled = false
 local ESPTextSize = 14
 local ESPColor = Color3.fromRGB(255, 80, 80)
 
+-- Cache interno (no toca UI / no cambia opciones)
+local ESP = {
+    Players = {},   -- [userId] = BillboardGui
+    Items = {},     -- [userId] = BillboardGui
+    Conns = {},     -- conexiones para cleanup
+    Running = true,
+}
+
+local function espIsAlive()
+    return UI and UI.Parent and getgenv().GlassmasUI_Running and ESP.Running
+end
+
+-- === REFRESH (sin scans PlayerGui) ===
 local function refreshESPFont()
-	for _, gui in ipairs(PlayerGui:GetChildren()) do
-		if gui:IsA("BillboardGui") and gui:GetAttribute("GlassmasESP") then
-			local label = gui:FindFirstChild("ESPNameLabel", true)
-			if label and label:IsA("TextLabel") then
-				label.Font = Fonts[CurrentFontName]
-			end
-		end
-	end
+    for _, gui in pairs(ESP.Players) do
+        local label = gui and gui:FindFirstChild("ESPNameLabel", true)
+        if label and label:IsA("TextLabel") then
+            label.Font = Fonts[CurrentFontName]
+        end
+    end
+    for _, gui in pairs(ESP.Items) do
+        local label = gui and gui:FindFirstChildWhichIsA("TextLabel", true)
+        if label and label:IsA("TextLabel") then
+            label.Font = Fonts[CurrentFontName]
+        end
+    end
 end
 
 local function applyESPTextSize()
-	for _,gui in ipairs(PlayerGui:GetChildren()) do
-		if gui:IsA("BillboardGui") then
-
-			-- ESP NOMBRE
-			if gui:GetAttribute("GlassmasESP") then
-				local lbl = gui:FindFirstChild("ESPNameLabel", true)
-				if lbl and lbl:IsA("TextLabel") then
-					lbl.TextSize = ESPTextSize
-				end
-			end
-		end
-	end
+    for _, gui in pairs(ESP.Players) do
+        local lbl = gui and gui:FindFirstChild("ESPNameLabel", true)
+        if lbl and lbl:IsA("TextLabel") then
+            lbl.TextSize = ESPTextSize
+        end
+    end
+    for _, gui in pairs(ESP.Items) do
+        local lbl = gui and gui:FindFirstChildWhichIsA("TextLabel", true)
+        if lbl and lbl:IsA("TextLabel") then
+            lbl.TextSize = math.clamp(ESPTextSize - 2, 10, 20)
+        end
+    end
 end
 
+local function applyESPColor()
+    for _, gui in pairs(ESP.Players) do
+        local lbl = gui and gui:FindFirstChild("ESPNameLabel", true)
+        if lbl and lbl:IsA("TextLabel") then
+            lbl.TextColor3 = ESPColor
+        end
+    end
+    for _, gui in pairs(ESP.Items) do
+        local lbl = gui and gui:FindFirstChildWhichIsA("TextLabel", true)
+        if lbl and lbl:IsA("TextLabel") then
+            lbl.TextColor3 = ESPColor
+        end
+    end
+end
 
+-- === Destroy helpers ===
+local function destroyPlayerESP(userId)
+    local gui = ESP.Players[userId]
+    if gui then
+        ESP.Players[userId] = nil
+        pcall(function() gui:Destroy() end)
+    end
+end
 
+local function destroyItemsESP(userId)
+    local gui = ESP.Items[userId]
+    if gui then
+        ESP.Items[userId] = nil
+        pcall(function() gui:Destroy() end)
+    end
+end
+
+-- Mantengo tus APIs para que NO rompa nada (close/shutdown)
 local function clearESP()
-	for _,gui in ipairs(PlayerGui:GetChildren()) do
-		if gui:IsA("BillboardGui") and (gui:GetAttribute("GlassmasESP") or tostring(gui.Name):find("GlassmasItemsESP_")) then
-			gui:Destroy()
-		end
-	end
+    for userId, _ in pairs(ESP.Players) do
+        destroyPlayerESP(userId)
+    end
+    for userId, _ in pairs(ESP.Items) do
+        destroyItemsESP(userId)
+    end
 end
-
-local function createESP(player)
-	if player == LocalPlayer then return end
-	if not player.Character then return end
-	local hrp = player.Character:FindFirstChild("HumanoidRootPart")
-	local hum = player.Character:FindFirstChildOfClass("Humanoid")
-	if not (hrp and hum) then return end
-
-	local bill = Instance.new("BillboardGui")
-	bill.Name = "GlassmasESP_"..player.UserId
-	bill.Adornee = hrp
-	bill.Size = UDim2.fromOffset(120, 34)
-	local camDist = (Camera.CFrame.Position - hrp.Position).Magnitude
-local sep = getESPVerticalOffset(camDist)
-
-bill.StudsOffset = Vector3.new(0, 3 + sep, 0)
-
-	bill.AlwaysOnTop = true
-	bill.Parent = PlayerGui
-	bill:SetAttribute("GlassmasESP", true)
-
-	local name = Instance.new("TextLabel", bill)
-	name.Name = "ESPNameLabel"
-	name.BackgroundTransparency = 1
-	name.Size = UDim2.new(1, 0, 1, 0)
-	name.Font = Fonts[CurrentFontName]
-	name.TextSize = ESPTextSize
-	name.TextColor3 = ESPColor
-	name.TextStrokeTransparency = 0
-	name.Text = player.Name
-	name.TextScaled = false
-
-end
-
--- ==================== ESP AUTO-REFRESH SYSTEM (CORRECT PLACE) ====================
 
 local function removePlayerESP(player)
-	for _, gui in ipairs(PlayerGui:GetChildren()) do
-		if gui:IsA("BillboardGui") then
-			if gui.Name == "GlassmasESP_"..player.UserId
-			or gui.Name == "GlassmasItemsESP_"..player.UserId then
-				gui:Destroy()
-			end
-		end
-	end
+    if not player then return end
+    destroyPlayerESP(player.UserId)
+    destroyItemsESP(player.UserId)
 end
 
+-- === Create player ESP ===
+local function createESP(player)
+    if not espIsAlive() then return end
+    if not ESPEnabled then return end
+    if not player or player == LocalPlayer then return end
+
+    local char = player.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not (hrp and hum) then return end
+
+    -- si existe, no recrear
+    if ESP.Players[player.UserId] and ESP.Players[player.UserId].Parent then return end
+    destroyPlayerESP(player.UserId)
+
+    local bill = Instance.new("BillboardGui")
+    bill.Name = "GlassmasESP_" .. player.UserId
+    bill.Adornee = hrp
+    bill.Size = UDim2.fromOffset(120, 34)
+    bill.AlwaysOnTop = true
+    bill.Parent = PlayerGui
+    bill:SetAttribute("GlassmasESP", true)
+
+    local name = Instance.new("TextLabel", bill)
+    name.Name = "ESPNameLabel"
+    name.BackgroundTransparency = 1
+    name.Size = UDim2.new(1, 0, 1, 0)
+    name.Font = Fonts[CurrentFontName]
+    name.TextSize = ESPTextSize
+    name.TextColor3 = ESPColor
+    name.TextStrokeTransparency = 0
+    name.Text = player.Name
+    name.TextScaled = false
+
+    ESP.Players[player.UserId] = bill
+end
+
+-- === Items ESP (tool equipado) ===
+local function updatePlayerItemsESP(player)
+    if not espIsAlive() then return end
+    if not ESPItemsEnabled then return end
+    if not player or player == LocalPlayer then return end
+
+    local char = player.Character
+    if not char then
+        destroyItemsESP(player.UserId)
+        return
+    end
+
+    local leftFoot = char:FindFirstChild("LeftFoot")
+    if not (leftFoot and leftFoot:IsA("BasePart")) then
+        destroyItemsESP(player.UserId)
+        return
+    end
+
+    -- SOLO TOOL EQUIPADO
+    local equippedTool
+    for _, obj in ipairs(char:GetChildren()) do
+        if obj:IsA("Tool") then
+            equippedTool = obj
+            break
+        end
+    end
+
+    if not equippedTool then
+        destroyItemsESP(player.UserId)
+        return
+    end
+
+    local gui = ESP.Items[player.UserId]
+    if not (gui and gui.Parent) then
+        destroyItemsESP(player.UserId)
+
+        local bill = Instance.new("BillboardGui")
+        bill.Name = "GlassmasItemsESP_" .. player.UserId
+        bill.Adornee = leftFoot
+        bill.Size = UDim2.fromOffset(160, 26)
+        bill.AlwaysOnTop = true
+        bill.Parent = PlayerGui
+
+        local text = Instance.new("TextLabel", bill)
+        text.BackgroundTransparency = 1
+        text.Size = UDim2.new(1, 0, 1, 0)
+        text.Font = Fonts[CurrentFontName]
+        text.TextSize = math.clamp(ESPTextSize - 2, 10, 20)
+        text.TextColor3 = ESPColor
+        text.Text = "🖐 " .. equippedTool.Name
+
+        ESP.Items[player.UserId] = bill
+        gui = bill
+    end
+
+    -- update texto si cambió
+    local lbl = gui:FindFirstChildWhichIsA("TextLabel", true)
+    if lbl then
+        local newText = "🖐 " .. equippedTool.Name
+        if lbl.Text ~= newText then
+            lbl.Text = newText
+        end
+        lbl.TextSize = math.clamp(ESPTextSize - 2, 10, 20)
+        lbl.TextColor3 = ESPColor
+        lbl.Font = Fonts[CurrentFontName]
+    end
+
+    -- si el Adornee cambió
+    if gui.Adornee ~= leftFoot then
+        gui.Adornee = leftFoot
+    end
+end
+
+local function disableESP()
+    ESPEnabled = false
+    -- borrar SOLO Player ESP
+    for userId, gui in pairs(ESP.Players) do
+        if gui then
+            destroyPlayerESP(userId)
+        end
+    end
+end
+
+local function enableESP()
+    -- crear ESP para los players existentes (sin scans)
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            createESP(plr)
+        end
+    end
+end
+
+-- === Respawn hook (sin loops raros) ===
 local function hookCharacter(player)
-	player.CharacterAdded:Connect(function(char)
-		local hrp = char:WaitForChild("HumanoidRootPart", 6)
-		local hum = char:WaitForChild("Humanoid", 6)
-		if not (hrp and hum) then return end
+    if ESP.Conns["char_" .. player.UserId] then
+        ESP.Conns["char_" .. player.UserId]:Disconnect()
+        ESP.Conns["char_" .. player.UserId] = nil
+    end
 
-		task.wait(0.25)
+    ESP.Conns["char_" .. player.UserId] = player.CharacterAdded:Connect(function(char)
+        local hrp = char:WaitForChild("HumanoidRootPart", 6)
+        local hum = char:WaitForChild("Humanoid", 6)
+        if not (hrp and hum) then return end
 
-		if ESPEnabled then
-			removePlayerESP(player)
-			createESP(player)
-			AddLog("🔄 ESP respawn: "..player.Name)
-		end
-	end)
+        task.wait(0.25)
+
+        if ESPEnabled then
+            removePlayerESP(player)
+            createESP(player)
+            AddLog("🔄 ESP respawn: " .. player.Name)
+        else
+            removePlayerESP(player)
+        end
+    end)
 end
 
 -- jugadores que YA están
 for _, plr in ipairs(Players:GetPlayers()) do
-	if plr ~= LocalPlayer then
-		hookCharacter(plr)
-	end
+    if plr ~= LocalPlayer then
+        hookCharacter(plr)
+    end
 end
 
 -- jugadores que ENTRAN después
-Players.PlayerAdded:Connect(function(plr)
-	if plr == LocalPlayer then return end
-	hookCharacter(plr)
+ESP.Conns.PlayerAdded = Players.PlayerAdded:Connect(function(plr)
+    if plr == LocalPlayer then return end
+    hookCharacter(plr)
 
-	if ESPEnabled then
-		task.wait(0.4)
-		createESP(plr)
-		AddLog("➕ SE UNIO: "..plr.Name)
-	end
+    if ESPEnabled then
+        task.wait(0.25)
+        createESP(plr)
+        AddLog("➕ SE UNIO: " .. plr.Name)
+    end
 end)
 
-local function updatePlayerItemsESP(player)
-	if not ESPItemsEnabled then return end
-	if player == LocalPlayer then return end
-	if not player.Character then return end
+ESP.Conns.PlayerRemoving = Players.PlayerRemoving:Connect(function(plr)
+    removePlayerESP(plr)
+end)
 
-	local leftFoot = player.Character:FindFirstChild("LeftFoot")
-	if not leftFoot or not leftFoot:IsA("BasePart") then return end
-
-	-- borrar ESP anterior
-	for _,g in ipairs(PlayerGui:GetChildren()) do
-		if g:IsA("BillboardGui") and g.Name == "GlassmasItemsESP_"..player.UserId then
-			g:Destroy()
-		end
-	end
-
-
-	-- SOLO TOOL EQUIPADO
-	local equippedTool
-	for _,obj in ipairs(player.Character:GetChildren()) do
-		if obj:IsA("Tool") then
-			equippedTool = obj
-			break
-		end
-	end
-	if not equippedTool then return end
-
-	-- crear ESP en el PIE
-	local bill = Instance.new("BillboardGui")
-	bill.Name = "GlassmasItemsESP_"..player.UserId
-	bill.Adornee = leftFoot
-	bill.Size = UDim2.fromOffset(160, 26)
-	local camDist = (Camera.CFrame.Position - leftFoot.Position).Magnitude
-local sep = getESPVerticalOffset(camDist)
-
-bill.StudsOffset = Vector3.new(0, -0.6 - sep, 0)
-
-	bill.AlwaysOnTop = true
-	bill.Parent = PlayerGui
-
-	local text = Instance.new("TextLabel", bill)
-	text.BackgroundTransparency = 1
-	text.Size = UDim2.new(1,0,1,0)
-	text.Font = Fonts[CurrentFontName]
-	text.TextSize = math.clamp(ESPTextSize - 2, 10, 20)
-	text.TextColor3 = ESPColor
-	text.Text = "🖐 "..equippedTool.Name
-end
-
-
-
-local function disableESP()
-	-- apaga flags
-	ESPEnabled = false
-	ESPItemsEnabled = false
-
-	-- borra TODOS los BillboardGui del ESP (nombres y items)
-	for _,gui in ipairs(PlayerGui:GetChildren()) do
-		if gui:IsA("BillboardGui") and (gui:GetAttribute("GlassmasESP") or tostring(gui.Name):find("GlassmasItemsESP_")) then
-			gui:Destroy()
-		end
-	end
-end
-
-local function enableESP()
-	clearESP()
-	for _,plr in ipairs(Players:GetPlayers()) do
-		if plr ~= LocalPlayer then
-			createESP(plr)
-		end
-	end
-end
-
--- IZQUIERDA
+-- IZQUIERDA (MISMO TOGGLE / MISMA OPCIÓN)
 makeAppleToggle(VisualLeft, "👁 Player ESP", 1, function(on)
-	ESPEnabled = on
-	AddLog(on and "ESP ACTIVADO" or "ESP DESACTIVADO")
-	if on then enableESP() else disableESP() end
+    ESPEnabled = on
+    AddLog(on and "ESP ACTIVADO" or "ESP DESACTIVADO")
+    if on then enableESP() else disableESP() end
 end)
 
 makeAppleToggle(VisualLeft, "🔍 Mostrar objetos del jugador", 2, function(on)
-	ESPItemsEnabled = on
-	AddLog(on and "ItemsESP ON" or "ItemsESP OFF")
+    ESPItemsEnabled = on
+    AddLog(on and "ItemsESP ON" or "ItemsESP OFF")
+
+    if not on then
+        -- borrar items sin tocar player esp
+        for userId, _ in pairs(ESP.Items) do
+            destroyItemsESP(userId)
+        end
+    end
 end)
 
--- DERECHA
+-- DERECHA (MISMO HEADER / MISMO CONTENIDO)
 local ESPHeader, ESPContainer = makeDropdownHeaderDynamic(
-	VisualRight,
-	"⚙️ Ajustes de ESP"
+    VisualRight,
+    "⚙️ Ajustes de ESP"
 )
 ESPHeader.LayoutOrder = 1
 ESPContainer.LayoutOrder = 2
 
--- tamaño del texto ESP (SLIDER)
+-- tamaño del texto ESP (SLIDER) - MISMA UX
 do
-	local SliderFrame = Instance.new("Frame", ESPContainer)
-SliderFrame.Size = UDim2.new(1, 0, 0, 56)
-SliderFrame:SetAttribute("NoDrag", true)
-SliderFrame.BackgroundTransparency = 1
-SliderFrame.ZIndex = 41
+    local SliderFrame = Instance.new("Frame", ESPContainer)
+    SliderFrame.Size = UDim2.new(1, 0, 0, UI_ITEM_HEIGHT + 12)
+    SliderFrame:SetAttribute("NoDrag", true)
+    SliderFrame.BackgroundTransparency = 1
+    SliderFrame.ZIndex = 41
 
-	local Title = Instance.new("TextLabel", SliderFrame)
-	Title.BackgroundTransparency = 1
-	Title.Size = UDim2.new(1, 0, 0, 22)
-	Title.Font = Fonts[CurrentFontName]
-	Title.TextSize = 14
-	Title.TextColor3 = Theme.Text
-	Title.TextXAlignment = Enum.TextXAlignment.Left
-	Title.Text = "🔠 Tamaño del texto ESP"
+    local Title = Instance.new("TextLabel", SliderFrame)
+    Title.BackgroundTransparency = 1
+    Title.Size = UDim2.new(1, 0, 0, 22)
+    Title.Font = Fonts[CurrentFontName]
+    Title.TextSize = 14
+    Title.TextColor3 = Theme.Text
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+    Title.Text = "🔠 Tamaño del texto ESP"
 
-	local BarBack = Instance.new("Frame", SliderFrame)
-	BarBack.Position = UDim2.new(0, 0, 0, 32)
-	BarBack.Size = UDim2.new(1, 0, 0, 10)
-	BarBack.BackgroundColor3 = Color3.fromRGB(0,0,0)
-	BarBack.BackgroundTransparency = 0.65
-	BarBack.BorderSizePixel = 0
-	Instance.new("UICorner", BarBack).CornerRadius = UDim.new(1,0)
+    local BarBack = Instance.new("Frame", SliderFrame)
+    BarBack.Position = UDim2.new(0, 0, 0, 32)
+    BarBack.Size = UDim2.new(1, 0, 0, 10)
+    BarBack.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    BarBack.BackgroundTransparency = 0.65
+    BarBack.BorderSizePixel = 0
+    Instance.new("UICorner", BarBack).CornerRadius = UDim.new(1, 0)
 
-	local BarFill = Instance.new("Frame", BarBack)
-	BarFill.Size = UDim2.new(0, 0, 1, 0)
-	BarFill.BackgroundColor3 = Theme.Accent
-	BarFill.BorderSizePixel = 0
-	Instance.new("UICorner", BarFill).CornerRadius = UDim.new(1,0)
+    local BarFill = Instance.new("Frame", BarBack)
+    BarFill.Size = UDim2.new(0, 0, 1, 0)
+    BarFill.BackgroundColor3 = Theme.Accent
+    BarFill.BorderSizePixel = 0
+    Instance.new("UICorner", BarFill).CornerRadius = UDim.new(1, 0)
 
-	local Knob = Instance.new("Frame", BarBack)
-	Knob.Size = UDim2.new(0, 18, 0, 18)
-	Knob.Position = UDim2.new(0, -9, 0.5, -9)
-	Knob.BackgroundColor3 = Color3.fromRGB(235,235,235)
-	Knob.BorderSizePixel = 0
-	Knob.ZIndex = 42
-	Instance.new("UICorner", Knob).CornerRadius = UDim.new(1,0)
+    local Knob = Instance.new("Frame", BarBack)
+    Knob.Size = UDim2.new(0, 18, 0, 18)
+    Knob.Position = UDim2.new(0, -9, 0.5, -9)
+    Knob.BackgroundColor3 = Color3.fromRGB(235, 235, 235)
+    Knob.BorderSizePixel = 0
+    Knob.ZIndex = 42
+    Instance.new("UICorner", Knob).CornerRadius = UDim.new(1, 0)
 
-	local dragging = false
-	local MIN, MAX = 10, 22
+    local dragging = false
+    local MIN, MAX = 10, 22
 
-local function setFromX(x)
-	local pct = math.clamp(
-		(x - BarBack.AbsolutePosition.X) / BarBack.AbsoluteSize.X,
-		0, 1
-	)
+    local function setFromX(x)
+        local pct = math.clamp(
+            (x - BarBack.AbsolutePosition.X) / BarBack.AbsoluteSize.X,
+            0, 1
+        )
 
-	ESPTextSize = math.floor(MIN + (MAX - MIN) * pct)
-	applyESPTextSize()
+        ESPTextSize = math.floor(MIN + (MAX - MIN) * pct)
+        applyESPTextSize()
 
-	BarFill.Size = UDim2.new(pct, 0, 1, 0)
-	Knob.Position = UDim2.new(pct, -9, 0.5, -9)
-end
+        BarFill.Size = UDim2.new(pct, 0, 1, 0)
+        Knob.Position = UDim2.new(pct, -9, 0.5, -9)
+    end
 
-BarBack.InputBegan:Connect(function(i)
+    BarBack.InputBegan:Connect(function(i)
 	if i.UserInputType == Enum.UserInputType.MouseButton1 then
 		dragging = true
-		Drag.pending = false -- 🔑 evita mover el UI
+		SliderDragging = true
+		Drag.pending = false
 		setFromX(i.Position.X)
 	end
 end)
@@ -1458,136 +1583,145 @@ end)
 UserInputService.InputEnded:Connect(function(i)
 	if i.UserInputType == Enum.UserInputType.MouseButton1 then
 		dragging = false
+		SliderDragging = false
 	end
 end)
 
-UserInputService.InputChanged:Connect(function(i)
-	if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
-		setFromX(i.Position.X)
-	end
-end)
+    UserInputService.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
 
--- marcar slider como NO DRAG (evita bloquear el UI)
-SliderFrame:SetAttribute("NoDrag", true)
-BarBack:SetAttribute("NoDrag", true)
-BarFill:SetAttribute("NoDrag", true)
-Knob:SetAttribute("NoDrag", true)
+    UserInputService.InputChanged:Connect(function(i)
+        if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
+            setFromX(i.Position.X)
+        end
+    end)
 
+    SliderFrame:SetAttribute("NoDrag", true)
+    BarBack:SetAttribute("NoDrag", true)
+    BarFill:SetAttribute("NoDrag", true)
+    Knob:SetAttribute("NoDrag", true)
 
--- valor inicial
-	task.defer(function()
-		local pct = (ESPTextSize - MIN) / (MAX - MIN)
-		BarFill.Size = UDim2.new(pct, 0, 1, 0)
-		Knob.Position = UDim2.new(pct, -9, 0.5, -9)
-	end)
+    task.defer(function()
+        local pct = (ESPTextSize - MIN) / (MAX - MIN)
+        BarFill.Size = UDim2.new(pct, 0, 1, 0)
+        Knob.Position = UDim2.new(pct, -9, 0.5, -9)
+    end)
 end
 
-
--- color (estable, sin duplicar botón)
+-- color (MISMO BOTÓN / MISMA FUNCIÓN)
 do
-	local colorBtn = Instance.new("TextButton", ESPContainer)
-	colorBtn.Size = UDim2.new(1, 0, 0, 44)
-colorBtn:SetAttribute("NoDrag", true)
-	colorBtn.BackgroundColor3 = ESPColor
-	colorBtn.Text = "🎨 Color del ESP"
-	colorBtn.Font = Fonts[CurrentFontName]
-	colorBtn.TextSize = 14
-	colorBtn.TextColor3 = Color3.new(1,1,1)
-	colorBtn.BorderSizePixel = 0
-	Instance.new("UICorner", colorBtn).CornerRadius = UDim.new(0,14)
+    local colorBtn = Instance.new("TextButton", ESPContainer)
+    colorBtn.Size = UDim2.new(1, 0, 0, 44)
+    colorBtn:SetAttribute("NoDrag", true)
+    colorBtn.BackgroundColor3 = ESPColor
+    colorBtn.Text = "🎨 Color del ESP"
+    colorBtn.Font = Fonts[CurrentFontName]
+    colorBtn.TextSize = 14
+    colorBtn.TextColor3 = Color3.new(1, 1, 1)
+    colorBtn.BorderSizePixel = 0
+    Instance.new("UICorner", colorBtn).CornerRadius = UDim.new(0, 14)
 
-	local hue = 0
-	colorBtn.MouseButton1Click:Connect(function()
-		if shouldIgnoreClick() then return end
-		playOptionSound()
-		hue = (hue + 0.12) % 1
-		ESPColor = Color3.fromHSV(hue, 1, 1)
-		colorBtn.BackgroundColor3 = ESPColor
+    local hue = 0
+    colorBtn.MouseButton1Click:Connect(function()
+        if shouldIgnoreClick() then return end
+        playOptionSound()
+        hue = (hue + 0.12) % 1
+        ESPColor = Color3.fromHSV(hue, 1, 1)
+        colorBtn.BackgroundColor3 = ESPColor
 
-		for _,gui in ipairs(PlayerGui:GetChildren()) do
-			if gui:IsA("BillboardGui") and gui:GetAttribute("GlassmasESP") then
-				local lbl = gui:FindFirstChild("ESPNameLabel", true)
-				if lbl and lbl:IsA("TextLabel") then
-					lbl.TextColor3 = ESPColor
-				end
-			end
-		end
-		AddLog("ESP Color actualizado")
-	end)
+        applyESPColor()
+        AddLog("ESP Color actualizado")
+    end)
 end
 
--- loop items esp (FIXED)
-task.spawn(function()
-	while getgenv().GlassmasUI_Running do
-		if ESPEnabled then
-			-- crear ESP si falta
-			for _,plr in ipairs(Players:GetPlayers()) do
-				if plr ~= LocalPlayer then
-					local exists = false
-					for _,gui in ipairs(PlayerGui:GetChildren()) do
-						if gui:IsA("BillboardGui") and gui:GetAttribute("GlassmasESP") and gui.Name == "GlassmasESP_"..plr.UserId then
-							exists = true
-							break
-						end
-					end
-					if not exists then
-						createESP(plr)
-					end
-				end
-			end
+-- === Loops ultra ligeros (sin scans / sin destruir y recrear sin motivo) ===
+-- 1) offsets + sanity de player esp (0.25s)
+ESP.Conns.ESP_LoopA = task.spawn(function()
+    while espIsAlive() do
+        if ESPEnabled then
+            for userId, gui in pairs(ESP.Players) do
+                if gui and gui.Parent and gui.Adornee and gui.Adornee:IsA("BasePart") then
+                    local adornee = gui.Adornee
+                    local dist = (Camera.CFrame.Position - adornee.Position).Magnitude
+                    local sep = getESPVerticalOffset(dist)
+                    gui.StudsOffset = Vector3.new(0, 3 + sep, 0)
 
-			-- mantener tamaños / color (estable)
-			for _,gui in ipairs(PlayerGui:GetChildren()) do
-				if gui:IsA("BillboardGui") then
+                    local lbl = gui:FindFirstChild("ESPNameLabel", true)
+                    if lbl and lbl:IsA("TextLabel") then
+                        lbl.TextSize = ESPTextSize
+                        lbl.TextColor3 = ESPColor
+                    end
+                end
+            end
 
-				-- 🔽 separación dinámica por distancia (ANTI MEZCLA)
-local adornee = gui.Adornee
-if adornee and adornee:IsA("BasePart") then
-	local dist = (Camera.CFrame.Position - adornee.Position).Magnitude
-	local sep = getESPVerticalOffset(dist)
-
-	if gui:GetAttribute("GlassmasESP") then
-		-- nombre del jugador (sube más a distancia)
-		gui.StudsOffset = Vector3.new(0, 3 + sep, 0)
-
-	elseif tostring(gui.Name):find("GlassmasItemsESP_") then
-		-- objeto en la mano (baja más a distancia)
-		gui.StudsOffset = Vector3.new(0, -0.6 - sep, 0)
-	end
-end
-					if gui:GetAttribute("GlassmasESP") then
-						local lbl = gui:FindFirstChild("ESPNameLabel", true)
-						if lbl and lbl:IsA("TextLabel") then
-							lbl.TextSize = ESPTextSize
-							lbl.TextColor3 = ESPColor
-						end
-					elseif tostring(gui.Name):find("GlassmasItemsESP_") then
-						local lbl = gui:FindFirstChildWhichIsA("TextLabel", true)
-						if lbl then
-							lbl.TextSize = math.clamp(ESPTextSize - 2, 10, 20)
-							lbl.TextColor3 = ESPColor
-						end
-					end
-				end
-			end
-		end
-
-		if ESPEnabled and ESPItemsEnabled then
-			for _,plr in ipairs(Players:GetPlayers()) do
-				updatePlayerItemsESP(plr)
-			end
-		end
-
-		task.wait(0.11)
-	end
+            -- crear si falta (players nuevos / edge cases)
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer then
+                    local g = ESP.Players[plr.UserId]
+                    if not (g and g.Parent) then
+                        createESP(plr)
+                    end
+                end
+            end
+        end
+        task.wait(0.25)
+    end
 end)
 
+-- 2) items update (0.15s)
+ESP.Conns.ESP_LoopB = task.spawn(function()
+    while espIsAlive() do
+        if ESPItemsEnabled then
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer then
+                    updatePlayerItemsESP(plr)
+                end
+            end
+
+            for userId, gui in pairs(ESP.Items) do
+                if gui and gui.Parent and gui.Adornee and gui.Adornee:IsA("BasePart") then
+                    local adornee = gui.Adornee
+                    local dist = (Camera.CFrame.Position - adornee.Position).Magnitude
+                    local sep = getESPVerticalOffset(dist)
+                    gui.StudsOffset = Vector3.new(0, -0.6 - sep, 0)
+                end
+            end
+        else
+            -- si se apagó, limpiar items sin tocar players
+            for userId, _ in pairs(ESP.Items) do
+                destroyItemsESP(userId)
+            end
+        end
+        task.wait(0.15)
+    end
+end)
+
+-- === Exponer para tu shutdown/close (no rompe) ===
+getgenv().GlassmasUI_ESP_Clear = function()
+    clearESP()
+end
+
+getgenv().GlassmasUI_ESP_Stop = function()
+    ESP.Running = false
+    -- limpia todo al parar
+    clearESP()
+    -- desconectar events player hooks
+    for k, c in pairs(ESP.Conns) do
+        if typeof(c) == "RBXScriptConnection" then
+            pcall(function() c:Disconnect() end)
+        end
+        ESP.Conns[k] = nil
+    end
+end
 
 --==================== SETTINGS (SCROLL) ====================
 local SettingsScroll = Instance.new("ScrollingFrame", PageSettings)
 SettingsScroll.BackgroundTransparency = 1
 SettingsScroll.BorderSizePixel = 0
-SettingsScroll.Size = UDim2.new(1, 0, 1, 0)
+SettingsScroll.Size = UDim2.new(1, 0, 1, -6)
 SettingsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 SettingsScroll.ScrollBarThickness = 4
 SettingsScroll.ScrollBarImageColor3 = Theme.Accent
@@ -1597,7 +1731,7 @@ SettingsScroll:SetAttribute("NoDrag", true)
 
 
 local SettingsList = Instance.new("UIListLayout", SettingsScroll)
-SettingsList.Padding = UDim.new(0, 10)
+SettingsList.Padding = UDim.new(0, UI_ITEM_PADDING)
 SettingsList.SortOrder = Enum.SortOrder.LayoutOrder
 SettingsList.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
@@ -1631,7 +1765,7 @@ snowToggle.Set(true)
 -- Keybind hide/show
 local KeyRow = Instance.new("Frame", SettingsScroll)
 KeyRow.BackgroundTransparency = 1
-KeyRow.Size = UDim2.new(1, -24, 0, 48)
+KeyRow.Size = UDim2.new(1, -24, 0, UI_ITEM_HEIGHT)
 KeyRow.ZIndex = 41
 
 local KeyLabel = Instance.new("TextLabel", KeyRow)
@@ -1718,6 +1852,10 @@ local function applyStyle(key)
 	tween(SettingsScroll, TMed, {ScrollBarImageColor3 = Theme.Accent})
 	tween(PageVisual, TMed, {ScrollBarImageColor3 = Theme.Accent})
 	tween(PageMisc, TMed, {ScrollBarImageColor3 = Theme.Accent})
+	if LogsList then
+	tween(LogsList, TMed, {ScrollBarImageColor3 = Theme.Accent})
+end
+
 
 	-- logs
 	tween(LogsStroke, TMed, {Color = Theme.Accent})
@@ -1938,12 +2076,30 @@ local snowCollectRunning = false
 local snowCollectThreadId = 0
 local TP_OFFSET = Vector3.new(0, 6, 0)
 -- 🔁 Refuerzo de ProximityPrompts (evita que desaparezca la E)
-local promptForceRunning = false
+-- ==================== SNOWMAN PROMPT CONTROL (FIX DEFINITIVO) ====================
+local SnowmanPromptCache = {}
 
+local function cacheSnowmanPrompts()
+	SnowmanPromptCache = {}
+	local folder = workspace:FindFirstChild("Snowmans")
+	if not folder then return end
+
+	for _, obj in ipairs(folder:GetDescendants()) do
+		if obj:IsA("ProximityPrompt") then
+			SnowmanPromptCache[obj] = {
+				Enabled = obj.Enabled,
+				HoldDuration = obj.HoldDuration,
+				MaxActivationDistance = obj.MaxActivationDistance,
+				RequiresLineOfSight = obj.RequiresLineOfSight,
+			}
+		end
+	end
+end
 
 local function forceSnowmanPrompts()
 	local folder = workspace:FindFirstChild("Snowmans")
 	if not folder then return end
+
 	for _, obj in ipairs(folder:GetDescendants()) do
 		if obj:IsA("ProximityPrompt") then
 			pcall(function()
@@ -1956,29 +2112,20 @@ local function forceSnowmanPrompts()
 	end
 end
 
-
--- 🔁 Mantiene forzados los prompts mientras dura la recolección
-local function keepSnowmanPromptsForced()
-	promptForceRunning = true
-	task.spawn(function()
-		while promptForceRunning and getgenv().GlassmasUI_Running do
-			local folder = workspace:FindFirstChild("Snowmans")
-			if folder then
-				for _, obj in ipairs(folder:GetDescendants()) do
-					if obj:IsA("ProximityPrompt") then
-						pcall(function()
-							obj.Enabled = true
-							obj.HoldDuration = 0
-							obj.MaxActivationDistance = 999
-							obj.RequiresLineOfSight = false
-						end)
-					end
-				end
-			end
-			task.wait(1) -- ⏱️ cada 1 segundo (estable)
+local function restoreSnowmanPrompts()
+	for prompt, data in pairs(SnowmanPromptCache) do
+		if prompt and prompt.Parent then
+			pcall(function()
+				prompt.Enabled = data.Enabled
+				prompt.HoldDuration = data.HoldDuration
+				prompt.MaxActivationDistance = data.MaxActivationDistance
+				prompt.RequiresLineOfSight = data.RequiresLineOfSight
+			end)
 		end
-	end)
+	end
+	SnowmanPromptCache = {}
 end
+
 
 
 local function disableSnowmanPrompts()
@@ -2044,8 +2191,8 @@ local function startCollectSnowmans()
 
 	Notify("☃️ Recolectando Snowmans...", true)
 	AddLog("☃️ Iniciando ONE-SHOT Snowmans ("..#valid..")")
-	forceSnowmanPrompts()
-	keepSnowmanPromptsForced()
+	cacheSnowmanPrompts()
+forceSnowmanPrompts()
 
 	local cam = workspace.CurrentCamera
 	local processed = {}
@@ -2099,9 +2246,8 @@ local function startCollectSnowmans()
 		task.wait(0.35)
 	end
     
-	disableSnowmanPrompts()
-	promptForceRunning = false
-	snowCollectRunning = false
+	restoreSnowmanPrompts()
+snowCollectRunning = false
 	Notify("✅ Recolección finalizada ("..collected.." / "..#valid..")", true)
 	AddLog("☃️ Final: "..collected.." / "..#valid)
 	AddLog("🛑 Snowmans auto OFF")
@@ -2218,7 +2364,7 @@ local waitingFlyKey = false
 -- Row para Fly (con toggle + keybind)
 local FlyRow = Instance.new("Frame", MiscLeft)
 FlyRow.BackgroundTransparency = 1
-FlyRow.Size = UDim2.new(1, 0, 0, 48)
+FlyRow.Size = UDim2.new(1, 0, 0, UI_ITEM_HEIGHT)
 FlyRow.LayoutOrder = 1
 
 -- Toggle Fly
@@ -2376,7 +2522,7 @@ local dupeMoneyBtn = makeAppleAction(
 		AddLog("🧼 Limpieza total iniciada")
 
 		-- 🖤 pantalla negra SOLO 8 segundos
-		showCleaningScreen(8)
+		showCleaningScreen(9)
 
 		-- 🚀 ejecutar dryer
 		task.spawn(runMoneyDryer)
@@ -2414,7 +2560,7 @@ attachTooltip(
 
 do
 	local SliderFrame = Instance.new("Frame", FlyContainer)
-	SliderFrame.Size = UDim2.new(1, 0, 0, 56)
+	SliderFrame.Size = UDim2.new(1, 0, 0, UI_ITEM_HEIGHT + 12)
 	SliderFrame.BackgroundTransparency = 1
 
 	local Title = Instance.new("TextLabel", SliderFrame)
@@ -2466,12 +2612,21 @@ do
 	end
 
 	BarBack.InputBegan:Connect(function(i)
-		if i.UserInputType == Enum.UserInputType.MouseButton1 then
-			dragging = true
-			Drag.pending = false
-			setFromX(i.Position.X)
-		end
-	end)
+	if i.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		SliderDragging = true
+		Drag.pending = false
+		setFromX(i.Position.X)
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+		SliderDragging = false
+	end
+end)
+
 
 	UserInputService.InputEnded:Connect(function(i)
 		if i.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -2671,6 +2826,30 @@ local serverHopBtn = makeAppleAction(
 serverHopBtn.Size = UDim2.new(1, 0, 0, 44)
 serverHopBtn.TextSize = 14
 serverHopBtn:SetAttribute("NoDrag", true)
+
+-- 🔄 REJOIN SERVER (MISMO SERVER)
+local rejoinBtn = makeAppleAction(
+    MiscRight,
+    "🔄 Rejoin Server",
+    7, -- debajo de serverHop
+    function()
+        Drag.active = false
+        Drag.pending = false
+
+        Notify("🔄 Reuniéndose al mismo server...", true)
+        AddLog("🔄 Rejoin Server ejecutado")
+
+        local ts = game:GetService("TeleportService")
+        local p = game:GetService("Players").LocalPlayer
+
+        ts:Teleport(game.PlaceId, p)
+    end
+)
+
+rejoinBtn.Size = UDim2.new(1, 0, 0, 44)
+rejoinBtn.TextSize = 14
+rejoinBtn:SetAttribute("NoDrag", true)
+
 
 
 --==================== MINIMIZE / CLOSE ====================
