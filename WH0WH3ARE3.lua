@@ -1103,23 +1103,33 @@ local SliderDragging = false
 local function beginDrag(input)
 	if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
 
-	-- ❌ si un slider está siendo arrastrado, NO mover UI
+	-- ❌ NO iniciar drag si el objeto dice NoDrag
+	if input.Target and input.Target:GetAttribute("NoDrag") then
+		return
+	end
+
+	-- ❌ NO drag si es un TextBox
+	if input.Target and input.Target:IsA("TextBox") then
+		return
+	end
+
+	-- ❌ NO drag si se está usando un slider
 	if SliderDragging then
 		return
 	end
 
-	-- si está minimizado, SOLO drag desde header
-	if minimized then
-		if not input.Target:IsDescendantOf(Header) then
-			return
-		end
+	-- ❌ si está minimizado, solo drag desde el header
+	if minimized and not input.Target:IsDescendantOf(Header) then
+		return
 	end
 
+	-- ✅ iniciar drag correctamente
 	Drag.pending = true
 	Drag.active = false
 	Drag.startMouse = input.Position
 	Drag.startPos = Window.Position
 end
+
 
 local function endDrag(input)
 	if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
@@ -1130,9 +1140,11 @@ local function endDrag(input)
 end
 
 shouldIgnoreClick = function()
-	-- ❌ si realmente estabas arrastrando, ignorar click
-	if Drag.active then
-		return true
+	-- solo ignorar click si REALMENTE hubo movimiento
+	if Drag.active and Drag.startMouse then
+		local mousePos = UserInputService:GetMouseLocation()
+		local delta = (mousePos - Drag.startMouse).Magnitude
+		return delta > Drag.threshold
 	end
 	return false
 end
