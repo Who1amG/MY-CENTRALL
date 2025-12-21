@@ -2578,13 +2578,27 @@ local function washMoney(dupeMode)
 
     -- Clicks iniciales 100% paralelos
     task.spawn(function()
-        pcall(fireproximityprompt or PPS.TriggerPrompt, mainDryer.prompt)
+    pcall(function()
+        if fireproximityprompt then
+            fireproximityprompt(mainDryer.prompt)
+        else
+            PPS:TriggerPrompt(mainDryer.prompt)
+        end
     end)
-    if dupeDryer then
-        task.spawn(function()
-            pcall(fireproximityprompt or PPS.TriggerPrompt, dupeDryer.prompt)
+end)
+
+if dupeDryer then
+    task.spawn(function()
+        pcall(function()
+            if fireproximityprompt then
+                fireproximityprompt(dupeDryer.prompt)
+            else
+                PPS:TriggerPrompt(dupeDryer.prompt)
+            end
         end)
-    end
+    end)
+end
+
 
     task.wait(0.8)
 
@@ -2594,9 +2608,23 @@ local function washMoney(dupeMode)
             local clicks = MONEY_WASH_TIME * MONEY_WASH_CPS
             for _ = 1, clicks do
                 if not moneyWashRunning then break end
-                pcall(fireproximityprompt or PPS.TriggerPrompt, prompt)
-                task.wait()
-                pcall(fireproximityprompt or PPS.TriggerPrompt, prompt)
+                pcall(function()
+    if fireproximityprompt then
+        fireproximityprompt(prompt)
+    else
+        PPS:TriggerPrompt(prompt)
+    end
+end)
+task.wait()
+pcall(function()
+
+    if fireproximityprompt then
+        fireproximityprompt(prompt)
+    else
+        PPS:TriggerPrompt(prompt)
+    end
+end)
+
                 task.wait(1 / MONEY_WASH_CPS - 0.01)
             end
         end)
