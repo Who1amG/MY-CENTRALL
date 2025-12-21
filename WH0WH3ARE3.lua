@@ -26,6 +26,41 @@ local minimized = false
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
+--==================== THEME & FONTS ====================
+local Styles = {
+	Red = {Glass=Color3.fromRGB(255,110,110), Header=Color3.fromRGB(60,15,20), Accent=Color3.fromRGB(255,90,90)},
+	Blue = {Glass=Color3.fromRGB(110,170,255), Header=Color3.fromRGB(15,25,60), Accent=Color3.fromRGB(120,180,255)},
+	Green = {Glass=Color3.fromRGB(110,255,170), Header=Color3.fromRGB(15,60,35), Accent=Color3.fromRGB(120,255,180)},
+	Purple = {Glass=Color3.fromRGB(180,110,255), Header=Color3.fromRGB(40,20,70), Accent=Color3.fromRGB(205,150,255)},
+	Gold = {Glass=Color3.fromRGB(255,210,110), Header=Color3.fromRGB(75,55,18), Accent=Color3.fromRGB(255,215,120)},
+	Black = {Glass=Color3.fromRGB(18,18,18), Header=Color3.fromRGB(10,10,10), Accent=Color3.fromRGB(90,90,90)},
+	BlackDark = {Glass=Color3.fromRGB(10,10,10), Header=Color3.fromRGB(6,6,6), Accent=Color3.fromRGB(60,60,60)},
+}
+
+local Fonts = {
+	["Gotham"] = Enum.Font.Gotham,
+	["Gotham Semi"] = Enum.Font.GothamSemibold,
+	["SourceSans"] = Enum.Font.SourceSans,
+	["Nunito"] = Enum.Font.Nunito,
+	["Fredoka"] = Enum.Font.FredokaOne,
+}
+
+local CurrentStyle = "Black"   -- 🔥 inicia en negro
+local CurrentFontName = "Fredoka"
+-- color glass para logs (mismo theme, más profundo)
+local function getLogsGlassColor(baseColor)
+    -- mezcla con negro para hacerlo más opaco sin perder el tono
+    return baseColor:Lerp(Color3.new(0, 0, 0), 0.18)
+end
+
+local Theme = {
+	Glass = Styles[CurrentStyle].Glass,
+	Header = Styles[CurrentStyle].Header,
+	Accent = Styles[CurrentStyle].Accent,
+	Text = Color3.fromRGB(245,248,255),
+	Muted = Color3.fromRGB(210,220,255),
+}
+
 --==================== ANTI DUPLICATE (FIXED - CIERRA LA VIEJA) ====================
 if getgenv().GlassmasUI_Running then
     pcall(function()
@@ -258,6 +293,26 @@ end)
     end)
 end
 
+--==================== SOUNDS ====================
+local S_Slide = Instance.new("Sound")
+S_Slide.SoundId = "rbxassetid://541909867"
+S_Slide.Volume = 1
+S_Slide.Parent = UI
+
+local S_Click = Instance.new("Sound")
+S_Click.SoundId = "rbxassetid://6026984224"
+S_Click.Volume = 1
+S_Click.Parent = UI
+
+local function playTabSound()
+	pcall(function() SoundService:PlayLocalSound(S_Slide) end)
+end
+local function playOptionSound()
+	pcall(function() SoundService:PlayLocalSound(S_Click) end)
+end
+
+
+
 --==================== TWEENS ====================
 local TFast = TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local TMed  = TweenInfo.new(0.26, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
@@ -370,58 +425,6 @@ local function blurOut()
 end
 
 
---==================== SOUNDS ====================
-local S_Slide = Instance.new("Sound")
-S_Slide.SoundId = "rbxassetid://541909867"
-S_Slide.Volume = 1
-S_Slide.Parent = UI
-
-local S_Click = Instance.new("Sound")
-S_Click.SoundId = "rbxassetid://6026984224"
-S_Click.Volume = 1
-S_Click.Parent = UI
-
-local function playTabSound()
-	pcall(function() SoundService:PlayLocalSound(S_Slide) end)
-end
-local function playOptionSound()
-	pcall(function() SoundService:PlayLocalSound(S_Click) end)
-end
-
---==================== THEME & FONTS ====================
-local Styles = {
-	Red = {Glass=Color3.fromRGB(255,110,110), Header=Color3.fromRGB(60,15,20), Accent=Color3.fromRGB(255,90,90)},
-	Blue = {Glass=Color3.fromRGB(110,170,255), Header=Color3.fromRGB(15,25,60), Accent=Color3.fromRGB(120,180,255)},
-	Green = {Glass=Color3.fromRGB(110,255,170), Header=Color3.fromRGB(15,60,35), Accent=Color3.fromRGB(120,255,180)},
-	Purple = {Glass=Color3.fromRGB(180,110,255), Header=Color3.fromRGB(40,20,70), Accent=Color3.fromRGB(205,150,255)},
-	Gold = {Glass=Color3.fromRGB(255,210,110), Header=Color3.fromRGB(75,55,18), Accent=Color3.fromRGB(255,215,120)},
-	Black = {Glass=Color3.fromRGB(18,18,18), Header=Color3.fromRGB(10,10,10), Accent=Color3.fromRGB(90,90,90)},
-	BlackDark = {Glass=Color3.fromRGB(10,10,10), Header=Color3.fromRGB(6,6,6), Accent=Color3.fromRGB(60,60,60)},
-}
-
-local Fonts = {
-	["Gotham"] = Enum.Font.Gotham,
-	["Gotham Semi"] = Enum.Font.GothamSemibold,
-	["SourceSans"] = Enum.Font.SourceSans,
-	["Nunito"] = Enum.Font.Nunito,
-	["Fredoka"] = Enum.Font.FredokaOne,
-}
-
-local CurrentStyle = "Black"   -- 🔥 inicia en negro
-local CurrentFontName = "Fredoka"
--- color glass para logs (mismo theme, más profundo)
-local function getLogsGlassColor(baseColor)
-    -- mezcla con negro para hacerlo más opaco sin perder el tono
-    return baseColor:Lerp(Color3.new(0, 0, 0), 0.18)
-end
-
-local Theme = {
-	Glass = Styles[CurrentStyle].Glass,
-	Header = Styles[CurrentStyle].Header,
-	Accent = Styles[CurrentStyle].Accent,
-	Text = Color3.fromRGB(245,248,255),
-	Muted = Color3.fromRGB(210,220,255),
-}
 
 --==================== LOGS & NOTIFY ====================
 local ActiveLogs = {}
