@@ -1093,64 +1093,85 @@ task.defer(updateLogsCanvas)
 
 LogsUI_List = LogsList
 
---==================== DRAG ANYWHERE (XENO SAFE) ====================
+--==================== DRAG ANYWHERE (FIX FINAL) ====================
 
+local Drag = {
+	pending = false,
+	active = false,
+	startPos = nil,
+	startMouse = nil,
+	threshold = 6
+}
 
-local Drag = {pending=false, active=false, startPos=nil, startMouse=nil, threshold=6}
 local SliderDragging = false
+
+local function canDragFrom(target)
+	if not target then return false end
+	if target:GetAttribute("NoDrag") then return false end
+	if target:IsA("TextBox") then return false end
+	return true
+end
 
 local function beginDrag(input)
 	if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+	if not canDragFrom(input.Target) then return end
+	if SliderDragging then return end
+	if minimized and not input.Target:IsDescendantOf(Header) then return end
 
-	-- ❌ NO iniciar drag si el objeto dice NoDrag
-	if input.Target and input.Target:GetAttribute("NoDrag") then
-		return
-	end
-
-	-- ❌ NO drag si es un TextBox
-	if input.Target and input.Target:IsA("TextBox") then
-		return
-	end
-
-	-- ❌ NO drag si se está usando un slider
-	if SliderDragging then
-		return
-	end
-
-	-- ❌ si está minimizado, solo drag desde el header
-	if minimized and not input.Target:IsDescendantOf(Header) then
-		return
-	end
-
-	-- ✅ iniciar drag correctamente
 	Drag.pending = true
 	Drag.active = false
 	Drag.startMouse = input.Position
 	Drag.startPos = Window.Position
 end
 
-
 local function endDrag(input)
 	if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
-	task.delay(0.05, function()
-		Drag.pending = false
-		Drag.active = false
-	end)
+	Drag.pending = false
+	Drag.active = false
 end
 
+-- 🔥 DRAG DESDE CUALQUIER PARTE DEL WINDOW
+Window.InputBegan:Connect(beginDrag)
+Window.InputEnded:Connect(endDrag)
+
+-- 🔒 respaldo global (nunca se queda pegado)
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		Drag.pending = false
+		Drag.active = false
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input.UserInputType ~= Enum.UserInputType.MouseMovement then return end
+	if not Drag.pending then return end
+
+	local delta = input.Position - Drag.startMouse
+
+	if not Drag.active then
+		if math.abs(delta.X) >= Drag.threshold or math.abs(delta.Y) >= Drag.threshold then
+			Drag.active = true
+		else
+			return
+		end
+	end
+
+	Window.Position = UDim2.new(
+		Drag.startPos.X.Scale,
+		Drag.startPos.X.Offset + delta.X,
+		Drag.startPos.Y.Scale,
+		Drag.startPos.Y.Offset + delta.Y
+	)
+end)
+
 shouldIgnoreClick = function()
-	-- solo ignorar click si REALMENTE hubo movimiento
 	if Drag.active and Drag.startMouse then
 		local mousePos = UserInputService:GetMouseLocation()
-		local delta = (mousePos - Drag.startMouse).Magnitude
-		return delta > Drag.threshold
+		return (mousePos - Drag.startMouse).Magnitude > Drag.threshold
 	end
 	return false
 end
 
-
-Header.InputBegan:Connect(beginDrag)
-Header.InputEnded:Connect(endDrag)
 
 
 -- 🔑 FIX DEFINITIVO: liberar drag aunque sueltes sobre botones
