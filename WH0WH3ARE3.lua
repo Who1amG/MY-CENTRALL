@@ -19,7 +19,8 @@ local disableESP
 local shouldIgnoreClick
 local makeAppleAction
 local makeAppleToggle
-
+local GlassBlur
+local minimized = false
 
 
 local LocalPlayer = Players.LocalPlayer
@@ -443,7 +444,7 @@ WStroke.Transparency = 0.45
 --==================== BLUR iOS ====================
 local Lighting = game:GetService("Lighting")
 
-local GlassBlur = Instance.new("BlurEffect")
+GlassBlur = Instance.new("BlurEffect")
 GlassBlur.Name = "GlassmasBlur"
 GlassBlur.Size = 0
 GlassBlur.Parent = Lighting
@@ -3156,7 +3157,6 @@ rejoinWithScriptBtn:SetAttribute("NoDrag", true)
 
 
 --==================== MINIMIZE / CLOSE ====================
-local minimized = false
 local originalSize = Window.Size
 
 BtnMin.MouseButton1Click:Connect(function()
