@@ -535,20 +535,29 @@ local function snowLoop()
 end
 snowLoop()
 
---==================== TABS ====================
-local TabsBar = Instance.new("Frame", Window)
+--==================== TABS (SCROLL HORIZONTAL) ====================
+local TabsBar = Instance.new("ScrollingFrame", Window)
 TabsBar.BackgroundTransparency = 1
 TabsBar.Position = UDim2.new(0, 12, 0, 62)
 TabsBar.Size = UDim2.new(1, -24, 0, 44)
-TabsBar.Active = false
+TabsBar.CanvasSize = UDim2.new(0, 0, 0, 0)
+TabsBar.ScrollBarThickness = 4
+TabsBar.ScrollBarImageColor3 = Theme.Accent
+TabsBar.ScrollingDirection = Enum.ScrollingDirection.X
+TabsBar.Active = true
 TabsBar.ZIndex = 30
+TabsBar.BorderSizePixel = 0
 
 local TabsLayout = Instance.new("UIListLayout", TabsBar)
 TabsLayout.FillDirection = Enum.FillDirection.Horizontal
 TabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 TabsLayout.Padding = UDim.new(0, 10)
-TabsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+TabsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
 TabsLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+TabsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	TabsBar.CanvasSize = UDim2.new(0, TabsLayout.AbsoluteContentSize.X + 10, 0, 0)
+end)
 
 local function makeTabButton(txt)
 	local b = Instance.new("TextButton", TabsBar)
@@ -572,15 +581,18 @@ local function makeTabButton(txt)
 	return b, st
 end
 
-local TabAuto,    TabAutoStroke = makeTabButton("🏠 Auto")
-local TabVisual,  TabVisualStroke = makeTabButton("👁 Visual")
-local TabSettings,TabSetStroke = makeTabButton("⚙️ Settings")
-local TabMisc,    TabMiscStroke = makeTabButton("🧩 Misc")
+local TabAuto,   TabAutoStroke   = makeTabButton("🏠 Auto")
+local TabVisual, TabVisualStroke = makeTabButton("👁 Visual")
+local TabMisc,   TabMiscStroke   = makeTabButton("🧩 Misc")
+local TabGuns,   TabGunsStroke   = makeTabButton("🔫 Guns")
+local TabSettings, TabSetStroke  = makeTabButton("⚙️ Settings")
 
 TabAuto.LayoutOrder = 1
 TabVisual.LayoutOrder = 2
 TabMisc.LayoutOrder = 3
-TabSettings.LayoutOrder = 4
+TabGuns.LayoutOrder = 4
+TabSettings.LayoutOrder = 5
+
 
 
 --==================== CONTENT ====================
@@ -603,6 +615,8 @@ local function newPageFrame()
 end
 
 local PageAuto = newPageFrame()
+local PageGuns = newPageFrame()
+
 
 local PageVisual = Instance.new("ScrollingFrame", Content)
 PageVisual.BackgroundTransparency = 1
@@ -859,7 +873,9 @@ end)
 
 
 --==================== TAB SWITCH ====================
-local PageAutoKey, PageVisualKey, PageSettingsKey, PageMiscKey = "auto","visual","settings","misc"
+local PageAutoKey, PageVisualKey, PageMiscKey, PageGunsKey, PageSettingsKey =
+"auto","visual","misc","guns","settings"
+
 local CurrentPage = PageAuto
 PageAuto.Visible = true
 
@@ -871,9 +887,11 @@ local function setTabActive(which)
 		tween(st, TFast, {Transparency = active and 0.40 or 0.80})
 	end
 	style(TabAuto, TabAutoStroke, which==PageAutoKey)
-	style(TabVisual, TabVisualStroke, which==PageVisualKey)
-	style(TabSettings, TabSetStroke, which==PageSettingsKey)
-	style(TabMisc, TabMiscStroke, which==PageMiscKey)
+style(TabVisual, TabVisualStroke, which==PageVisualKey)
+style(TabMisc, TabMiscStroke, which==PageMiscKey)
+style(TabGuns, TabGunsStroke, which==PageGunsKey)
+style(TabSettings, TabSetStroke, which==PageSettingsKey)
+
 end
 
 setTabActive(PageAutoKey)
@@ -967,6 +985,12 @@ TabMisc.MouseButton1Click:Connect(function()
 	if shouldIgnoreClick() then return end
 	switchPage(PageMisc, PageMiscKey)
 end)
+
+TabGuns.MouseButton1Click:Connect(function()
+	if shouldIgnoreClick() then return end
+	switchPage(PageGuns, PageGunsKey)
+end)
+
 
 --==================== UI COMPONENTS ====================
 local function makeAppleToggle(parent, label, order, onChanged)
