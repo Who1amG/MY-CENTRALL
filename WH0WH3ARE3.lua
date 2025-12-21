@@ -535,18 +535,21 @@ local function snowLoop()
 end
 snowLoop()
 
---==================== TABS (SCROLL HORIZONTAL) ====================
+--==================== TABS ====================
 local TabsBar = Instance.new("ScrollingFrame", Window)
 TabsBar.BackgroundTransparency = 1
 TabsBar.Position = UDim2.new(0, 12, 0, 62)
 TabsBar.Size = UDim2.new(1, -24, 0, 44)
 TabsBar.CanvasSize = UDim2.new(0, 0, 0, 0)
-TabsBar.ScrollBarThickness = 4
-TabsBar.ScrollBarImageColor3 = Theme.Accent
+TabsBar.ScrollBarThickness = 2
+TabsBar.ScrollBarImageTransparency = 0
 TabsBar.ScrollingDirection = Enum.ScrollingDirection.X
+TabsBar.HorizontalScrollBarInset = Enum.ScrollBarInset.Always
+TabsBar.VerticalScrollBarInset = Enum.ScrollBarInset.None
+TabsBar.BorderSizePixel = 0
 TabsBar.Active = true
 TabsBar.ZIndex = 30
-TabsBar.BorderSizePixel = 0
+
 
 local TabsLayout = Instance.new("UIListLayout", TabsBar)
 TabsLayout.FillDirection = Enum.FillDirection.Horizontal
@@ -556,8 +559,39 @@ TabsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
 TabsLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 
 TabsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-	TabsBar.CanvasSize = UDim2.new(0, TabsLayout.AbsoluteContentSize.X + 10, 0, 0)
+	TabsBar.CanvasSize = UDim2.new(
+		0,
+		TabsLayout.AbsoluteContentSize.X + 12,
+		0,
+		0
+	)
 end)
+
+local TabScrollTween
+
+TabsBar.InputBegan:Connect(function(input)
+	if input.UserInputType ~= Enum.UserInputType.MouseWheel then return end
+
+	local delta = -input.Position.Z * 120
+	local targetX = math.clamp(
+		TabsBar.CanvasPosition.X + delta,
+		0,
+		math.max(0, TabsBar.CanvasSize.X - TabsBar.AbsoluteWindowSize.X)
+	)
+
+	if TabScrollTween then
+		TabScrollTween:Cancel()
+	end
+
+	TabScrollTween = TweenService:Create(
+		TabsBar,
+		TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{ CanvasPosition = Vector2.new(targetX, 0) }
+	)
+	TabScrollTween:Play()
+end)
+
+
 
 local function makeTabButton(txt)
 	local b = Instance.new("TextButton", TabsBar)
@@ -570,6 +604,8 @@ local function makeTabButton(txt)
 	b.BackgroundTransparency = 0.90
 	b.BorderSizePixel = 0
 	b.Size = UDim2.new(0, 124, 0, 40)
+b.ClipsDescendants = true
+
 	b.ZIndex = 31
 	Instance.new("UICorner", b).CornerRadius = UDim.new(0, 14)
 
@@ -581,17 +617,18 @@ local function makeTabButton(txt)
 	return b, st
 end
 
-local TabAuto,   TabAutoStroke   = makeTabButton("🏠 Auto")
-local TabVisual, TabVisualStroke = makeTabButton("👁 Visual")
-local TabMisc,   TabMiscStroke   = makeTabButton("🧩 Misc")
-local TabGuns,   TabGunsStroke   = makeTabButton("🔫 Guns")
-local TabSettings, TabSetStroke  = makeTabButton("⚙️ Settings")
+local Tabs = {}
 
-TabAuto.LayoutOrder = 1
-TabVisual.LayoutOrder = 2
-TabMisc.LayoutOrder = 3
-TabGuns.LayoutOrder = 4
-TabSettings.LayoutOrder = 5
+local function createTabs()
+	Tabs.Auto, Tabs.AutoStroke = makeTabButton("🏠 Auto")
+	Tabs.Visual, Tabs.VisualStroke = makeTabButton("👁 Visual")
+	Tabs.Guns, Tabs.GunsStroke = makeTabButton("🔫 Guns")
+	Tabs.Misc, Tabs.MiscStroke = makeTabButton("🧩 Misc")
+	Tabs.Settings, Tabs.SettingsStroke = makeTabButton("⚙️ Settings")
+end
+
+createTabs()
+
 
 
 
@@ -615,8 +652,6 @@ local function newPageFrame()
 end
 
 local PageAuto = newPageFrame()
-local PageGuns = newPageFrame()
-
 
 local PageVisual = Instance.new("ScrollingFrame", Content)
 PageVisual.BackgroundTransparency = 1
@@ -630,6 +665,192 @@ PageVisual.Active = true
 PageVisual:SetAttribute("NoDrag", true)
 PageVisual.BorderSizePixel = 0
 PageVisual.ScrollBarImageTransparency = 0
+
+local Weapons = {
+	{Name="AR556 GreenTip"},
+	{Name="308ARP"},
+	{Name="Vepr 12 Defender"},
+	{Name="Tan Arp"},
+	{Name="556Rifle"},
+	{Name="SIGMCX"},
+	{Name="AK74"},
+	{Name="Kriss Alpine Gen II"},
+	{Name="M16A2"},
+	{Name="BlackMiniDrac"},
+	{Name="GFR AR10"},
+	{Name="ZPAP 762"},
+	{Name="SLIMEBALL762"},
+	{Name="AR-223"},
+	{Name="Colt 723"},
+	{Name="223Mini"},
+	{Name="BCM4"},
+	{Name="PLR-16"},
+
+	{Name="Hellcat XD"},
+	{Name="G24 Competition"},
+	{Name="PSA ROCK 5.7"},
+	{Name="G41 MOS Kriss"},
+	{Name="Ruger LCP"},
+	{Name="G27 Extended"},
+	{Name="Glock 36"},
+	{Name="SS MR920P"},
+	{Name="P80 Extended"},
+	{Name="G48 PerformanceTrigger"},
+	{Name="Engraved Colt .38 Super"},
+	{Name="Canik MC9 Prime"},
+	{Name="38. Smith&Wesson"},
+	{Name="G43X"},
+	{Name="G22 Compensated"},
+	{Name="FNXBeam"},
+	{Name="S&W M2.0 Clearmag"},
+	{Name="Matchmaster 1911"},
+	{Name="Springfield Echelon"},
+	{Name="Springfield Hellcat"},
+	{Name="G19XPSAGrip"},
+	{Name="Glock-17"},
+	{Name="G40VectMag"},
+	{Name="Python"},
+	{Name="G31C"},
+	{Name="Glock19x Extended"},
+	{Name="G26"},
+	{Name="G17Gen5Vect"},
+	{Name="G23Gen4 Extended"},
+}
+
+local function BuyWeaponAndAmmo(weapon)
+	local RS = game:GetService("ReplicatedStorage")
+	local Remote = RS:WaitForChild("Events"):WaitForChild("ServerEvent")
+
+	Remote:FireServer("BuyItemTool", weapon.Name)
+end
+
+--==================== GUNS PAGE ====================
+local PageGuns = newPageFrame()
+
+-- Scroll vertical (como mochilas)
+local GunsScroll = Instance.new("ScrollingFrame", PageGuns)
+GunsScroll.BackgroundTransparency = 1
+GunsScroll.BorderSizePixel = 0
+GunsScroll.Size = UDim2.new(1, 0, 1, -6)
+GunsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+GunsScroll.ScrollBarThickness = 2
+GunsScroll.ScrollBarImageColor3 = Theme.Accent
+GunsScroll.ScrollBarImageTransparency = 0
+GunsScroll.Active = true
+GunsScroll.ZIndex = 30
+GunsScroll:SetAttribute("NoDrag", true)
+
+-- Layout vertical
+local GunsList = Instance.new("UIListLayout", GunsScroll)
+GunsList.Padding = UDim.new(0, UI_ITEM_PADDING)
+GunsList.SortOrder = Enum.SortOrder.LayoutOrder
+GunsList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+GunsList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	GunsScroll.CanvasSize = UDim2.new(
+		0, 0,
+		0, GunsList.AbsoluteContentSize.Y + 80
+	)
+end)
+
+-- arma seleccionada
+local SelectedWeapon = nil
+
+-- botón arma (selección)
+local function makeGunSelectButton(parent, weapon)
+	local selected = false
+
+	local btn = Instance.new("TextButton", parent)
+	btn.AutoButtonColor = false
+	btn.Size = UDim2.new(1, -24, 0, 42)
+	btn.BackgroundColor3 = Color3.fromRGB(255,255,255)
+	btn.BackgroundTransparency = 0.88
+	btn.BorderSizePixel = 0
+	btn.Text = "🔫 "..weapon.Name
+	btn.Font = Fonts[CurrentFontName]
+	btn.TextSize = 14
+	btn.TextColor3 = Theme.Text
+	btn.ZIndex = 41
+	btn:SetAttribute("NoDrag", true)
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 14)
+
+	local st = Instance.new("UIStroke", btn)
+	st.Color = Theme.Accent
+	st.Thickness = 1
+	st.Transparency = 0.85
+
+	local function render()
+		tween(btn, TFast, {
+			BackgroundTransparency = selected and 0.80 or 0.88
+		})
+		tween(st, TFast, {
+			Transparency = selected and 0.35 or 0.85
+		})
+	end
+	render()
+
+	btn.MouseButton1Click:Connect(function()
+		if shouldIgnoreClick() then return end
+		playOptionSound()
+
+		-- deseleccionar todas
+		for _,c in ipairs(parent:GetChildren()) do
+			if c:IsA("TextButton") then
+				c:SetAttribute("Selected", false)
+			end
+		end
+
+		selected = true
+		btn:SetAttribute("Selected", true)
+		SelectedWeapon = weapon
+		render()
+
+		Notify("🔫 Seleccionada: "..weapon.Name, true)
+	end)
+
+	btn:GetAttributeChangedSignal("Selected"):Connect(function()
+		selected = btn:GetAttribute("Selected") == true
+		render()
+	end)
+
+	return btn
+end
+
+-- crear lista de armas
+if Weapons then
+	for _, weapon in ipairs(Weapons) do
+		makeGunSelectButton(GunsScroll, weapon)
+	end
+else
+	makeAppleAction(GunsScroll, "❌ No se detectaron armas", 1, function() end)
+end
+
+-- botón BUY (SIEMPRE AL FINAL)
+local BuyGunBtn = makeAppleAction(
+	GunsScroll,
+	"🛒 BUY ARMA SELECCIONADA",
+	999,
+	function()
+		if not SelectedWeapon then
+			Notify("❌ Selecciona un arma primero", false)
+			return
+		end
+
+		Notify("🛒 Comprando: "..SelectedWeapon.Name, true)
+		AddLog("🛒 Buy Gun: "..SelectedWeapon.Name)
+
+		-- TU FUNCIÓN REAL
+		if BuyWeaponAndAmmo then
+			BuyWeaponAndAmmo(SelectedWeapon)
+		else
+			Notify("❌ BuyWeaponAndAmmo no existe", false)
+		end
+	end
+)
+
+BuyGunBtn.Size = UDim2.new(1, -24, 0, 44)
+BuyGunBtn.TextSize = 14
+BuyGunBtn:SetAttribute("NoDrag", true)
 
 
 local PageSettings = newPageFrame()
@@ -646,6 +867,7 @@ PageMisc.Active = true
 PageMisc:SetAttribute("NoDrag", true)
 PageMisc.BorderSizePixel = 0
 PageMisc.ScrollBarImageTransparency = 0
+
 
 --==================== VISUAL CONTENT ====================
 local VisualContent = Instance.new("Frame", PageVisual)
@@ -873,8 +1095,8 @@ end)
 
 
 --==================== TAB SWITCH ====================
-local PageAutoKey, PageVisualKey, PageMiscKey, PageGunsKey, PageSettingsKey =
-"auto","visual","misc","guns","settings"
+local PageAutoKey, PageVisualKey, PageGunsKey, PageMiscKey, PageSettingsKey =
+    "auto","visual","guns","misc","settings"
 
 local CurrentPage = PageAuto
 PageAuto.Visible = true
@@ -886,11 +1108,12 @@ local function setTabActive(which)
 		tween(btn, TFast, {BackgroundTransparency = active and 0.82 or 0.90})
 		tween(st, TFast, {Transparency = active and 0.40 or 0.80})
 	end
-	style(TabAuto, TabAutoStroke, which==PageAutoKey)
-style(TabVisual, TabVisualStroke, which==PageVisualKey)
-style(TabMisc, TabMiscStroke, which==PageMiscKey)
-style(TabGuns, TabGunsStroke, which==PageGunsKey)
-style(TabSettings, TabSetStroke, which==PageSettingsKey)
+	style(Tabs.Auto, Tabs.AutoStroke, which==PageAutoKey)
+style(Tabs.Visual, Tabs.VisualStroke, which==PageVisualKey)
+style(Tabs.Guns, Tabs.GunsStroke, which==PageGunsKey)
+style(Tabs.Settings, Tabs.SettingsStroke, which==PageSettingsKey)
+style(Tabs.Misc, Tabs.MiscStroke, which==PageMiscKey)
+
 
 end
 
@@ -966,29 +1189,24 @@ local function switchPage(target, which)
 end
 
 
-TabAuto.MouseButton1Click:Connect(function()
-	if shouldIgnoreClick() then return end
+Tabs.Auto.MouseButton1Click:Connect(function()
 	switchPage(PageAuto, PageAutoKey)
 end)
 
-TabVisual.MouseButton1Click:Connect(function()
-	if shouldIgnoreClick() then return end
+Tabs.Visual.MouseButton1Click:Connect(function()
 	switchPage(PageVisual, PageVisualKey)
 end)
 
-TabSettings.MouseButton1Click:Connect(function()
-	if shouldIgnoreClick() then return end
-	switchPage(PageSettings, PageSettingsKey)
+Tabs.Guns.MouseButton1Click:Connect(function()
+	switchPage(PageGuns, PageGunsKey)
 end)
 
-TabMisc.MouseButton1Click:Connect(function()
-	if shouldIgnoreClick() then return end
+Tabs.Misc.MouseButton1Click:Connect(function()
 	switchPage(PageMisc, PageMiscKey)
 end)
 
-TabGuns.MouseButton1Click:Connect(function()
-	if shouldIgnoreClick() then return end
-	switchPage(PageGuns, PageGunsKey)
+Tabs.Settings.MouseButton1Click:Connect(function()
+	switchPage(PageSettings, PageSettingsKey)
 end)
 
 
@@ -1884,10 +2102,12 @@ local function applyStyle(key)
 	tween(Header, TMed, {BackgroundColor3 = Theme.Header})
 	tween(WStroke, TMed, {Color = Theme.Accent})
 
-	tween(TabAutoStroke, TMed, {Color = Theme.Accent})
-	tween(TabVisualStroke, TMed, {Color = Theme.Accent})
-	tween(TabSetStroke, TMed, {Color = Theme.Accent})
-	tween(TabMiscStroke, TMed, {Color = Theme.Accent})
+	tween(Tabs.AutoStroke, TMed, {Color = Theme.Accent})
+tween(Tabs.VisualStroke, TMed, {Color = Theme.Accent})
+tween(Tabs.GunsStroke, TMed, {Color = Theme.Accent})
+tween(Tabs.SettingsStroke, TMed, {Color = Theme.Accent})
+tween(Tabs.MiscStroke, TMed, {Color = Theme.Accent})
+
 
 	tween(SettingsScroll, TMed, {ScrollBarImageColor3 = Theme.Accent})
 	tween(PageVisual, TMed, {ScrollBarImageColor3 = Theme.Accent})
