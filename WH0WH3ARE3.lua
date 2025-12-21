@@ -11,6 +11,15 @@ local PPS = game:GetService("ProximityPromptService")
 local RS = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
+-- ==================== PREDECLARE FUNCTIONS (FIX) ====================
+local Notify
+local AddLog
+local clearESP
+local disableESP
+local shouldIgnoreClick
+local makeAppleAction
+local makeAppleToggle
+
 
 
 local LocalPlayer = Players.LocalPlayer
@@ -351,7 +360,7 @@ NotifList.Padding = UDim.new(0, UI_ITEM_PADDING)
 NotifList.HorizontalAlignment = Enum.HorizontalAlignment.Right
 NotifList.VerticalAlignment = Enum.VerticalAlignment.Top
 
-local function Notify(msg, good)
+Notify = function(msg, good)
 	local n = Instance.new("Frame")
 	n.Size = UDim2.new(0, 310, 0, 56)
 	n.BackgroundColor3 = Theme.Glass
@@ -391,7 +400,7 @@ local function Notify(msg, good)
 end
 
 local LogsUI_List -- se asigna cuando exista
-local function AddLog(text)
+AddLog = function(text)
 	table.insert(ActiveLogs, {text=text, time=os.clock(), ui=nil})
 	if LogsUI_List then
 		local item = Instance.new("TextLabel")
@@ -1042,7 +1051,7 @@ local function endDrag(input)
 	end)
 end
 
-local function shouldIgnoreClick()
+shouldIgnoreClick = function()
 	-- ❌ si realmente estabas arrastrando, ignorar click
 	if Drag.active then
 		return true
@@ -1211,7 +1220,7 @@ end)
 
 
 --==================== UI COMPONENTS ====================
-local function makeAppleToggle(parent, label, order, onChanged)
+makeAppleToggle = function(parent, label, order, onChanged)
 	local state = false
 
 	local b = Instance.new("TextButton", parent)
@@ -1264,7 +1273,7 @@ local function makeAppleToggle(parent, label, order, onChanged)
 	}
 end
 
-local function makeAppleAction(parent, text, order, onClick)
+makeAppleAction = function(parent, text, order, onClick)
 	local b = Instance.new("TextButton", parent)
 	b.AutoButtonColor = false
 	b.Size = UDim2.new(1, 0, 0, 44)
@@ -1547,7 +1556,7 @@ local function destroyItemsESP(userId)
 end
 
 -- Mantengo tus APIs para que NO rompa nada (close/shutdown)
-local function clearESP()
+clearESP = function()
     for userId, _ in pairs(ESP.Players) do
         destroyPlayerESP(userId)
     end
@@ -1673,7 +1682,7 @@ local function updatePlayerItemsESP(player)
     end
 end
 
-local function disableESP()
+disableESP = function()
     ESPEnabled = false
     -- borrar SOLO Player ESP
     for userId, gui in pairs(ESP.Players) do
