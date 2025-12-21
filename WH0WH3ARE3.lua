@@ -312,6 +312,23 @@ local function playOptionSound()
 end
 
 
+--==================== FAKE BLUR BACKDROP (SOLO UI) ====================
+local Backdrop = Instance.new("Frame", UI)
+Backdrop.Name = "Backdrop"
+Backdrop.Size = UDim2.new(1, 0, 1, 0)
+Backdrop.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Backdrop.BackgroundTransparency = 1
+Backdrop.ZIndex = 1
+Backdrop.Visible = true
+
+local function blurIn()
+	tween(Backdrop, TSlow, {BackgroundTransparency = 0.55})
+end
+
+local function blurOut()
+	tween(Backdrop, TSlow, {BackgroundTransparency = 1})
+end
+
 
 --==================== TWEENS ====================
 local TFast = TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
@@ -411,22 +428,8 @@ end
 -- 🧪 TEST: Verificar que cargaron bien
 print("makeAppleAction =", makeAppleAction)
 print("makeAppleToggle =", makeAppleToggle)
---==================== BLUR FUNCTIONS ====================
-local function blurIn()
-	if GlassBlur then
-		tween(GlassBlur, TSlow, {Size = 16})
-	end
-end
 
-local function blurOut()
-	if GlassBlur then
-		tween(GlassBlur, TSlow, {Size = 0})
-	end
-end
-
-
-
---==================== LOGS & NOTIFY ====================
+--=================== LOGS & NOTIFY ====================
 local ActiveLogs = {}
 
 local NotifHost = Instance.new("Frame", UI)
@@ -521,14 +524,6 @@ WStroke.Color = Theme.Accent
 WStroke.Thickness = 1.5
 WStroke.Transparency = 0.45
 
---==================== BLUR iOS ====================
-local Lighting = game:GetService("Lighting")
-
-GlassBlur = Instance.new("BlurEffect")
-GlassBlur.Name = "GlassmasBlur"
-GlassBlur.Size = 0
-GlassBlur.Parent = Lighting
-
 
 --==================== HEADER ====================
 local Header = Instance.new("Frame", Window)
@@ -537,6 +532,7 @@ Header.BackgroundColor3 = Theme.Header
 Header.BackgroundTransparency = 0.25
 Header.BorderSizePixel = 0
 Header.Active = true
+Header.Selectable = true
 Header.ZIndex = 20
 Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 22)
 
@@ -1152,10 +1148,6 @@ shouldIgnoreClick = function()
 	return false
 end
 
-
--- drag SOLO desde Window y Header (NO desde botones ni scrolls)
-Window.InputBegan:Connect(beginDrag)
-Window.InputEnded:Connect(endDrag)
 
 Header.InputBegan:Connect(beginDrag)
 Header.InputEnded:Connect(endDrag)
