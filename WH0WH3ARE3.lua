@@ -25,15 +25,6 @@ local minimized = false
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
---==================== AUTOLOAD CHECK ====================
--- ❌ Si NO viene de Rejoin with Script, NO abrir UI
---==================== AUTOLOAD CHECK (SAFE) ====================
-local AutoLoaded = false
-if getgenv().Glassmas_AutoLoad then
-    AutoLoaded = true
-    getgenv().Glassmas_AutoLoad = nil
-end
-
 
 --==================== ANTI DUPLICATE (FIXED - CIERRA LA VIEJA) ====================
 if getgenv().GlassmasUI_Running then
