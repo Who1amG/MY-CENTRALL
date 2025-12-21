@@ -725,7 +725,7 @@ Content.BackgroundTransparency = 1
 Content.Position = UDim2.new(0, 12, 0, 112)
 Content.Size = UDim2.new(1, -24, 1, -124)
 Content.ClipsDescendants = true
-Content.Active = false
+Content.Active = true
 Content.ZIndex = 30
 
 local function newPageFrame()
@@ -1138,17 +1138,13 @@ shouldIgnoreClick = function()
 end
 
 
--- drag desde Window
+-- drag SOLO desde Window y Header (NO desde botones ni scrolls)
 Window.InputBegan:Connect(beginDrag)
 Window.InputEnded:Connect(endDrag)
 
--- drag desde TODOS los hijos (como el script bueno)
-for _,obj in ipairs(Window:GetDescendants()) do
-	if obj:IsA("Frame") or obj:IsA("TextLabel") then
-		obj.InputBegan:Connect(beginDrag)
-		obj.InputEnded:Connect(endDrag)
-	end
-end
+Header.InputBegan:Connect(beginDrag)
+Header.InputEnded:Connect(endDrag)
+
 
 -- 🔑 FIX DEFINITIVO: liberar drag aunque sueltes sobre botones
 UserInputService.InputEnded:Connect(function(input)
@@ -3199,3 +3195,8 @@ AddLog("🧪 Sistema de logs iniciado correctamente")
 Notify("Made By SPK 💎", true)
 blurIn()
 print("[GlassmasUI] Loaded • Fixed • Tabs • Settings • Misc • Visual Logs")
+task.delay(2, function()
+	print("UI alive:", UI.Parent ~= nil)
+	print("Window Active:", Window.Active)
+	print("Content Active:", Content.Active)
+end)
