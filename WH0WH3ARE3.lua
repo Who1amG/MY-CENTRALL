@@ -1,4 +1,4 @@
--- 🦈 Glassmas UI • Principal (Apple Glass Christmas) • Single Script
+-- 🦈 Glassmas UI • Principal (Apple Glass Christmas) • Single Script 
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 
@@ -279,6 +279,92 @@ local function tween(obj, info, props)
 	return t
 end
 
+--==================== UI COMPONENTS ====================
+makeAppleToggle = function(parent, label, order, onChanged)
+	local state = false
+
+	local b = Instance.new("TextButton", parent)
+	b.Text = ""
+	b.AutoButtonColor = false
+	b.Size = UDim2.new(1, 0, 0, 44)
+	b.LayoutOrder = order or 0
+	b.BackgroundColor3 = Color3.fromRGB(255,255,255)
+	b.BackgroundTransparency = 0.88
+	b.BorderSizePixel = 0
+	b.ZIndex = 40
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0, 14)
+
+	local st = Instance.new("UIStroke", b)
+	st.Thickness = 1
+	st.Color = Theme.Accent
+	st.Transparency = 0.80
+
+	local t = Instance.new("TextLabel", b)
+	t.BackgroundTransparency = 1
+	t.Size = UDim2.new(1, -16, 1, 0)
+	t.Position = UDim2.new(0, 12, 0, 0)
+	t.Font = Fonts[CurrentFontName]
+	t.TextSize = 14
+	t.TextColor3 = Theme.Text
+	t.TextXAlignment = Enum.TextXAlignment.Left
+	t.ZIndex = 41
+
+	local function render()
+		t.Text = ("%s: %s"):format(label, state and "ON" or "OFF")
+		tween(st, TFast, {Transparency = state and 0.35 or 0.80})
+		tween(b, TFast, {BackgroundTransparency = state and 0.82 or 0.88})
+	end
+
+	render()
+
+	b.MouseButton1Click:Connect(function()
+		if shouldIgnoreClick() then return end
+		state = not state
+		playOptionSound()
+		render()
+		Notify(label .. (state and " activado" or " desactivado"), state)
+		if onChanged then onChanged(state) end
+	end)
+
+	return {
+		Set = function(v) state = not not v; render() end,
+		Get = function() return state end,
+		Button = b,
+	}
+end
+
+makeAppleAction = function(parent, text, order, onClick)
+	local b = Instance.new("TextButton", parent)
+	b.AutoButtonColor = false
+	b.Size = UDim2.new(1, 0, 0, 44)
+	b.LayoutOrder = order or 0
+	b.BackgroundColor3 = Color3.fromRGB(255,255,255)
+	b.BackgroundTransparency = 0.88
+	b.BorderSizePixel = 0
+	b.Text = text
+	b.Font = Fonts[CurrentFontName]
+	b.TextSize = 14
+	b.TextColor3 = Theme.Text
+	b.ZIndex = 41
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0, 14)
+
+	local st = Instance.new("UIStroke", b)
+	st.Thickness = 1
+	st.Color = Theme.Accent
+	st.Transparency = 0.75
+
+	b.MouseButton1Click:Connect(function()
+		if shouldIgnoreClick() then return end
+		playOptionSound()
+		if onClick then onClick() end
+	end)
+
+	return b
+end
+
+-- 🧪 TEST: Verificar que cargaron bien
+print("makeAppleAction =", makeAppleAction)
+print("makeAppleToggle =", makeAppleToggle)
 --==================== BLUR FUNCTIONS ====================
 local function blurIn()
 	if GlassBlur then
@@ -1219,89 +1305,6 @@ Tabs.Settings.MouseButton1Click:Connect(function()
 	switchPage(PageSettings, PageSettingsKey)
 end)
 
-
---==================== UI COMPONENTS ====================
-makeAppleToggle = function(parent, label, order, onChanged)
-	local state = false
-
-	local b = Instance.new("TextButton", parent)
-	b.Text = ""
-	b.AutoButtonColor = false
-	b.Size = UDim2.new(1, 0, 0, 44)
-	b.LayoutOrder = order or 0
-	b.BackgroundColor3 = Color3.fromRGB(255,255,255)
-	b.BackgroundTransparency = 0.88
-	b.BorderSizePixel = 0
-	b.ZIndex = 40
-	Instance.new("UICorner", b).CornerRadius = UDim.new(0, 14)
-
-	local st = Instance.new("UIStroke", b)
-	st.Thickness = 1
-	st.Color = Theme.Accent
-	st.Transparency = 0.80
-
-	local t = Instance.new("TextLabel", b)
-	t.BackgroundTransparency = 1
-	t.Size = UDim2.new(1, -16, 1, 0)
-	t.Position = UDim2.new(0, 12, 0, 0)
-	t.Font = Fonts[CurrentFontName]
-	t.TextSize = 14
-	t.TextColor3 = Theme.Text
-	t.TextXAlignment = Enum.TextXAlignment.Left
-	t.ZIndex = 41
-
-	local function render()
-		t.Text = ("%s: %s"):format(label, state and "ON" or "OFF")
-		tween(st, TFast, {Transparency = state and 0.35 or 0.80})
-		tween(b, TFast, {BackgroundTransparency = state and 0.82 or 0.88})
-	end
-
-	render()
-
-	b.MouseButton1Click:Connect(function()
-		if shouldIgnoreClick() then return end
-		state = not state
-		playOptionSound()
-		render()
-		Notify(label .. (state and " activado" or " desactivado"), state)
-		if onChanged then onChanged(state) end
-	end)
-
-	return {
-		Set = function(v) state = not not v; render() end,
-		Get = function() return state end,
-		Button = b,
-	}
-end
-
-makeAppleAction = function(parent, text, order, onClick)
-	local b = Instance.new("TextButton", parent)
-	b.AutoButtonColor = false
-	b.Size = UDim2.new(1, 0, 0, 44)
-	b.LayoutOrder = order or 0
-	b.BackgroundColor3 = Color3.fromRGB(255,255,255)
-	b.BackgroundTransparency = 0.88
-	b.BorderSizePixel = 0
-	b.Text = text
-	b.Font = Fonts[CurrentFontName]
-	b.TextSize = 14
-	b.TextColor3 = Theme.Text
-	b.ZIndex = 41
-	Instance.new("UICorner", b).CornerRadius = UDim.new(0, 14)
-
-	local st = Instance.new("UIStroke", b)
-	st.Thickness = 1
-	st.Color = Theme.Accent
-	st.Transparency = 0.75
-
-	b.MouseButton1Click:Connect(function()
-		if shouldIgnoreClick() then return end
-		playOptionSound()
-		if onClick then onClick() end
-	end)
-
-	return b
-end
 
 local function makeDropdownHeaderDynamic(parent, titleText)
 	local headerBtn = Instance.new("TextButton", parent)
