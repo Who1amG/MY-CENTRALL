@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes 52..
+--fixes 51..
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -1909,7 +1909,6 @@ local function runMoneyDryer()
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
-if not fireproximityprompt and not PPS then return end
 for _, v in ipairs(Workspace:GetDescendants()) do
 if v:IsA("ProximityPrompt") then
 v.HoldDuration = 0
@@ -2123,12 +2122,11 @@ pcall(function()
 cam.CFrame = CFrame.new(cam.CFrame.Position, prompt.Parent.Position)
 end)
 task.wait(0.25)
-local ok = false
-if fireproximityprompt then
-ok = pcall(function() triggerPromptSafe(prompt) end)
-else
-ok = pcall(function() PPS:TriggerPrompt(prompt) end)
-end
+			
+local ok = pcall(function()
+    triggerPromptSafe(prompt)
+end)
+
 if ok then
 collected += 1
 processed[m] = true
@@ -2196,26 +2194,12 @@ local function washMoney(dupeMode)
     forcePrompt(mainDryer)
     if dupeDryer then forcePrompt(dupeDryer) end
     -- Clicks iniciales 100% paralelos
-    task.spawn(function()
+ task.spawn(function()
     pcall(function()
-        if fireproximityprompt then
-            fireproximityprompt(mainDryer.prompt)
-        else
-            PPS:TriggerPrompt(mainDryer.prompt)
-        end
+        triggerPromptSafe(mainDryer.prompt)
     end)
 end)
-if dupeDryer then
-    task.spawn(function()
-        pcall(function()
-            if fireproximityprompt then
-                fireproximityprompt(dupeDryer.prompt)
-            else
-                PPS:TriggerPrompt(dupeDryer.prompt)
-            end
-        end)
-    end)
-end
+
     task.wait(0.8)
     -- Auto-clicker ultra rápido
     local function startClicker(prompt)
@@ -2224,22 +2208,17 @@ end
             for _ = 1, clicks do
                 if not moneyWashRunning then break end
                 pcall(function()
-    if fireproximityprompt then
-        triggerPromptSafe(prompt)
-
-    else
-        PPS:TriggerPrompt(prompt)
-    end
-end)
-task.wait()
+											
 pcall(function()
-    if fireproximityprompt then
-        triggerPromptSafe(prompt)
-
-    else
-        PPS:TriggerPrompt(prompt)
-    end
+    triggerPromptSafe(prompt)
 end)
+
+task.wait()
+										
+pcall(function()
+    triggerPromptSafe(prompt)
+end)
+
                 task.wait(1 / MONEY_WASH_CPS - 0.01)
             end
         end)
@@ -2546,12 +2525,13 @@ if part and part:IsA("BasePart") then
 tpStanding(part, 2.2)
 task.wait(0.25)
 pcall(function() obj.HoldDuration = 0 end)
-local ok = false
-if fireproximityprompt then
-ok = pcall(function() fireproximityprompt(obj) end)
-else
-ok = pcall(function() PPS:TriggerPrompt(obj) end)
-end
+													
+local ok = pcall(function()
+    triggerPromptSafe(obj)
+end)
+
+
+
 task.wait(0.8)
 tpBack(originalCFrame)
 if ok then
@@ -2712,7 +2692,6 @@ rejoinWithScriptBtn:SetAttribute("NoDrag", true)
 
 
 --==================== MINIMIZE / CLOSE ====================
-local minimized = false
 local originalSize = Window.Size
 
 BtnMin.MouseButton1Click:Connect(function()
