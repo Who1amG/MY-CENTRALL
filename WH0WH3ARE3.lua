@@ -2560,8 +2560,6 @@ local serverHopBtn = makeAppleAction(
     "🔁 serverHop",
     6,
     function()
-        Drag.active = false
-        Drag.pending = false
        
         Notify("🔁 Buscando servidor nuevo...", true)
         AddLog("🔁 Server Hop iniciado")
