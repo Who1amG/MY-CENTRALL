@@ -583,11 +583,11 @@ end
 
 local function endDrag(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		Drag.active = false
 	end
 end
 
 Window.InputBegan:Connect(beginDrag)
+Header.InputBegan:Connect(beginDrag)
 UserInputService.InputEnded:Connect(endDrag)
 
 UserInputService.InputChanged:Connect(function(input)
@@ -604,8 +604,15 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 shouldIgnoreClick = function()
-	return Drag.active
+	return false
 end
+
+--==================== SLIDER INPUT END (GLOBAL) ====================
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+	end
+end)
 
 
 --==================== SNOW LAYER ====================
@@ -1786,24 +1793,10 @@ do
     BarBack.InputBegan:Connect(function(i)
 	if i.UserInputType == Enum.UserInputType.MouseButton1 then
 		dragging = true
-		SliderDragging = true
-		Drag.pending = false
 		setFromX(i.Position.X)
 	end
 end)
 
-UserInputService.InputEnded:Connect(function(i)
-	if i.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = false
-		SliderDragging = false
-	end
-end)
-
-    UserInputService.InputEnded:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
 
     UserInputService.InputChanged:Connect(function(i)
         if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
@@ -2194,7 +2187,7 @@ local function runMoneyDryer()
 	local RunService = game:GetService("RunService")
 	local ProximityPromptService = game:GetService("ProximityPromptService")
 
-	if not fireproximityprompt then return end
+	if not fireproximityprompt and not PPS then return end
 
 	for _, v in ipairs(Workspace:GetDescendants()) do
 		if v:IsA("ProximityPrompt") then
@@ -2864,25 +2857,10 @@ do
 	BarBack.InputBegan:Connect(function(i)
 	if i.UserInputType == Enum.UserInputType.MouseButton1 then
 		dragging = true
-		SliderDragging = true
-		Drag.pending = false
 		setFromX(i.Position.X)
 	end
 end)
 
-UserInputService.InputEnded:Connect(function(i)
-	if i.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = false
-		SliderDragging = false
-	end
-end)
-
-
-	UserInputService.InputEnded:Connect(function(i)
-		if i.UserInputType == Enum.UserInputType.MouseButton1 then
-			dragging = false
-		end
-	end)
 
 	UserInputService.InputChanged:Connect(function(i)
 		if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
@@ -3026,8 +3004,6 @@ local serverHopBtn = makeAppleAction(
     "🔁 serverHop",
     6,
     function()
-        Drag.active = false
-        Drag.pending = false
         
         Notify("🔁 Buscando servidor nuevo...", true)
         AddLog("🔁 Server Hop iniciado")
@@ -3083,8 +3059,6 @@ local rejoinBtn = makeAppleAction(
     "🔄 Rejoin Server",
     7, -- debajo de serverHop
     function()
-        Drag.active = false
-        Drag.pending = false
 
         Notify("🔄 Reuniéndose al mismo server...", true)
         AddLog("🔄 Rejoin Server ejecutado")
@@ -3106,8 +3080,6 @@ local rejoinWithScriptBtn = makeAppleAction(
     "🔁 Rejoin with Script",
     8, -- debajo de Rejoin Server
     function()
-        Drag.active = false
-        Drag.pending = false
 
         Notify("🔁 Rejoin + auto script...", true)
         AddLog("🔁 Rejoin with Script iniciado")
@@ -3161,24 +3133,26 @@ BtnMin.MouseButton1Click:Connect(function()
 end)
 
 BtnClose.MouseButton1Click:Connect(function()
-    blurOut()
-    if shouldIgnoreClick() then return end
-    playOptionSound()
-    getgenv().GlassmasUI_Running = false
-    
-    -- 🔥 Apagar Fly si estaba activo
-    if FlyEnabled then stopFly() end
-    
-    -- 🔥 BORRAR TODO EL ESP
-    clearESP()
-    disableESP()  -- apaga flags también
-    
-    tween(WStroke, TFast, {Transparency = 1})
-    tween(Window, TSlow, {BackgroundTransparency = 1, Size = UDim2.new(0, 520, 0, 0)})
-    task.delay(0.42, function()
-        if UI then UI:Destroy() end
-    end)
+	playOptionSound()
+	blurOut()
+
+	getgenv().GlassmasUI_Running = false
+
+	if FlyEnabled then stopFly() end
+	clearESP()
+	disableESP()
+
+	tween(WStroke, TFast, {Transparency = 1})
+	tween(Window, TSlow, {
+		BackgroundTransparency = 1,
+		Size = UDim2.new(0, 520, 0, 0)
+	})
+
+	task.delay(0.42, function()
+		if UI then UI:Destroy() end
+	end)
 end)
+
 
 --==================== FINAL ====================
 AddLog("🧪 Sistema de logs iniciado correctamente")
