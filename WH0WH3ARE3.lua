@@ -3150,8 +3150,8 @@ BtnMin.MouseButton1Click:Connect(function()
 end)
 
 BtnClose.MouseButton1Click:Connect(function()
-    blurOut()
     if shouldIgnoreClick() then return end
+    blurOut()
     playOptionSound()
     getgenv().GlassmasUI_Running = false
     
