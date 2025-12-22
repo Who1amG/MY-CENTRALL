@@ -2200,11 +2200,12 @@ local function washMoney(dupeMode)
     forcePrompt(mainDryer)
     if dupeDryer then forcePrompt(dupeDryer) end
     -- Clicks iniciales 100% paralelos
- task.spawn(function()
+task.spawn(function()
     pcall(function()
         triggerPromptSafe(mainDryer.prompt)
     end)
 end)
+
 
     task.wait(0.8)
     -- Auto-clicker ultra rápido
