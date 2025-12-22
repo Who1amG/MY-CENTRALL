@@ -50,6 +50,17 @@ local minimized = false
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
+-- 🛡️ Notify seguro TEMPORAL (evita nil crash)
+Notify = function(...)
+    warn("[Notify before init]", ...)
+end
+
+-- 🛡️ AddLog seguro TEMPORAL
+AddLog = function(...)
+    warn("[AddLog before init]", ...)
+end
+
+
 -- 👶 versión simple para que no se rompa al inicio
 shouldIgnoreClick = function()
     return false
