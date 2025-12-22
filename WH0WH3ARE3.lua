@@ -2,8 +2,16 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes 52..
+--fixes 51..
 -- 70% working
+-- 🛡️ SAFE queue_on_teleport (FIX DEFINITIVO)
+local SAFE_QUEUE = nil
+
+pcall(function()
+    if typeof(queue_on_teleport) == "function" then
+        SAFE_QUEUE = queue_on_teleport
+    end
+end)
 
 print("GLASSMAS START")
 --==================== SERVICES ====================
@@ -2662,8 +2670,8 @@ local rejoinWithScriptBtn = makeAppleAction(
         AddLog("🔁 Rejoin with Script iniciado")
 
         -- 🔒 Script en cola (se ejecuta al entrar)
-       if queue_on_teleport then
-    queue_on_teleport([[
+       if SAFE_QUEUE then
+           SAFE_QUEUE([[
         getgenv().Glassmas_AutoLoad = true
         pcall(function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/Who1amG/MY-CENTRALL/refs/heads/main/WH0WH3ARE3.lua"))()
