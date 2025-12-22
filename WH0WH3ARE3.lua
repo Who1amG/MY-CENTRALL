@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes 50..
+--fixes 51..
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -2125,7 +2125,7 @@ end)
 task.wait(0.25)
 local ok = false
 if fireproximityprompt then
-ok = pcall(function() fireproximityprompt(prompt) end)
+ok = pcall(function() triggerPromptSafe(prompt) end)
 else
 ok = pcall(function() PPS:TriggerPrompt(prompt) end)
 end
@@ -2225,7 +2225,8 @@ end
                 if not moneyWashRunning then break end
                 pcall(function()
     if fireproximityprompt then
-        fireproximityprompt(prompt)
+        triggerPromptSafe(prompt)
+
     else
         PPS:TriggerPrompt(prompt)
     end
@@ -2233,7 +2234,8 @@ end)
 task.wait()
 pcall(function()
     if fireproximityprompt then
-        fireproximityprompt(prompt)
+        triggerPromptSafe(prompt)
+
     else
         PPS:TriggerPrompt(prompt)
     end
