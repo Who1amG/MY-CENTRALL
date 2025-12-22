@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v9
+--fixes v10
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -13,6 +13,7 @@ local PPS = game:GetService("ProximityPromptService")
 local RS = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
+local Remote = RS:WaitForChild("Events"):WaitForChild("ServerEvent")
 -- ==================== PREDECLARE FUNCTIONS (FIX) ====================
 local Notify
 local AddLog
@@ -678,84 +679,75 @@ PageVisual:SetAttribute("NoDrag", true)
 PageVisual.BorderSizePixel = 0
 PageVisual.ScrollBarImageTransparency = 0
 local Weapons = {
-{Name="AR556 GreenTip"},
-{Name="308ARP"},
-{Name="Vepr 12 Defender"},
-{Name="Tan Arp"},
-{Name="556Rifle"},
-{Name="SIGMCX"},
-{Name="AK74"},
-{Name="Kriss Alpine Gen II"},
-{Name="M16A2"},
-{Name="BlackMiniDrac"},
-{Name="GFR AR10"},
-{Name="ZPAP 762"},
-{Name="SLIMEBALL762"},
-{Name="AR-223"},
-{Name="Colt 723"},
-{Name="223Mini"},
-{Name="BCM4"},
-{Name="PLR-16"},
-{Name="Hellcat XD"},
-{Name="G24 Competition"},
-{Name="PSA ROCK 5.7"},
-{Name="G41 MOS Kriss"},
-{Name="Ruger LCP"},
-{Name="G27 Extended"},
-{Name="Glock 36"},
-{Name="SS MR920P"},
-{Name="P80 Extended"},
-{Name="G48 PerformanceTrigger"},
-{Name="Engraved Colt .38 Super"},
-{Name="Canik MC9 Prime"},
-{Name="38. Smith&Wesson"},
-{Name="G43X"},
-{Name="G22 Compensated"},
-{Name="FNXBeam"},
-{Name="S&W M2.0 Clearmag"},
-{Name="Matchmaster 1911"},
-{Name="Springfield Echelon"},
-{Name="Springfield Hellcat"},
-{Name="G19XPSAGrip"},
-{Name="Glock-17"},
-{Name="G40VectMag"},
-{Name="Python"},
-{Name="G31C"},
-{Name="Glock19x Extended"},
-{Name="G26"},
-{Name="G17Gen5Vect"},
-{Name="G23Gen4 Extended"},
+
+-- 🔫 RIFLES
+{Name="AR556 GreenTip", Ammo="5.56"},
+{Name="308ARP", Ammo="5.56"},
+{Name="Vepr 12 Defender", Ammo="Slugs"},
+{Name="Tan Arp", Ammo="5.56"},
+{Name="556Rifle", Ammo="5.56"},
+{Name="SIGMCX", Ammo="5.56"},
+{Name="AK74", Ammo="7.62x39mm"},
+{Name="Kriss Alpine Gen II", Ammo="Extended"},
+{Name="M16A2", Ammo="5.56"},
+{Name="BlackMiniDrac", Ammo="7.62x39mm"},
+{Name="GFR AR10", Ammo="5.56"},
+{Name="ZPAP 762", Ammo="7.62x39mm"},
+{Name="SLIMEBALL762", Ammo="5.56"},
+{Name="AR-223", Ammo="5.56"},
+{Name="Colt 723", Ammo="5.56"},
+{Name="223Mini", Ammo="5.56"},
+{Name="BCM4", Ammo="5.56"},
+{Name="PLR-16", Ammo="5.56"},
+
+-- 🔫 PISTOLAS
+{Name="Hellcat XD", Ammo="Extended"},
+{Name="G24 Competition", Ammo="Extended"},
+{Name="PSA ROCK 5.7", Ammo="9mm"},
+{Name="G41 MOS Kriss", Ammo="Extended"},
+{Name="Ruger LCP", Ammo="9mm"},
+{Name="G27 Extended", Ammo="Extended"},
+{Name="Glock 36", Ammo="9mm"},
+{Name="SS MR920P", Ammo="9mm"},
+{Name="P80 Extended", Ammo="Extended"},
+{Name="G48 PerformanceTrigger", Ammo="9mm"},
+{Name="Engraved Colt .38 Super", Ammo="Extended"},
+{Name="Canik MC9 Prime", Ammo="Extended"},
+{Name="38. Smith&Wesson", Ammo="Bullets"},
+{Name="G43X", Ammo="Extended"},
+{Name="G22 Compensated", Ammo="Extended"},
+{Name="FNXBeam", Ammo="Extended"},
+{Name="S&W M2.0 Clearmag", Ammo="9mm"},
+{Name="Matchmaster 1911", Ammo="9mm"},
+{Name="Springfield Echelon", Ammo="9mm"},
+{Name="Springfield Hellcat", Ammo="9mm"},
+{Name="G19XPSAGrip", Ammo="Extended"},
+{Name="Glock-17", Ammo="9mm"},
+{Name="G40VectMag", Ammo="Extended"},
+{Name="Python", Ammo="Bullets"},
+{Name="G31C", Ammo="9mm"},
+{Name="Glock19x Extended", Ammo="Extended"},
+{Name="G26", Ammo="9mm"},
+{Name="G17Gen5Vect", Ammo="Extended"},
+{Name="G23Gen4 Extended", Ammo="Extended"},
 }
+
 local function BuyWeaponAndAmmo(weapon)
-local RS = game:GetService("ReplicatedStorage")
-local Remote = RS:WaitForChild("Events"):WaitForChild("ServerEvent")
-Remote:FireServer("BuyItemTool", weapon.Name)
+    -- comprar arma
+    Remote:FireServer("BuyItemTool", weapon.Name)
+    task.wait(0.15)
+
+    -- comprar munición (2x = seguro, estable)
+    if weapon.Ammo then
+        for i = 1, 2 do
+            Remote:FireServer("BuyItemTool", weapon.Ammo)
+            task.wait(0.1)
+        end
+    end
 end
+
 --==================== GUNS PAGE ====================
 local PageGuns = newPageFrame()
--- Scroll vertical (como mochilas)
-local GunsScroll = Instance.new("ScrollingFrame", PageGuns)
-GunsScroll.BackgroundTransparency = 1
-GunsScroll.BorderSizePixel = 0
-GunsScroll.Size = UDim2.new(1, 0, 1, -6)
-GunsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-GunsScroll.ScrollBarThickness = 2
-GunsScroll.ScrollBarImageColor3 = Theme.Accent
-GunsScroll.ScrollBarImageTransparency = 0
-GunsScroll.Active = true
-GunsScroll.ZIndex = 30
-GunsScroll:SetAttribute("NoDrag", true)
--- Layout vertical
-local GunsList = Instance.new("UIListLayout", GunsScroll)
-GunsList.Padding = UDim.new(0, UI_ITEM_PADDING)
-GunsList.SortOrder = Enum.SortOrder.LayoutOrder
-GunsList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-GunsList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-GunsScroll.CanvasSize = UDim2.new(
-0, 0,
-0, GunsList.AbsoluteContentSize.Y + 80
-)
-end)
 -- arma seleccionada
 local SelectedWeapon = nil
 -- botón arma (selección)
@@ -808,34 +800,95 @@ render()
 end)
 return btn
 end
--- crear lista de armas
-if Weapons then
-for _, weapon in ipairs(Weapons) do
-makeGunSelectButton(GunsScroll, weapon)
-end
-else
-makeAppleAction(GunsScroll, "❌ No se detectaron armas", 1, function() end)
-end
--- botón BUY (SIEMPRE AL FINAL)
-local BuyGunBtn = makeAppleAction(
-GunsScroll,
-"🛒 BUY ARMA SELECCIONADA",
-999,
-function()
-if not SelectedWeapon then
-Notify("❌ Selecciona un arma primero", false)
-return
-end
-Notify("🛒 Comprando: "..SelectedWeapon.Name, true)
-AddLog("🛒 Buy Gun: "..SelectedWeapon.Name)
--- TU FUNCIÓN REAL
-if BuyWeaponAndAmmo then
-BuyWeaponAndAmmo(SelectedWeapon)
-else
-Notify("❌ BuyWeaponAndAmmo no existe", false)
-end
-end
+-- ==================== GUNS UI REWORK (SAFE) ====================
+
+-- contenedor base (2 columnas)
+local GunsContainer = Instance.new("Frame", PageGuns)
+GunsContainer.Size = UDim2.new(1, 0, 1, 0)
+GunsContainer.BackgroundTransparency = 1
+GunsContainer.ZIndex = 30
+
+-- IZQUIERDA: BUY
+local GunsLeft = Instance.new("Frame", GunsContainer)
+GunsLeft.Size = UDim2.new(0.48, 0, 1, 0)
+GunsLeft.BackgroundTransparency = 1
+GunsLeft.ZIndex = 30
+
+local GunsLeftList = Instance.new("UIListLayout", GunsLeft)
+GunsLeftList.Padding = UDim.new(0, UI_ITEM_PADDING)
+
+-- DERECHA: LISTA ARMAS (OCULTA)
+local GunsRight = Instance.new("Frame", GunsContainer)
+GunsRight.Position = UDim2.new(0.52, 0, 0, 0)
+GunsRight.Size = UDim2.new(0.48, 0, 1, 0)
+GunsRight.BackgroundTransparency = 1
+GunsRight.ZIndex = 30
+
+local GunsRightScroll = Instance.new("ScrollingFrame", GunsRight)
+GunsRightScroll.Size = UDim2.new(1, 0, 1, 0)
+GunsRightScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+GunsRightScroll.ScrollBarThickness = 2
+GunsRightScroll.BackgroundTransparency = 1
+GunsRightScroll.Active = true
+GunsRightScroll.Visible = false
+GunsRightScroll.ZIndex = 31
+GunsRightScroll:SetAttribute("NoDrag", true)
+
+local GunsRightList = Instance.new("UIListLayout", GunsRightScroll)
+GunsRightList.Padding = UDim.new(0, UI_ITEM_PADDING)
+
+GunsRightList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    GunsRightScroll.CanvasSize = UDim2.new(
+        0, 0,
+        0, GunsRightList.AbsoluteContentSize.Y + 10
+    )
+end)
+
+-- BOTÓN PRINCIPAL "ARMAS"
+local weaponsOpen = false
+
+local WeaponsBtn = makeAppleAction(
+    GunsLeft,
+    "🔫 ARMAS",
+    1,
+    function()
+        weaponsOpen = not weaponsOpen
+        GunsRightScroll.Visible = weaponsOpen
+    end
 )
+WeaponsBtn:SetAttribute("NoDrag", true)
+WeaponsBtn.ZIndex = 41
+
+-- LISTA DE ARMAS (SE CREA UNA VEZ)
+for _, weapon in ipairs(Weapons) do
+    local btn = makeGunSelectButton(GunsRightScroll, weapon)
+    btn:SetAttribute("NoDrag", true)
+end
+
+-- BOTÓN BUY (SE QUEDA)
+local BuyGunBtn = makeAppleAction(
+    GunsLeft,
+    "🛒 BUY ARMA + BALAS",
+    2,
+    function()
+        if not SelectedWeapon then
+            Notify("❌ Selecciona un arma primero", false)
+            return
+        end
+
+        Notify("🛒 Comprando: "..SelectedWeapon.Name, true)
+        AddLog("🛒 Buy Gun: "..SelectedWeapon.Name)
+
+        if BuyWeaponAndAmmo then
+            BuyWeaponAndAmmo(SelectedWeapon)
+
+        end
+    end
+)
+
+BuyGunBtn:SetAttribute("NoDrag", true)
+BuyGunBtn.ZIndex = 41
+
 BuyGunBtn.Size = UDim2.new(1, -24, 0, 44)
 BuyGunBtn.TextSize = 14
 BuyGunBtn:SetAttribute("NoDrag", true)
