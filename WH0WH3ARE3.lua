@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v8
+--fixes v9
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -2550,8 +2550,6 @@ local serverHopBtn = makeAppleAction(
     "🔁 serverHop",
     6,
     function()
-        Drag.active = false
-        Drag.pending = false
         
         Notify("🔁 Buscando servidor nuevo...", true)
         AddLog("🔁 Server Hop iniciado")
@@ -2607,8 +2605,6 @@ local rejoinBtn = makeAppleAction(
     "🔄 Rejoin Server",
     7, -- debajo de serverHop
     function()
-        Drag.active = false
-        Drag.pending = false
 
         Notify("🔄 Reuniéndose al mismo server...", true)
         AddLog("🔄 Rejoin Server ejecutado")
@@ -2630,8 +2626,6 @@ local rejoinWithScriptBtn = makeAppleAction(
     "🔁 Rejoin with Script",
     8, -- debajo de Rejoin Server
     function()
-        Drag.active = false
-        Drag.pending = false
 
         Notify("🔁 Rejoin + auto script...", true)
         AddLog("🔁 Rejoin with Script iniciado")
