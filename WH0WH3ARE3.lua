@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.2
---fixes v10
+--fixes v11
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -264,20 +264,6 @@ end
 local function playOptionSound()
 pcall(function() SoundService:PlayLocalSound(S_Click) end)
 end
---==================== FAKE BLUR BACKDROP (SOLO UI) ====================
-local Backdrop = Instance.new("Frame", UI)
-Backdrop.Name = "Backdrop"
-Backdrop.Size = UDim2.new(1, 0, 1, 0)
-Backdrop.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-Backdrop.BackgroundTransparency = 1
-Backdrop.ZIndex = 1
-Backdrop.Visible = true
-local function blurIn()
-tween(Backdrop, TSlow, {BackgroundTransparency = 0.55})
-end
-local function blurOut()
-tween(Backdrop, TSlow, {BackgroundTransparency = 1})
-end
 --==================== TWEENS ====================
 local TFast = TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local TMed = TweenInfo.new(0.26, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
@@ -289,6 +275,25 @@ local function tween(obj, info, props)
         return t
     end
 end
+
+
+--==================== FAKE BLUR BACKDROP (SOLO UI) ====================
+local Backdrop = Instance.new("Frame", UI)
+Backdrop.Name = "Backdrop"
+Backdrop.Size = UDim2.new(1, 0, 1, 0)
+Backdrop.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Backdrop.BackgroundTransparency = 1
+Backdrop.ZIndex = 1
+Backdrop.Visible = true
+
+local function blurIn()
+    tween(Backdrop, TSlow, {BackgroundTransparency = 0.55})
+end
+
+local function blurOut()
+    tween(Backdrop, TSlow, {BackgroundTransparency = 1})
+end
+
 --==================== UI COMPONENTS ====================
 makeAppleToggle = function(parent, label, order, onChanged)
 local state = false
