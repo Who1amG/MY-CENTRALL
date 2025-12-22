@@ -3,6 +3,7 @@
 -- Made for Sp4rk 💎
 --v2.1
 --fixes v9
+-- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
