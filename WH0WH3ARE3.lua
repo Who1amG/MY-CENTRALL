@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes 51..
+--fixes 52..
 -- 70% working
 
 print("GLASSMAS START")
