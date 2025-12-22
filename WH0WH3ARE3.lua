@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v101
+--fixes v102
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -679,8 +679,10 @@ PageVisual:SetAttribute("NoDrag", true)
 PageVisual.BorderSizePixel = 0
 PageVisual.ScrollBarImageTransparency = 0
 
+-- ==================== TAB DE ARMAS (CORREGIDO) ====================
+local WeaponsTab = makeAppleTab("🔫", "Weapons")
+
 local Weapons = {
-    -- 🔫 RIFLES
     {Name="AR556 GreenTip", Ammo="5.56"},
     {Name="308ARP", Ammo="5.56"},
     {Name="Vepr 12 Defender", Ammo="Slugs"},
@@ -699,8 +701,6 @@ local Weapons = {
     {Name="223Mini", Ammo="5.56"},
     {Name="BCM4", Ammo="5.56"},
     {Name="PLR-16", Ammo="5.56"},
-
-    -- 🔫 PISTOLAS
     {Name="Hellcat XD", Ammo="Extended"},
     {Name="G24 Competition", Ammo="Extended"},
     {Name="PSA ROCK 5.7", Ammo="9mm"},
@@ -713,7 +713,7 @@ local Weapons = {
     {Name="G48 PerformanceTrigger", Ammo="9mm"},
     {Name="Engraved Colt .38 Super", Ammo="Extended"},
     {Name="Canik MC9 Prime", Ammo="Extended"},
-    {Name="38. Smith&Wesson", Ammo="Bullets"}, -- << AQUÍ ESTABA EL ERROR, YA LO JUNTÉ
+    {Name="38. Smith&Wesson", Ammo="Bullets"}, -- Arreglado el salto de línea
     {Name="G43X", Ammo="Extended"},
     {Name="G22 Compensated", Ammo="Extended"},
     {Name="FNXBeam", Ammo="Extended"},
@@ -732,19 +732,17 @@ local Weapons = {
     {Name="G23Gen4 Extended", Ammo="Extended"}
 }
 
-local function BuyWeaponAndAmmo(weapon)
-    -- comprar arma
-    if not weapon then return end
-    Remote:FireServer("BuyItemTool", weapon.Name)
-    task.wait(0.15)
-
-    -- comprar munición (2x = seguro, estable)
-    if weapon.Ammo then
-        for i = 1, 2 do
-            Remote:FireServer("BuyItemTool", weapon.Ammo)
-            task.wait(0.1)
-        end
-    end
+-- ESTO ES LO QUE TE FALTABA Y POR ESO NO ABRÍA:
+for _, gun in pairs(Weapons) do
+    makeAppleAction(WeaponsTab, gun.Name, "Comprar " .. gun.Name, function()
+        -- Comprar Arma
+        Remote:FireServer("BuyItemTool", gun.Name)
+        task.wait(0.1)
+        -- Comprar Munición (2 veces)
+        Remote:FireServer("BuyItemTool", gun.Ammo)
+        task.wait(0.05)
+        Remote:FireServer("BuyItemTool", gun.Ammo)
+    end)
 end
 
 --==================== GUNS PAGE ====================
