@@ -1,7 +1,7 @@
 -- 🦈 Glassmas UI • Principal (Apple Glass Christmas) • Single Script 
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
---v3
+--v4
 
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -25,7 +25,7 @@ local minimized = false
 
 
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui", 10)
 
 --==================== THEME & FONTS ====================
 local Styles = {
@@ -265,9 +265,15 @@ end
 
 --==================== UI ROOT ====================
 local UI = Instance.new("ScreenGui")
+pcall(function()
+	local old = ((gethui and gethui()) or game:GetService("CoreGui")):FindFirstChild("GlassmasUI")
+	if old then old:Destroy() end
+end)
 UI.Name = "GlassmasUI"
 UI.ResetOnSpawn = false
-UI.Parent = PlayerGui
+local uiParent = (gethui and gethui()) or game:GetService("CoreGui")
+UI.Parent = uiParent
+
 
 getgenv().GlassmasUI_Shutdown = function()
     getgenv().GlassmasUI_Running = false
@@ -603,9 +609,10 @@ end)
 --==================== SLIDER INPUT END (GLOBAL) ====================
 UserInputService.InputEnded:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = false
+		DraggingUI = false
 	end
 end)
+
 
 
 --==================== SNOW LAYER ====================
@@ -1317,7 +1324,9 @@ local function showCleaningScreen(duration)
 	gui.IgnoreGuiInset = true
 	gui.ResetOnSpawn = false
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-	gui.Parent = PlayerGui
+	local uiParent = (gethui and gethui()) or game:GetService("CoreGui")
+UI.Parent = uiParent
+
 
 	local bg = Instance.new("Frame", gui)
 	bg.Size = UDim2.new(1,0,1,0)
