@@ -2,12 +2,16 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes 52..
+--fixes 51..
 -- 70% working
-
--- 🛡️ EXECUTOR COMPAT FIX
-local typeof = typeof or type
-
+-- 🛡️ SAFE typeof (NO PISA ROBLOX)
+local _typeof = typeof
+local function SAFE_TYPEOF(v)
+    if _typeof then
+        return _typeof(v)
+    end
+    return type(v)
+end
 -- 🛡️ SAFE queue_on_teleport (FIX DEFINITIVO)
 local SAFE_QUEUE = nil
 
@@ -1705,7 +1709,7 @@ getgenv().GlassmasUI_ESP_Stop = function()
     clearESP()
     -- desconectar events player hooks
     for k, c in pairs(ESP.Conns) do
-        if typeof(c) == "RBXScriptConnection" then
+        if SAFE_TYPEOF(c) == "RBXScriptConnection" then
             pcall(function() c:Disconnect() end)
         end
         ESP.Conns[k] = nil
