@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes 52..
+--fixes 51..
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -567,23 +567,34 @@ return b
 end
 local BtnClose = makeDot(Color3.fromRGB(255, 95, 90), 16)
 local BtnMin = makeDot(Color3.fromRGB(255, 200, 80), 40)
---==================== DRAG WINDOW (FIXED - WORKS ON PC & MOBILE) ====================
+
+--==================== DRAG WINDOW (HEADER ONLY) ====================
 local DraggingUI = false
 local dragInput = nil
 local dragStart = nil
 local startPos = nil
--- 🔥 permitir drag desde cualquier parte del Window
+
 Window.Active = true
 Window.Selectable = true
+
 local function updateDrag(input)
     local delta = input.Position - dragStart
-    Window.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    Window.Position = UDim2.new(
+        startPos.X.Scale,
+        startPos.X.Offset + delta.X,
+        startPos.Y.Scale,
+        startPos.Y.Offset + delta.Y
+    )
 end
-Window.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+
+Header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+
         DraggingUI = true
         dragStart = input.Position
         startPos = Window.Position
+
         local conn
         conn = input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
@@ -593,16 +604,20 @@ Window.InputBegan:Connect(function(input)
         end)
     end
 end)
-Window.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+
+Header.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement
+    or input.UserInputType == Enum.UserInputType.Touch then
         dragInput = input
     end
 end)
+
 UserInputService.InputChanged:Connect(function(input)
     if input == dragInput and DraggingUI then
         updateDrag(input)
     end
 end)
+
 
 shouldIgnoreClick = function(button)
     -- si el botón tiene NoDrag, IGNORA el drag
