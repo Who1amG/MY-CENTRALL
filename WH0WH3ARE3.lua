@@ -2,26 +2,8 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes 51..
+--fixes v9
 -- 70% working
--- 🛡️ SAFE typeof (NO PISA ROBLOX)
-local _typeof = typeof
-local function SAFE_TYPEOF(v)
-    if _typeof then
-        return _typeof(v)
-    end
-    return type(v)
-end
--- 🛡️ SAFE queue_on_teleport (FIX DEFINITIVO)
-local SAFE_QUEUE = nil
-
-pcall(function()
-    if typeof(queue_on_teleport) == "function" then
-        SAFE_QUEUE = queue_on_teleport
-    end
-end)
-
-print("GLASSMAS START")
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -31,28 +13,6 @@ local PPS = game:GetService("ProximityPromptService")
 local RS = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
-
---==================== SAFE fireproximityprompt ====================
-local SAFE_fireproximityprompt = nil
-
-pcall(function()
-    if typeof(fireproximityprompt) == "function" then
-        SAFE_fireproximityprompt = fireproximityprompt
-    end
-end)
-
-local function triggerPromptSafe(prompt)
-    if not prompt then return end
-
-    if SAFE_fireproximityprompt then
-        SAFE_fireproximityprompt(prompt)
-    else
-        pcall(function()
-            game:GetService("ProximityPromptService"):TriggerPrompt(prompt)
-        end)
-    end
-end
-
 -- ==================== PREDECLARE FUNCTIONS (FIX) ====================
 local Notify
 local AddLog
@@ -65,23 +25,6 @@ local GlassBlur
 local minimized = false
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-
--- 🛡️ Notify seguro TEMPORAL (evita nil crash)
-Notify = function(...)
-    warn("[Notify before init]", ...)
-end
-
--- 🛡️ AddLog seguro TEMPORAL
-AddLog = function(...)
-    warn("[AddLog before init]", ...)
-end
-
-
--- 👶 versión simple para que no se rompa al inicio
-shouldIgnoreClick = function()
-    return false
-end
-
 --==================== THEME & FONTS ====================
 local Styles = {
 Red = {Glass=Color3.fromRGB(255,110,110), Header=Color3.fromRGB(60,15,20), Accent=Color3.fromRGB(255,90,90)},
@@ -283,7 +226,30 @@ local UI = Instance.new("ScreenGui")
 UI.Name = "GlassmasUI"
 UI.ResetOnSpawn = false
 UI.Parent = PlayerGui
-
+getgenv().GlassmasUI_Shutdown = function()
+    getgenv().GlassmasUI_Running = false
+   
+    -- Apagar Fly
+    if FlyEnabled then stopFly() end
+    -- 🔥 Apagar ESP refactor (si existe)
+    pcall(function()
+    if getgenv().GlassmasUI_ESP_Stop then
+        getgenv().GlassmasUI_ESP_Stop()
+    else
+        -- fallback por si no existe
+        clearESP()
+        disableESP()
+    end
+end)
+   
+    -- Borrar ESP
+    clearESP()
+    disableESP()
+   
+    pcall(function()
+        if UI then UI:Destroy() end
+    end)
+end
 --==================== SOUNDS ====================
 local S_Slide = Instance.new("Sound")
 S_Slide.SoundId = "rbxassetid://541909867"
@@ -307,7 +273,12 @@ Backdrop.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 Backdrop.BackgroundTransparency = 1
 Backdrop.ZIndex = 1
 Backdrop.Visible = true
-
+local function blurIn()
+tween(Backdrop, TSlow, {BackgroundTransparency = 0.55})
+end
+local function blurOut()
+tween(Backdrop, TSlow, {BackgroundTransparency = 1})
+end
 --==================== TWEENS ====================
 local TFast = TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local TMed = TweenInfo.new(0.26, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
@@ -319,15 +290,6 @@ local function tween(obj, info, props)
         return t
     end
 end
-
-local function blurIn()
-    tween(Backdrop, TSlow, {BackgroundTransparency = 0.55})
-end
-
-local function blurOut()
-    tween(Backdrop, TSlow, {BackgroundTransparency = 1})
-end
-
 --==================== UI COMPONENTS ====================
 makeAppleToggle = function(parent, label, order, onChanged)
 local state = false
@@ -361,7 +323,7 @@ tween(b, TFast, {BackgroundTransparency = state and 0.82 or 0.88})
 end
 render()
 b.MouseButton1Click:Connect(function()
-if shouldIgnoreClick(b) then return end
+if shouldIgnoreClick() then return end
 state = not state
 playOptionSound()
 render()
@@ -393,72 +355,12 @@ st.Thickness = 1
 st.Color = Theme.Accent
 st.Transparency = 0.75
 b.MouseButton1Click:Connect(function()
-if shouldIgnoreClick(b) then return end
-
+if shouldIgnoreClick() then return end
 playOptionSound()
 if onClick then onClick() end
 end)
 return b
 end
-
-local function makeDropdownHeaderDynamic(parent, titleText)
-local headerBtn = Instance.new("TextButton", parent)
-headerBtn.AutoButtonColor = false
-headerBtn.Size = UDim2.new(1, 0, 0, 44)
-headerBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
-headerBtn.BackgroundTransparency = 0.88
-headerBtn.BorderSizePixel = 0
-headerBtn.Text = titleText .. " ▸"
-headerBtn.Font = Fonts[CurrentFontName]
-headerBtn.TextSize = 14
-headerBtn.TextColor3 = Theme.Text
-headerBtn.ZIndex = 41
-Instance.new("UICorner", headerBtn).CornerRadius = UDim.new(0, 14)
-local st = Instance.new("UIStroke", headerBtn)
-st.Thickness = 1
-st.Color = Theme.Accent
-st.Transparency = 0.80
-
-local container = Instance.new("Frame", parent)
-container.BackgroundTransparency = 1
-container.ClipsDescendants = true
-container.Size = UDim2.new(1, 0, 0, 0)
-container.ZIndex = 41
-
-local list = Instance.new("UIListLayout", container)
-list.Padding = UDim.new(0, UI_ITEM_PADDING)
-list.SortOrder = Enum.SortOrder.LayoutOrder
-list.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
-local open = false
-
-local function refreshSize(animated)
-    local h = list.AbsoluteContentSize.Y + 6
-    local target = open
-        and UDim2.new(1, 0, 0, h)
-        or UDim2.new(1, 0, 0, 0)
-    if animated then
-        tween(container, TMed, {Size = target})
-    else
-        container.Size = target
-    end
-end
-
-list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    if open then refreshSize(false) end
-end)
-
-headerBtn.MouseButton1Click:Connect(function()
-    if shouldIgnoreClick(headerBtn) then return end
-    open = not open
-    playOptionSound()
-    headerBtn.Text = titleText .. (open and " ▾" or " ▸")
-    refreshSize(true)
-end)
-
-return headerBtn, container, list
-end
-
 -- 🧪 TEST: Verificar que cargaron bien
 print("makeAppleAction =", makeAppleAction)
 print("makeAppleToggle =", makeAppleToggle)
@@ -579,34 +481,23 @@ return b
 end
 local BtnClose = makeDot(Color3.fromRGB(255, 95, 90), 16)
 local BtnMin = makeDot(Color3.fromRGB(255, 200, 80), 40)
-
---==================== DRAG WINDOW (HEADER ONLY - FIX FINAL) ====================
+--==================== DRAG WINDOW (FIXED - WORKS ON PC & MOBILE) ====================
 local DraggingUI = false
 local dragInput = nil
 local dragStart = nil
 local startPos = nil
-
+-- 🔥 permitir drag desde cualquier parte del Window
 Window.Active = true
 Window.Selectable = true
-
 local function updateDrag(input)
     local delta = input.Position - dragStart
-    Window.Position = UDim2.new(
-        startPos.X.Scale,
-        startPos.X.Offset + delta.X,
-        startPos.Y.Scale,
-        startPos.Y.Offset + delta.Y
-    )
+    Window.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 end
-
-Header.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-    or input.UserInputType == Enum.UserInputType.Touch then
-
+Window.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         DraggingUI = true
         dragStart = input.Position
         startPos = Window.Position
-
         local conn
         conn = input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
@@ -616,16 +507,19 @@ Header.InputBegan:Connect(function(input)
         end)
     end
 end)
-
-
-shouldIgnoreClick = function(button)
-    -- si el botón tiene NoDrag, IGNORA el drag
-    if button and button:GetAttribute("NoDrag") then
-        return false
+Window.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
     end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and DraggingUI then
+        updateDrag(input)
+    end
+end)
+shouldIgnoreClick = function()
     return DraggingUI
 end
-
 --==================== SNOW LAYER ====================
 local SnowLayer = Instance.new("Frame", Window)
 SnowLayer.Name = "SnowLayer"
@@ -841,6 +735,7 @@ end
 local PageGuns = newPageFrame()
 -- Scroll vertical (como mochilas)
 local GunsScroll = Instance.new("ScrollingFrame", PageGuns)
+GunsScroll.Visible = true
 GunsScroll.BackgroundTransparency = 1
 GunsScroll.BorderSizePixel = 0
 GunsScroll.Size = UDim2.new(1, 0, 1, -6)
@@ -894,18 +789,14 @@ Transparency = selected and 0.35 or 0.85
 end
 render()
 btn.MouseButton1Click:Connect(function()
-if shouldIgnoreClick(btn) then return end
+if shouldIgnoreClick() then return end
 playOptionSound()
-			
 -- deseleccionar todas
 for _,c in ipairs(parent:GetChildren()) do
 if c:IsA("TextButton") then
 c:SetAttribute("Selected", false)
-					  
 end
-  
-   end
-			
+end
 selected = true
 btn:SetAttribute("Selected", true)
 SelectedWeapon = weapon
@@ -918,22 +809,14 @@ render()
 end)
 return btn
 end
--- === DROPDOWN GUNS ===
-local GunsHeader, GunsContainer, GunsListLayout =
-    makeDropdownHeaderDynamic(GunsScroll, "🔫 GUNS")
-
-GunsHeader.LayoutOrder = 1
-GunsContainer.LayoutOrder = 2
-
-if Weapons and #Weapons > 0 then
-    for i, weapon in ipairs(Weapons) do
-        local btn = makeGunSelectButton(GunsContainer, weapon)
-        btn.LayoutOrder = i
-    end
-else
-    makeAppleAction(GunsContainer, "❌ No se detectaron armas", 1, function() end)
+-- crear lista de armas
+if Weapons then
+for _, weapon in ipairs(Weapons) do
+makeGunSelectButton(GunsScroll, weapon)
 end
-
+else
+makeAppleAction(GunsScroll, "❌ No se detectaron armas", 1, function() end)
+end
 -- botón BUY (SIEMPRE AL FINAL)
 local BuyGunBtn = makeAppleAction(
 GunsScroll,
@@ -970,6 +853,27 @@ PageMisc.Active = true
 PageMisc:SetAttribute("NoDrag", true)
 PageMisc.BorderSizePixel = 0
 PageMisc.ScrollBarImageTransparency = 0
+
+-- 🔘 Botón para mostrar/ocultar lista de armas
+local showGuns = true
+
+local ToggleGunsBtn = makeAppleAction(
+    PageGuns,
+    "📜 Mostrar lista de armas",
+    0,
+    function()
+        showGuns = not showGuns
+        GunsScroll.Visible = showGuns
+        ToggleGunsBtn.Text = showGuns
+            and "📜 Ocultar lista de armas"
+            or "📜 Mostrar lista de armas"
+    end
+)
+
+ToggleGunsBtn.Size = UDim2.new(1, -24, 0, 44)
+ToggleGunsBtn.TextSize = 14
+ToggleGunsBtn:SetAttribute("NoDrag", true)
+
 --==================== VISUAL CONTENT ====================
 local VisualContent = Instance.new("Frame", PageVisual)
 VisualContent.BackgroundTransparency = 1
@@ -1172,7 +1076,52 @@ end)
 Tabs.Settings.MouseButton1Click:Connect(function()
 switchPage(PageSettings, PageSettingsKey)
 end)
-
+local function makeDropdownHeaderDynamic(parent, titleText)
+local headerBtn = Instance.new("TextButton", parent)
+headerBtn.AutoButtonColor = false
+headerBtn.Size = UDim2.new(1, 0, 0, 44)
+headerBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
+headerBtn.BackgroundTransparency = 0.88
+headerBtn.BorderSizePixel = 0
+headerBtn.Text = titleText .. " ▸"
+headerBtn.Font = Fonts[CurrentFontName]
+headerBtn.TextSize = 14
+headerBtn.TextColor3 = Theme.Text
+headerBtn.ZIndex = 41
+Instance.new("UICorner", headerBtn).CornerRadius = UDim.new(0, 14)
+local st = Instance.new("UIStroke", headerBtn)
+st.Thickness = 1
+st.Color = Theme.Accent
+st.Transparency = 0.80
+local container = Instance.new("Frame", parent)
+container.BackgroundTransparency = 1
+container.ClipsDescendants = true
+container.Size = UDim2.new(1, 0, 0, 0)
+container.ZIndex = 41
+local list = Instance.new("UIListLayout", container)
+list.Padding = UDim.new(0, UI_ITEM_PADDING)
+list.SortOrder = Enum.SortOrder.LayoutOrder
+list.HorizontalAlignment = Enum.HorizontalAlignment.Center
+local open = false
+local function refreshSize(animated)
+local h = list.AbsoluteContentSize.Y + 6
+local target = open
+and UDim2.new(1, 0, 0, h)
+or UDim2.new(1, 0, 0, 0)
+if animated then tween(container, TMed, {Size = target}) else container.Size = target end
+end
+list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+if open then refreshSize(false) end
+end)
+headerBtn.MouseButton1Click:Connect(function()
+if shouldIgnoreClick() then return end
+open = not open
+playOptionSound()
+headerBtn.Text = titleText .. (open and " ▾" or " ▸")
+refreshSize(true)
+end)
+return headerBtn, container, list
+end
 --==================== APPLE CLEANING SCREEN ====================
 local function showCleaningScreen(duration)
 local gui = Instance.new("ScreenGui")
@@ -1474,8 +1423,6 @@ local function enableESP()
         end
     end
 end
-
-
 -- === Respawn hook (sin loops raros) ===
 local function hookCharacter(player)
     if ESP.Conns["char_" .. player.UserId] then
@@ -1637,7 +1584,7 @@ preview.ZIndex = 42
 preview:SetAttribute("NoDrag", true)
 Instance.new("UICorner", preview).CornerRadius = UDim.new(0, 6)
 colorBtn.MouseButton1Click:Connect(function()
-    if shouldIgnoreClick(colorBtn) then return end
+if shouldIgnoreClick() then return end
 playOptionSound()
 Notify("🎨 Selector de color desactivado (próxima versión)", false)
 end)
@@ -1709,7 +1656,7 @@ getgenv().GlassmasUI_ESP_Stop = function()
     clearESP()
     -- desconectar events player hooks
     for k, c in pairs(ESP.Conns) do
-        if SAFE_TYPEOF(c) == "RBXScriptConnection" then
+        if typeof(c) == "RBXScriptConnection" then
             pcall(function() c:Disconnect() end)
         end
         ESP.Conns[k] = nil
@@ -1796,7 +1743,7 @@ Instance.new("UICorner", SetKeyBtn).CornerRadius = UDim.new(0, 10)
 local hideKey = Enum.KeyCode.H
 local uiVisible = true
 SetKeyBtn.MouseButton1Click:Connect(function()
-    if shouldIgnoreClick(SetKeyBtn) then return end
+if shouldIgnoreClick() then return end
 playOptionSound()
 local txt = tostring(KeyBox.Text or ""):upper()
 if #txt ~= 1 or not Enum.KeyCode[txt] then
@@ -1905,6 +1852,7 @@ fontToggles[name] = tog
 end
 fontToggles[CurrentFontName].Set(true)
 -- ==================== CAMERA SETUP (EXACT) ====================
+local Camera = workspace.CurrentCamera
 local BASE_CAMERA_CFRAME = CFrame.new(
 -720.347595, 48.588726, 261.107269,
 -0.999807477, -0.00462738099, -0.0190718602,
@@ -1929,6 +1877,7 @@ local function runMoneyDryer()
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
+if not fireproximityprompt and not PPS then return end
 for _, v in ipairs(Workspace:GetDescendants()) do
 if v:IsA("ProximityPrompt") then
 v.HoldDuration = 0
@@ -1961,8 +1910,8 @@ end
 acc += dt
 while acc >= INTERVAL do
 acc -= INTERVAL
-triggerPromptSafe(PromptA)
-triggerPromptSafe(PromptB)
+fireproximityprompt(PromptA)
+fireproximityprompt(PromptB)
 end
 end)
 hum:ChangeState(Enum.HumanoidStateType.Jumping)
@@ -2142,11 +2091,12 @@ pcall(function()
 cam.CFrame = CFrame.new(cam.CFrame.Position, prompt.Parent.Position)
 end)
 task.wait(0.25)
-			
-local ok = pcall(function()
-    triggerPromptSafe(prompt)
-end)
-
+local ok = false
+if fireproximityprompt then
+ok = pcall(function() fireproximityprompt(prompt) end)
+else
+ok = pcall(function() PPS:TriggerPrompt(prompt) end)
+end
 if ok then
 collected += 1
 processed[m] = true
@@ -2214,13 +2164,26 @@ local function washMoney(dupeMode)
     forcePrompt(mainDryer)
     if dupeDryer then forcePrompt(dupeDryer) end
     -- Clicks iniciales 100% paralelos
-task.spawn(function()
+    task.spawn(function()
     pcall(function()
-        triggerPromptSafe(mainDryer.prompt)
+        if fireproximityprompt then
+            fireproximityprompt(mainDryer.prompt)
+        else
+            PPS:TriggerPrompt(mainDryer.prompt)
+        end
     end)
 end)
-
-
+if dupeDryer then
+    task.spawn(function()
+        pcall(function()
+            if fireproximityprompt then
+                fireproximityprompt(dupeDryer.prompt)
+            else
+                PPS:TriggerPrompt(dupeDryer.prompt)
+            end
+        end)
+    end)
+end
     task.wait(0.8)
     -- Auto-clicker ultra rápido
     local function startClicker(prompt)
@@ -2228,13 +2191,22 @@ end)
             local clicks = MONEY_WASH_TIME * MONEY_WASH_CPS
             for _ = 1, clicks do
                 if not moneyWashRunning then break end
-					
-pcall(function()
-    triggerPromptSafe(prompt)
+                pcall(function()
+    if fireproximityprompt then
+        fireproximityprompt(prompt)
+    else
+        PPS:TriggerPrompt(prompt)
+    end
 end)
-
-task.wait(1 / MONEY_WASH_CPS)
-
+task.wait()
+pcall(function()
+    if fireproximityprompt then
+        fireproximityprompt(prompt)
+    else
+        PPS:TriggerPrompt(prompt)
+    end
+end)
+                task.wait(1 / MONEY_WASH_CPS - 0.01)
             end
         end)
     end
@@ -2306,7 +2278,7 @@ SetFlyKeyBtn.TextColor3 = Theme.Text
 Instance.new("UICorner", SetFlyKeyBtn).CornerRadius = UDim.new(0, 10)
 SetFlyKeyBtn:SetAttribute("NoDrag", true)
 SetFlyKeyBtn.MouseButton1Click:Connect(function()
-    if shouldIgnoreClick(SetFlyKeyBtn) then return end
+if shouldIgnoreClick() then return end
 playOptionSound()
 waitingFlyKey = true
 SetFlyKeyBtn.Text = "[ ... ]"
@@ -2409,8 +2381,13 @@ end
 end)
 end
 )
-
-
+dupeMoneyBtn:SetAttribute("NoDrag", true)
+dupeMoneyBtn.TextSize = 14
+-- Tooltip SIN click
+attachTooltip(
+dupeMoneyBtn,
+"LIMPIA TODO TU DINERO DE UNA\n\nRECOMENDACIÓN:\nTener de 30K a 100K en rojo (avaces falla🔴) "
+)
 dupeMoneyBtn:SetAttribute("NoDrag", true)
 dupeMoneyBtn.TextSize = 14
 -- Tooltip SIN click
@@ -2535,13 +2512,12 @@ if part and part:IsA("BasePart") then
 tpStanding(part, 2.2)
 task.wait(0.25)
 pcall(function() obj.HoldDuration = 0 end)
-													
-local ok = pcall(function()
-    triggerPromptSafe(obj)
-end)
-
-
-
+local ok = false
+if fireproximityprompt then
+ok = pcall(function() fireproximityprompt(obj) end)
+else
+ok = pcall(function() PPS:TriggerPrompt(obj) end)
+end
 task.wait(0.8)
 tpBack(originalCFrame)
 if ok then
@@ -2678,8 +2654,8 @@ local rejoinWithScriptBtn = makeAppleAction(
         AddLog("🔁 Rejoin with Script iniciado")
 
         -- 🔒 Script en cola (se ejecuta al entrar)
-       if SAFE_QUEUE then
-           SAFE_QUEUE([[
+       if queue_on_teleport then
+    queue_on_teleport([[
         getgenv().Glassmas_AutoLoad = true
         pcall(function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/Who1amG/MY-CENTRALL/refs/heads/main/WH0WH3ARE3.lua"))()
@@ -2702,10 +2678,11 @@ rejoinWithScriptBtn:SetAttribute("NoDrag", true)
 
 
 --==================== MINIMIZE / CLOSE ====================
+local minimized = false
 local originalSize = Window.Size
 
 BtnMin.MouseButton1Click:Connect(function()
-    if shouldIgnoreClick(BtnMin) then return end
+	if shouldIgnoreClick() then return end
 	minimized = not minimized
 	playOptionSound()
 
@@ -2726,17 +2703,18 @@ BtnMin.MouseButton1Click:Connect(function()
 end)
 
 BtnClose.MouseButton1Click:Connect(function()
-    if shouldIgnoreClick(BtnClose) then return end
-
+    if shouldIgnoreClick() then return end
     pcall(blurOut)
     playOptionSound()
     getgenv().GlassmasUI_Running = false
-
+    
+    -- 🔥 Apagar Fly si estaba activo
     if FlyEnabled then stopFly() end
-
+    
+    -- 🔥 BORRAR TODO EL ESP
     clearESP()
-    disableESP()
-
+    disableESP()  -- apaga flags también
+    
     tween(WStroke, TFast, {Transparency = 1})
     tween(Window, TSlow, {BackgroundTransparency = 1, Size = UDim2.new(0, 520, 0, 0)})
     task.delay(0.42, function()
@@ -2744,25 +2722,6 @@ BtnClose.MouseButton1Click:Connect(function()
     end)
 end)
 
-getgenv().GlassmasUI_Shutdown = function()
-    getgenv().GlassmasUI_Running = false
-    if FlyEnabled then stopFly() end
-
-    pcall(function()
-        if getgenv().GlassmasUI_ESP_Stop then
-            getgenv().GlassmasUI_ESP_Stop()
-        else
-            clearESP()
-            disableESP()
-        end
-    end)
-
-    clearESP()
-    disableESP()
-    if UI then UI:Destroy() end
-end
-
-print("GLASSMAS END")
 --==================== FINAL ====================
 AddLog("🧪 Sistema de logs iniciado correctamente")
 Notify("Made By SPK 💎", true)
