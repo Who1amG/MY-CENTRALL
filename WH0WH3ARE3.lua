@@ -410,7 +410,7 @@ list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 end)
 
 headerBtn.MouseButton1Click:Connect(function()
-    if shouldIgnoreClick() then return end
+    if shouldIgnoreClick(headerBtn) then return end
     open = not open
     playOptionSound()
     headerBtn.Text = titleText .. (open and " ▾" or " ▸")
@@ -576,9 +576,15 @@ UserInputService.InputChanged:Connect(function(input)
         updateDrag(input)
     end
 end)
-shouldIgnoreClick = function()
+
+shouldIgnoreClick = function(button)
+    -- si el botón tiene NoDrag, IGNORA el drag
+    if button and button:GetAttribute("NoDrag") then
+        return false
+    end
     return DraggingUI
 end
+
 --==================== SNOW LAYER ====================
 local SnowLayer = Instance.new("Frame", Window)
 SnowLayer.Name = "SnowLayer"
@@ -2702,8 +2708,9 @@ BtnMin.MouseButton1Click:Connect(function()
 	end
 end)
 
-BtnClose.MouseButton1Click:Connect(function()
-    if shouldIgnoreClick() then return end
+btn.MouseButton1Click:Connect(function()
+    if shouldIgnoreClick(btn) then return end
+
     pcall(blurOut)
     playOptionSound()
     getgenv().GlassmasUI_Running = false
