@@ -482,6 +482,7 @@ local DraggingUI = false
 local dragInput = nil
 local dragStart = nil
 local startPos = nil
+local lastDragTime = 0
 -- 🔥 permitir drag desde cualquier parte del Window
 Window.Active = true
 Window.Selectable = true
@@ -522,7 +523,6 @@ UserInputService.InputChanged:Connect(function(input)
         updateDrag(input)
     end
 end)
-local lastDragTime = 0
 
 shouldIgnoreClick = function()
     -- solo ignora si REALMENTE se estaba arrastrando
