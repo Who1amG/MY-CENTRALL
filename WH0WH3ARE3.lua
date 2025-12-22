@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v9
+--fixes v10
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -808,17 +808,25 @@ render()
 end)
 return btn
 end
--- crear lista de armas
+-- Crear el dropdown para armas (como mochilas)
+local WeaponsHeader, WeaponsContainer = makeDropdownHeaderDynamic(GunsScroll, "🔫 Armas")
+WeaponsHeader.LayoutOrder = 1
+WeaponsContainer.LayoutOrder = 2
+
+-- crear lista de armas DENTRO del contenedor
 if Weapons then
-for _, weapon in ipairs(Weapons) do
-makeGunSelectButton(GunsScroll, weapon)
+for i, weapon in ipairs(Weapons) do
+local btn = makeGunSelectButton(WeaponsContainer, weapon)
+btn.LayoutOrder = i  -- Esto ordena las armas de 1 en adelante
 end
 else
-makeAppleAction(GunsScroll, "❌ No se detectaron armas", 1, function() end)
+local noArmas = makeAppleAction(WeaponsContainer, "❌ No se detectaron armas", 1, function() end)
+noArmas.LayoutOrder = 1  -- Orden para el mensaje de error
 end
--- botón BUY (SIEMPRE AL FINAL)
+
+-- botón BUY (SIEMPRE AL FINAL, DENTRO del contenedor)
 local BuyGunBtn = makeAppleAction(
-GunsScroll,
+WeaponsContainer,
 "🛒 BUY ARMA SELECCIONADA",
 999,
 function()
