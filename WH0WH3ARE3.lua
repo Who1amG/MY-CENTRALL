@@ -264,6 +264,17 @@ end
 local function playOptionSound()
 pcall(function() SoundService:PlayLocalSound(S_Click) end)
 end
+
+--==================== TWEENS ====================
+local TFast = TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local TMed = TweenInfo.new(0.26, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+local TSlow = TweenInfo.new(0.38, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+local function tween(obj, info, props)
+local t = TweenService:Create(obj, info, props)
+t:Play()
+return t
+end
+
 --==================== FAKE BLUR BACKDROP (SOLO UI) ====================
 local Backdrop = Instance.new("Frame", UI)
 Backdrop.Name = "Backdrop"
@@ -277,15 +288,6 @@ tween(Backdrop, TSlow, {BackgroundTransparency = 0.55})
 end
 local function blurOut()
 tween(Backdrop, TSlow, {BackgroundTransparency = 1})
-end
---==================== TWEENS ====================
-local TFast = TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-local TMed = TweenInfo.new(0.26, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-local TSlow = TweenInfo.new(0.38, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-local function tween(obj, info, props)
-local t = TweenService:Create(obj, info, props)
-t:Play()
-return t
 end
 --==================== UI COMPONENTS ====================
 makeAppleToggle = function(parent, label, order, onChanged)
