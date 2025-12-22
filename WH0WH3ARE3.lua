@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v11
+--fixes v11....
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -379,35 +379,47 @@ local st = Instance.new("UIStroke", headerBtn)
 st.Thickness = 1
 st.Color = Theme.Accent
 st.Transparency = 0.80
+
 local container = Instance.new("Frame", parent)
 container.BackgroundTransparency = 1
 container.ClipsDescendants = true
 container.Size = UDim2.new(1, 0, 0, 0)
 container.ZIndex = 41
+
 local list = Instance.new("UIListLayout", container)
 list.Padding = UDim.new(0, UI_ITEM_PADDING)
 list.SortOrder = Enum.SortOrder.LayoutOrder
 list.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
 local open = false
+
 local function refreshSize(animated)
-local h = list.AbsoluteContentSize.Y + 6
-local target = open
-and UDim2.new(1, 0, 0, h)
-or UDim2.new(1, 0, 0, 0)
-if animated then tween(container, TMed, {Size = target}) else container.Size = target end
+    local h = list.AbsoluteContentSize.Y + 6
+    local target = open
+        and UDim2.new(1, 0, 0, h)
+        or UDim2.new(1, 0, 0, 0)
+    if animated then
+        tween(container, TMed, {Size = target})
+    else
+        container.Size = target
+    end
 end
+
 list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-if open then refreshSize(false) end
+    if open then refreshSize(false) end
 end)
+
 headerBtn.MouseButton1Click:Connect(function()
-if shouldIgnoreClick() then return end
-open = not open
-playOptionSound()
-headerBtn.Text = titleText .. (open and " ▾" or " ▸")
-refreshSize(true)
+    if shouldIgnoreClick() then return end
+    open = not open
+    playOptionSound()
+    headerBtn.Text = titleText .. (open and " ▾" or " ▸")
+    refreshSize(true)
 end)
+
 return headerBtn, container, list
 end
+
 -- 🧪 TEST: Verificar que cargaron bien
 print("makeAppleAction =", makeAppleAction)
 print("makeAppleToggle =", makeAppleToggle)
