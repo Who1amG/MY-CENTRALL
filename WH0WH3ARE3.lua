@@ -1,7 +1,7 @@
 -- 🦈 Glassmas UI • Principal (Apple Glass Christmas) • Single Script 
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
---v3
+--v4
 
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -526,6 +526,57 @@ WStroke.Thickness = 1.5
 WStroke.Transparency = 0.45
 
 
+--==================== DRAG WINDOW (FIX REAL - ROBLOX SAFE) ====================
+
+local DraggingUI = false
+local DragStartMouse
+local DragStartPos
+
+local function canDrag(target)
+	if not target then return true end
+	if target:GetAttribute("NoDrag") then return false end
+	if target:IsA("TextBox") then return false end
+	return true
+end
+
+-- 🔥 USAMOS InputBegan GLOBAL (NO Window.InputBegan)
+UserInputService.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+	if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+
+	local target = input.Target
+	if not target or not target:IsDescendantOf(Window) then return end
+	if not canDrag(target) then return end
+
+	DraggingUI = true
+	DragStartMouse = input.Position
+	DragStartPos = Window.Position
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if not DraggingUI then return end
+	if input.UserInputType ~= Enum.UserInputType.MouseMovement then return end
+
+	local delta = input.Position - DragStartMouse
+	Window.Position = UDim2.new(
+		DragStartPos.X.Scale,
+		DragStartPos.X.Offset + delta.X,
+		DragStartPos.Y.Scale,
+		DragStartPos.Y.Offset + delta.Y
+	)
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		DraggingUI = false
+	end
+end)
+
+shouldIgnoreClick = function()
+	return DraggingUI
+end
+
+
 --==================== HEADER ====================
 local Header = Instance.new("Frame", Window)
 Header.Size = UDim2.new(1, 0, 0, 56)
@@ -563,51 +614,6 @@ end
 
 local BtnClose = makeDot(Color3.fromRGB(255, 95, 90), 16)
 local BtnMin   = makeDot(Color3.fromRGB(255, 200, 80), 40)
-
---==================== DRAG WINDOW (GLOBAL - ANYWHERE) ====================
-
-local DraggingUI = false
-local DragStartMouse
-local DragStartPos
-
-local function canDrag(target)
-	if not target then return true end
-	if target:GetAttribute("NoDrag") then return false end
-	if target:IsA("TextBox") then return false end
-	return true
-end
-
-Window.InputBegan:Connect(function(input)
-	if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
-	if not canDrag(input.Target) then return end
-
-	DraggingUI = true
-	DragStartMouse = input.Position
-	DragStartPos = Window.Position
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-	if not DraggingUI then return end
-	if input.UserInputType ~= Enum.UserInputType.MouseMovement then return end
-
-	local delta = input.Position - DragStartMouse
-	Window.Position = UDim2.new(
-		DragStartPos.X.Scale,
-		DragStartPos.X.Offset + delta.X,
-		DragStartPos.Y.Scale,
-		DragStartPos.Y.Offset + delta.Y
-	)
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		DraggingUI = false
-	end
-end)
-
-shouldIgnoreClick = function()
-	return DraggingUI
-end
 
 
 --==================== SNOW LAYER ====================
