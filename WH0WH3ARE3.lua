@@ -568,33 +568,23 @@ end
 local BtnClose = makeDot(Color3.fromRGB(255, 95, 90), 16)
 local BtnMin = makeDot(Color3.fromRGB(255, 200, 80), 40)
 
---==================== DRAG WINDOW (HEADER ONLY) ====================
+--==================== DRAG WINDOW (FIXED - WORKS ON PC & MOBILE) ====================
 local DraggingUI = false
 local dragInput = nil
 local dragStart = nil
 local startPos = nil
-
+-- 🔥 permitir drag desde cualquier parte del Window
 Window.Active = true
 Window.Selectable = true
-
 local function updateDrag(input)
     local delta = input.Position - dragStart
-    Window.Position = UDim2.new(
-        startPos.X.Scale,
-        startPos.X.Offset + delta.X,
-        startPos.Y.Scale,
-        startPos.Y.Offset + delta.Y
-    )
+    Window.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 end
-
-Header.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-    or input.UserInputType == Enum.UserInputType.Touch then
-
+Window.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         DraggingUI = true
         dragStart = input.Position
         startPos = Window.Position
-
         local conn
         conn = input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
@@ -604,14 +594,11 @@ Header.InputBegan:Connect(function(input)
         end)
     end
 end)
-
-Header.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement
-    or input.UserInputType == Enum.UserInputType.Touch then
+Window.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
         dragInput = input
     end
 end)
-
 UserInputService.InputChanged:Connect(function(input)
     if input == dragInput and DraggingUI then
         updateDrag(input)
