@@ -1,7 +1,7 @@
 -- 🦈 Glassmas UI • Principal (Apple Glass Christmas) • Single Script 
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
---v2
+--v3
 
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -599,30 +599,6 @@ UserInputService.InputChanged:Connect(function(input)
 	)
 end)
 
-UserInputService.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		DraggingUI = false
-	end
-end)
-
-shouldIgnoreClick = function()
-	return DraggingUI
-end
-
-UserInputService.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		DraggingUI = false
-	end
-end)
-
-shouldIgnoreClick = function()
-	return DraggingUI
-end
-
-
-shouldIgnoreClick = function()
-	return false
-end
 
 --==================== SLIDER INPUT END (GLOBAL) ====================
 UserInputService.InputEnded:Connect(function(input)
