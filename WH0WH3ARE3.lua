@@ -1783,13 +1783,20 @@ do
         Knob.Position = UDim2.new(pct, -9, 0.5, -9)
     end
 
-    BarBack.InputBegan:Connect(function(i)
-	if i.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		setFromX(i.Position.X)
-	end
-end)
+    BarBack.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            setFromX(input.Position.X)
 
+            local conn
+            conn = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                    conn:Disconnect()
+                end
+            end)
+        end
+    end)
 
     UserInputService.InputChanged:Connect(function(i)
         if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
@@ -1808,7 +1815,6 @@ end)
         Knob.Position = UDim2.new(pct, -9, 0.5, -9)
     end)
 end
-
 -- 🎨 COLOR DEL ESP (VERSIÓN SEGURA – SIN RULETA)
 do
 	local colorBtn = Instance.new("TextButton", ESPContainer)
