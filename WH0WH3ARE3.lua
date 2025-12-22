@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.2
---fixes v11
+--fixes v12
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -55,16 +55,6 @@ Accent = Styles[CurrentStyle].Accent,
 Text = Color3.fromRGB(245,248,255),
 Muted = Color3.fromRGB(210,220,255),
 }
---==================== ANTI DUPLICATE (FIXED - CIERRA LA VIEJA) ====================
-if getgenv().GlassmasUI_Running then
-    pcall(function()
-        if getgenv().GlassmasUI_Shutdown then
-            getgenv().GlassmasUI_Shutdown() -- cierra la vieja
-        end
-    end)
-    task.wait(0.5) -- espera a que se destruya
-end
-getgenv().GlassmasUI_Running = true
 --==================== SAFE FOLDERS (NO CRASH) ====================
 local ElementsFolder = RS:FindFirstChild("Elements")
 local ItemsFolder = ElementsFolder and ElementsFolder:FindFirstChild("ItemsFolder")
@@ -1412,6 +1402,20 @@ local function enableESP()
         end
     end
 end
+
+
+--==================== ANTI DUPLICATE ====================
+if getgenv().GlassmasUI_Running then
+    pcall(function()
+        if getgenv().GlassmasUI_Shutdown then
+            getgenv().GlassmasUI_Shutdown()
+        end
+    end)
+    task.wait(0.5)
+end
+getgenv().GlassmasUI_Running = true
+
+
 -- === Respawn hook (sin loops raros) ===
 local function hookCharacter(player)
     if ESP.Conns["char_" .. player.UserId] then
