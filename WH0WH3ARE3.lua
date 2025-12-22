@@ -1,7 +1,7 @@
 -- 🦈 Glassmas UI • Principal (Apple Glass Christmas) • Single Script 
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
---v4
+--v5
 
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -526,56 +526,48 @@ WStroke.Thickness = 1.5
 WStroke.Transparency = 0.45
 
 
---==================== DRAG WINDOW (FIX REAL - ROBLOX SAFE) ====================
-
+--==================== DRAG WINDOW (FIXED - WORKS ON PC & MOBILE) ====================
 local DraggingUI = false
-local DragStartMouse
-local DragStartPos
+local dragInput = nil
+local dragStart = nil
+local startPos = nil
 
-local function canDrag(target)
-	if not target then return true end
-	if target:GetAttribute("NoDrag") then return false end
-	if target:IsA("TextBox") then return false end
-	return true
+local function updateDrag(input)
+    local delta = input.Position - dragStart
+    Window.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 end
 
--- 🔥 USAMOS InputBegan GLOBAL (NO Window.InputBegan)
-UserInputService.InputBegan:Connect(function(input, gpe)
-	if gpe then return end
-	if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+Header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        DraggingUI = true
+        dragStart = input.Position
+        startPos = Window.Position
 
-	local target = input.Target
-	if not target or not target:IsDescendantOf(Window) then return end
-	if not canDrag(target) then return end
+        local conn
+        conn = input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                DraggingUI = false
+                conn:Disconnect()
+            end
+        end)
+    end
+end)
 
-	DraggingUI = true
-	DragStartMouse = input.Position
-	DragStartPos = Window.Position
+Header.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-	if not DraggingUI then return end
-	if input.UserInputType ~= Enum.UserInputType.MouseMovement then return end
-
-	local delta = input.Position - DragStartMouse
-	Window.Position = UDim2.new(
-		DragStartPos.X.Scale,
-		DragStartPos.X.Offset + delta.X,
-		DragStartPos.Y.Scale,
-		DragStartPos.Y.Offset + delta.Y
-	)
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		DraggingUI = false
-	end
+    if input == dragInput and DraggingUI then
+        updateDrag(input)
+    end
 end)
 
 shouldIgnoreClick = function()
-	return DraggingUI
+    return DraggingUI
 end
-
 
 --==================== HEADER ====================
 local Header = Instance.new("Frame", Window)
