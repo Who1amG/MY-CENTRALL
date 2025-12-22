@@ -282,10 +282,12 @@ end
 local TFast = TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local TMed = TweenInfo.new(0.26, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
 local TSlow = TweenInfo.new(0.38, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-local success, t = pcall(TweenService.Create, TweenService, obj, info, props)
-if success and t then
-    t:Play()
-    return t
+local function tween(obj, info, props)
+    local success, t = pcall(TweenService.Create, TweenService, obj, info, props)
+    if success and t then
+        t:Play()
+        return t
+    end
 end
 --==================== UI COMPONENTS ====================
 makeAppleToggle = function(parent, label, order, onChanged)
@@ -2685,7 +2687,7 @@ end)
 
 BtnClose.MouseButton1Click:Connect(function()
     if shouldIgnoreClick() then return end
-    blurOut()
+    pcall(blurOut)
     playOptionSound()
     getgenv().GlassmasUI_Running = false
     
