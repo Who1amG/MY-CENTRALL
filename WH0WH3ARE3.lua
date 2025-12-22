@@ -4,6 +4,10 @@
 --v2.1
 --fixes 51..
 -- 70% working
+
+-- 🛡️ EXECUTOR COMPAT FIX
+local typeof = typeof or type
+
 -- 🛡️ SAFE queue_on_teleport (FIX DEFINITIVO)
 local SAFE_QUEUE = nil
 
