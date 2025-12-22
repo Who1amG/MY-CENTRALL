@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v9
+--fixes v10
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
