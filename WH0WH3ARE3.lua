@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v13
+--fixes v9
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -25,8 +25,6 @@ local GlassBlur
 local minimized = false
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
--- Check for exploit function
-local hasFirePP = typeof(fireproximityprompt) == "function"
 --==================== THEME & FONTS ====================
 local Styles = {
 Red = {Glass=Color3.fromRGB(255,110,110), Header=Color3.fromRGB(60,15,20), Accent=Color3.fromRGB(255,90,90)},
@@ -230,7 +228,7 @@ UI.ResetOnSpawn = false
 UI.Parent = PlayerGui
 getgenv().GlassmasUI_Shutdown = function()
     getgenv().GlassmasUI_Running = false
-    
+   
     -- Apagar Fly
     if FlyEnabled then stopFly() end
     -- 🔥 Apagar ESP refactor (si existe)
@@ -243,11 +241,11 @@ getgenv().GlassmasUI_Shutdown = function()
         disableESP()
     end
 end)
-    
+   
     -- Borrar ESP
     clearESP()
     disableESP()
-    
+   
     pcall(function()
         if UI then UI:Destroy() end
     end)
@@ -275,7 +273,12 @@ Backdrop.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 Backdrop.BackgroundTransparency = 1
 Backdrop.ZIndex = 1
 Backdrop.Visible = true
-
+local function blurIn()
+tween(Backdrop, TSlow, {BackgroundTransparency = 0.55})
+end
+local function blurOut()
+tween(Backdrop, TSlow, {BackgroundTransparency = 1})
+end
 --==================== TWEENS ====================
 local TFast = TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local TMed = TweenInfo.new(0.26, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
@@ -287,15 +290,6 @@ local function tween(obj, info, props)
         return t
     end
 end
-
-local function blurIn()
-    tween(Backdrop, TSlow, {BackgroundTransparency = 0.55})
-end
-
-local function blurOut()
-    tween(Backdrop, TSlow, {BackgroundTransparency = 1})
-end
-
 --==================== UI COMPONENTS ====================
 makeAppleToggle = function(parent, label, order, onChanged)
 local state = false
@@ -475,7 +469,6 @@ Title.Text = "Who We Are😈"
 Title.ZIndex = 21
 local function makeDot(color, x)
 local b = Instance.new("TextButton", Header)
-	b:SetAttribute("NoDrag", true)
 b.Text = ""
 b.AutoButtonColor = false
 b.Size = UDim2.new(0, 14, 0, 14)
@@ -738,49 +731,6 @@ local RS = game:GetService("ReplicatedStorage")
 local Remote = RS:WaitForChild("Events"):WaitForChild("ServerEvent")
 Remote:FireServer("BuyItemTool", weapon.Name)
 end
-
-
-local function makeDropdownHeaderDynamic(parent, titleText)
-    local headerBtn = Instance.new("TextButton", parent)
-    headerBtn.AutoButtonColor = false
-    headerBtn.Size = UDim2.new(1, 0, 0, 44)
-    headerBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
-    headerBtn.BackgroundTransparency = 0.88
-    headerBtn.BorderSizePixel = 0
-    headerBtn.Text = titleText .. " ▸"
-    headerBtn.Font = Fonts[CurrentFontName]
-    headerBtn.TextSize = 14
-    headerBtn.TextColor3 = Theme.Text
-    headerBtn.ZIndex = 41
-    Instance.new("UICorner", headerBtn).CornerRadius = UDim.new(0, 14)
-
-    local st = Instance.new("UIStroke", headerBtn)
-    st.Thickness = 1
-    st.Color = Theme.Accent
-    st.Transparency = 0.80
-
-    local container = Instance.new("Frame", parent)
-    container.BackgroundTransparency = 1
-    container.ClipsDescendants = true
-    container.Size = UDim2.new(1, 0, 0, 0)
-    container.ZIndex = 41
-
-    local list = Instance.new("UIListLayout", container)
-    list.Padding = UDim.new(0, UI_ITEM_PADDING)
-    list.SortOrder = Enum.SortOrder.LayoutOrder
-    list.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
-    local open = false
-    local function refreshSize(animated)
-        local h = list.AbsoluteContentSize.Y + 6
-        local target = open and UDim2.new(1,0,0,h) or UDim2.new(1,0,0,0)
-        if animated then
-            tween(container, TMed, {Size = target})
-        else
-            container.Size = target
-        end
-    end
-
 --==================== GUNS PAGE ====================
 local PageGuns = newPageFrame()
 -- Scroll vertical (como mochilas)
@@ -858,25 +808,17 @@ render()
 end)
 return btn
 end
--- Crear el dropdown para armas (como mochilas)
-local WeaponsHeader, WeaponsContainer = makeDropdownHeaderDynamic(GunsScroll, "🔫 Armas")
-WeaponsHeader.LayoutOrder = 1
-WeaponsContainer.LayoutOrder = 2
-
--- crear lista de armas DENTRO del contenedor
+-- crear lista de armas
 if Weapons then
-for i, weapon in ipairs(Weapons) do
-local btn = makeGunSelectButton(WeaponsContainer, weapon)
-btn.LayoutOrder = i  -- Esto ordena las armas de 1 en adelante
+for _, weapon in ipairs(Weapons) do
+makeGunSelectButton(GunsScroll, weapon)
 end
 else
-local noArmas = makeAppleAction(WeaponsContainer, "❌ No se detectaron armas", 1, function() end)
-noArmas.LayoutOrder = 1  -- Orden para el mensaje de error
+makeAppleAction(GunsScroll, "❌ No se detectaron armas", 1, function() end)
 end
-
--- botón BUY (SIEMPRE AL FINAL, DENTRO del contenedor)
+-- botón BUY (SIEMPRE AL FINAL)
 local BuyGunBtn = makeAppleAction(
-WeaponsContainer,
+GunsScroll,
 "🛒 BUY ARMA SELECCIONADA",
 999,
 function()
@@ -910,7 +852,6 @@ PageMisc.Active = true
 PageMisc:SetAttribute("NoDrag", true)
 PageMisc.BorderSizePixel = 0
 PageMisc.ScrollBarImageTransparency = 0
-
 --==================== VISUAL CONTENT ====================
 local VisualContent = Instance.new("Frame", PageVisual)
 VisualContent.BackgroundTransparency = 1
@@ -1113,7 +1054,52 @@ end)
 Tabs.Settings.MouseButton1Click:Connect(function()
 switchPage(PageSettings, PageSettingsKey)
 end)
-
+local function makeDropdownHeaderDynamic(parent, titleText)
+local headerBtn = Instance.new("TextButton", parent)
+headerBtn.AutoButtonColor = false
+headerBtn.Size = UDim2.new(1, 0, 0, 44)
+headerBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
+headerBtn.BackgroundTransparency = 0.88
+headerBtn.BorderSizePixel = 0
+headerBtn.Text = titleText .. " ▸"
+headerBtn.Font = Fonts[CurrentFontName]
+headerBtn.TextSize = 14
+headerBtn.TextColor3 = Theme.Text
+headerBtn.ZIndex = 41
+Instance.new("UICorner", headerBtn).CornerRadius = UDim.new(0, 14)
+local st = Instance.new("UIStroke", headerBtn)
+st.Thickness = 1
+st.Color = Theme.Accent
+st.Transparency = 0.80
+local container = Instance.new("Frame", parent)
+container.BackgroundTransparency = 1
+container.ClipsDescendants = true
+container.Size = UDim2.new(1, 0, 0, 0)
+container.ZIndex = 41
+local list = Instance.new("UIListLayout", container)
+list.Padding = UDim.new(0, UI_ITEM_PADDING)
+list.SortOrder = Enum.SortOrder.LayoutOrder
+list.HorizontalAlignment = Enum.HorizontalAlignment.Center
+local open = false
+local function refreshSize(animated)
+local h = list.AbsoluteContentSize.Y + 6
+local target = open
+and UDim2.new(1, 0, 0, h)
+or UDim2.new(1, 0, 0, 0)
+if animated then tween(container, TMed, {Size = target}) else container.Size = target end
+end
+list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+if open then refreshSize(false) end
+end)
+headerBtn.MouseButton1Click:Connect(function()
+if shouldIgnoreClick() then return end
+open = not open
+playOptionSound()
+headerBtn.Text = titleText .. (open and " ▾" or " ▸")
+refreshSize(true)
+end)
+return headerBtn, container, list
+end
 --==================== APPLE CLEANING SCREEN ====================
 local function showCleaningScreen(duration)
 local gui = Instance.new("ScreenGui")
@@ -1153,7 +1139,12 @@ TweenService:Create(text, TweenInfo.new(1.8, Enum.EasingStyle.Sine), {
 Position = UDim2.new(0.5,0,0.5,-6)
 }):Play()
 task.wait(1.8)
-	
+TweenService:Create(text, TweenInfo.new(1.8, Enum.EasingStyle.Sine), {
+Position = UDim2.new(0.5,0,0.5,6)
+}):Play()
+task.wait(1.8)
+end
+end)
 -- cerrar automático
 task.delay(duration, function()
 if gui.Parent then
@@ -1839,6 +1830,7 @@ fontToggles[name] = tog
 end
 fontToggles[CurrentFontName].Set(true)
 -- ==================== CAMERA SETUP (EXACT) ====================
+local Camera = workspace.CurrentCamera
 local BASE_CAMERA_CFRAME = CFrame.new(
 -720.347595, 48.588726, 261.107269,
 -0.999807477, -0.00462738099, -0.0190718602,
@@ -1862,10 +1854,8 @@ end
 local function runMoneyDryer()
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
-if not hasFirePP then 
-Notify("❌ Executor no soporta fireproximityprompt - No se puede limpiar dinero", false)
-return 
-end
+local ProximityPromptService = game:GetService("ProximityPromptService")
+if not fireproximityprompt and not PPS then return end
 for _, v in ipairs(Workspace:GetDescendants()) do
 if v:IsA("ProximityPrompt") then
 v.HoldDuration = 0
@@ -1898,8 +1888,8 @@ end
 acc += dt
 while acc >= INTERVAL do
 acc -= INTERVAL
-if hasFirePP then fireproximityprompt(PromptA) end
-if hasFirePP then fireproximityprompt(PromptB) end
+fireproximityprompt(PromptA)
+fireproximityprompt(PromptB)
 end
 end)
 hum:ChangeState(Enum.HumanoidStateType.Jumping)
@@ -1914,7 +1904,7 @@ local MONEY_WASH_CPS = 10
 local function getValidDryers()
     local folder = workspace:FindFirstChild("MoneyDryers")
     if not folder then return {} end
-    
+   
     local valid = {}
     for _, dryer in ipairs(folder:GetChildren()) do
         local promptPart = dryer:FindFirstChild("WashingPromptPart")
@@ -1932,10 +1922,10 @@ local function getValidDryers()
 end
 local function findBestDupePair(dryers)
     if #dryers < 2 then return dryers[1], nil end
-    
+   
     local best1, best2 = nil, nil
     local minDist = math.huge
-    
+   
     for i = 1, #dryers-1 do
         for j = i+1, #dryers do
             local dist = (dryers[i].pos - dryers[j].pos).Magnitude
@@ -1946,7 +1936,7 @@ local function findBestDupePair(dryers)
             end
         end
     end
-    
+   
     return best1, best2
 end
 --==================== MISC: SNOWMANS (ONE SHOT) ====================
@@ -2080,9 +2070,11 @@ cam.CFrame = CFrame.new(cam.CFrame.Position, prompt.Parent.Position)
 end)
 task.wait(0.25)
 local ok = false
-if hasFirePP then
+if fireproximityprompt then
 ok = pcall(function() fireproximityprompt(prompt) end)
-end -- Removed invalid PPS fallback
+else
+ok = pcall(function() PPS:TriggerPrompt(prompt) end)
+end
 if ok then
 collected += 1
 processed[m] = true
@@ -2096,7 +2088,7 @@ end
 end
 task.wait(0.35)
 end
-    
+   
 restoreSnowmanPrompts()
 snowCollectRunning = false
 Notify("✅ Recolección finalizada ("..collected.." / "..#valid..")", true)
@@ -2151,19 +2143,23 @@ local function washMoney(dupeMode)
     if dupeDryer then forcePrompt(dupeDryer) end
     -- Clicks iniciales 100% paralelos
     task.spawn(function()
-    if hasFirePP then
     pcall(function()
-        fireproximityprompt(mainDryer.prompt)
+        if fireproximityprompt then
+            fireproximityprompt(mainDryer.prompt)
+        else
+            PPS:TriggerPrompt(mainDryer.prompt)
+        end
     end)
-    end -- Removed invalid PPS fallback
 end)
 if dupeDryer then
     task.spawn(function()
-        if hasFirePP then
         pcall(function()
-            fireproximityprompt(dupeDryer.prompt)
+            if fireproximityprompt then
+                fireproximityprompt(dupeDryer.prompt)
+            else
+                PPS:TriggerPrompt(dupeDryer.prompt)
+            end
         end)
-        end -- Removed invalid PPS fallback
     end)
 end
     task.wait(0.8)
@@ -2173,17 +2169,21 @@ end
             local clicks = MONEY_WASH_TIME * MONEY_WASH_CPS
             for _ = 1, clicks do
                 if not moneyWashRunning then break end
-                if hasFirePP then
                 pcall(function()
-                fireproximityprompt(prompt)
-                end)
-                end
-task.wait()
-if hasFirePP then
-pcall(function()
-fireproximityprompt(prompt)
+    if fireproximityprompt then
+        fireproximityprompt(prompt)
+    else
+        PPS:TriggerPrompt(prompt)
+    end
 end)
-end
+task.wait()
+pcall(function()
+    if fireproximityprompt then
+        fireproximityprompt(prompt)
+    else
+        PPS:TriggerPrompt(prompt)
+    end
+end)
                 task.wait(1 / MONEY_WASH_CPS - 0.01)
             end
         end)
@@ -2359,7 +2359,13 @@ end
 end)
 end
 )
-
+dupeMoneyBtn:SetAttribute("NoDrag", true)
+dupeMoneyBtn.TextSize = 14
+-- Tooltip SIN click
+attachTooltip(
+dupeMoneyBtn,
+"LIMPIA TODO TU DINERO DE UNA\n\nRECOMENDACIÓN:\nTener de 30K a 100K en rojo (avaces falla🔴) "
+)
 dupeMoneyBtn:SetAttribute("NoDrag", true)
 dupeMoneyBtn.TextSize = 14
 -- Tooltip SIN click
@@ -2385,7 +2391,7 @@ do
     BarBack.BackgroundColor3 = Color3.fromRGB(0,0,0)
     BarBack.BackgroundTransparency = 0.65
     BarBack.BorderSizePixel = 0
-   Instance.new("UICorner", BarBack).CornerRadius = UDim.new(1,0)
+    Instance.new("UICorner", BarBack).CornerRadius = UDim.new(1,0)
     local BarFill = Instance.new("Frame", BarBack)
     BarFill.BackgroundColor3 = Theme.Accent
     BarFill.BorderSizePixel = 0
@@ -2650,6 +2656,7 @@ rejoinWithScriptBtn:SetAttribute("NoDrag", true)
 
 
 --==================== MINIMIZE / CLOSE ====================
+local minimized = false
 local originalSize = Window.Size
 
 BtnMin.MouseButton1Click:Connect(function()
@@ -2698,4 +2705,3 @@ AddLog("🧪 Sistema de logs iniciado correctamente")
 Notify("Made By SPK 💎", true)
 blurIn()
 print("[GlassmasUI] Loaded • Fixed • Tabs • Settings • Misc • Visual Logs")
-   
