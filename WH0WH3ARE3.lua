@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v10
+--fixes v101
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -679,7 +679,6 @@ PageVisual:SetAttribute("NoDrag", true)
 PageVisual.BorderSizePixel = 0
 PageVisual.ScrollBarImageTransparency = 0
 
---==================== WEAPONS LIST (FIXED) ====================
 local Weapons = {
     -- 🔫 RIFLES
     {Name="AR556 GreenTip", Ammo="5.56"},
@@ -714,7 +713,7 @@ local Weapons = {
     {Name="G48 PerformanceTrigger", Ammo="9mm"},
     {Name="Engraved Colt .38 Super", Ammo="Extended"},
     {Name="Canik MC9 Prime", Ammo="Extended"},
-    {Name="38. Smith&Wesson", Ammo="Bullets"}, -- ⚠️ Aquí estaba el error (salto de línea)
+    {Name="38. Smith&Wesson", Ammo="Bullets"}, -- << AQUÍ ESTABA EL ERROR, YA LO JUNTÉ
     {Name="G43X", Ammo="Extended"},
     {Name="G22 Compensated", Ammo="Extended"},
     {Name="FNXBeam", Ammo="Extended"},
@@ -730,7 +729,7 @@ local Weapons = {
     {Name="Glock19x Extended", Ammo="Extended"},
     {Name="G26", Ammo="9mm"},
     {Name="G17Gen5Vect", Ammo="Extended"},
-    {Name="G23Gen4 Extended", Ammo="Extended"} -- La última no necesita coma, pero si la pones no pasa nada
+    {Name="G23Gen4 Extended", Ammo="Extended"}
 }
 
 local function BuyWeaponAndAmmo(weapon)
