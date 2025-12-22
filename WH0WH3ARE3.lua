@@ -25,6 +25,8 @@ local GlassBlur
 local minimized = false
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+-- Check for exploit function
+local hasFirePP = typeof(fireproximityprompt) == "function"
 --==================== THEME & FONTS ====================
 local Styles = {
 Red = {Glass=Color3.fromRGB(255,110,110), Header=Color3.fromRGB(60,15,20), Accent=Color3.fromRGB(255,90,90)},
@@ -228,7 +230,7 @@ UI.ResetOnSpawn = false
 UI.Parent = PlayerGui
 getgenv().GlassmasUI_Shutdown = function()
     getgenv().GlassmasUI_Running = false
-   
+    
     -- Apagar Fly
     if FlyEnabled then stopFly() end
     -- 🔥 Apagar ESP refactor (si existe)
@@ -241,11 +243,11 @@ getgenv().GlassmasUI_Shutdown = function()
         disableESP()
     end
 end)
-   
+    
     -- Borrar ESP
     clearESP()
     disableESP()
-   
+    
     pcall(function()
         if UI then UI:Destroy() end
     end)
@@ -1862,8 +1864,10 @@ end
 local function runMoneyDryer()
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
-local ProximityPromptService = game:GetService("ProximityPromptService")
-if not fireproximityprompt and not PPS then return end
+if not hasFirePP then 
+Notify("❌ Executor no soporta fireproximityprompt - No se puede limpiar dinero", false)
+return 
+end
 for _, v in ipairs(Workspace:GetDescendants()) do
 if v:IsA("ProximityPrompt") then
 v.HoldDuration = 0
@@ -1896,8 +1900,8 @@ end
 acc += dt
 while acc >= INTERVAL do
 acc -= INTERVAL
-fireproximityprompt(PromptA)
-fireproximityprompt(PromptB)
+if hasFirePP then fireproximityprompt(PromptA) end
+if hasFirePP then fireproximityprompt(PromptB) end
 end
 end)
 hum:ChangeState(Enum.HumanoidStateType.Jumping)
@@ -1912,7 +1916,7 @@ local MONEY_WASH_CPS = 10
 local function getValidDryers()
     local folder = workspace:FindFirstChild("MoneyDryers")
     if not folder then return {} end
-   
+    
     local valid = {}
     for _, dryer in ipairs(folder:GetChildren()) do
         local promptPart = dryer:FindFirstChild("WashingPromptPart")
@@ -1930,10 +1934,10 @@ local function getValidDryers()
 end
 local function findBestDupePair(dryers)
     if #dryers < 2 then return dryers[1], nil end
-   
+    
     local best1, best2 = nil, nil
     local minDist = math.huge
-   
+    
     for i = 1, #dryers-1 do
         for j = i+1, #dryers do
             local dist = (dryers[i].pos - dryers[j].pos).Magnitude
@@ -1944,7 +1948,7 @@ local function findBestDupePair(dryers)
             end
         end
     end
-   
+    
     return best1, best2
 end
 --==================== MISC: SNOWMANS (ONE SHOT) ====================
@@ -2078,11 +2082,9 @@ cam.CFrame = CFrame.new(cam.CFrame.Position, prompt.Parent.Position)
 end)
 task.wait(0.25)
 local ok = false
-if fireproximityprompt then
+if hasFirePP then
 ok = pcall(function() fireproximityprompt(prompt) end)
-else
-ok = pcall(function() PPS:TriggerPrompt(prompt) end)
-end
+end -- Removed invalid PPS fallback
 if ok then
 collected += 1
 processed[m] = true
@@ -2096,7 +2098,7 @@ end
 end
 task.wait(0.35)
 end
-   
+    
 restoreSnowmanPrompts()
 snowCollectRunning = false
 Notify("✅ Recolección finalizada ("..collected.." / "..#valid..")", true)
@@ -2151,23 +2153,19 @@ local function washMoney(dupeMode)
     if dupeDryer then forcePrompt(dupeDryer) end
     -- Clicks iniciales 100% paralelos
     task.spawn(function()
+    if hasFirePP then
     pcall(function()
-        if fireproximityprompt then
-            fireproximityprompt(mainDryer.prompt)
-        else
-            PPS:TriggerPrompt(mainDryer.prompt)
-        end
+        fireproximityprompt(mainDryer.prompt)
     end)
+    end -- Removed invalid PPS fallback
 end)
 if dupeDryer then
     task.spawn(function()
+        if hasFirePP then
         pcall(function()
-            if fireproximityprompt then
-                fireproximityprompt(dupeDryer.prompt)
-            else
-                PPS:TriggerPrompt(dupeDryer.prompt)
-            end
+            fireproximityprompt(dupeDryer.prompt)
         end)
+        end -- Removed invalid PPS fallback
     end)
 end
     task.wait(0.8)
@@ -2177,21 +2175,17 @@ end
             local clicks = MONEY_WASH_TIME * MONEY_WASH_CPS
             for _ = 1, clicks do
                 if not moneyWashRunning then break end
+                if hasFirePP then
                 pcall(function()
-    if fireproximityprompt then
-        fireproximityprompt(prompt)
-    else
-        PPS:TriggerPrompt(prompt)
-    end
-end)
+                fireproximityprompt(prompt)
+                end)
+                end
 task.wait()
+if hasFirePP then
 pcall(function()
-    if fireproximityprompt then
-        fireproximityprompt(prompt)
-    else
-        PPS:TriggerPrompt(prompt)
-    end
+fireproximityprompt(prompt)
 end)
+end
                 task.wait(1 / MONEY_WASH_CPS - 0.01)
             end
         end)
@@ -2399,7 +2393,7 @@ do
     BarBack.BackgroundColor3 = Color3.fromRGB(0,0,0)
     BarBack.BackgroundTransparency = 0.65
     BarBack.BorderSizePixel = 0
-    Instance.new("UICorner", BarBack).CornerRadius = UDim.new(1,0)
+   Instance.new("UICorner", BarBack).CornerRadius = UDim.new(1,0)
     local BarFill = Instance.new("Frame", BarBack)
     BarFill.BackgroundColor3 = Theme.Accent
     BarFill.BorderSizePixel = 0
@@ -2713,3 +2707,4 @@ AddLog("🧪 Sistema de logs iniciado correctamente")
 Notify("Made By SPK 💎", true)
 blurIn()
 print("[GlassmasUI] Loaded • Fixed • Tabs • Settings • Misc • Visual Logs")
+   
