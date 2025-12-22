@@ -273,12 +273,7 @@ Backdrop.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 Backdrop.BackgroundTransparency = 1
 Backdrop.ZIndex = 1
 Backdrop.Visible = true
-local function blurIn()
-tween(Backdrop, TSlow, {BackgroundTransparency = 0.55})
-end
-local function blurOut()
-tween(Backdrop, TSlow, {BackgroundTransparency = 1})
-end
+
 --==================== TWEENS ====================
 local TFast = TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local TMed = TweenInfo.new(0.26, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
@@ -290,6 +285,15 @@ local function tween(obj, info, props)
         return t
     end
 end
+
+local function blurIn()
+    tween(Backdrop, TSlow, {BackgroundTransparency = 0.55})
+end
+
+local function blurOut()
+    tween(Backdrop, TSlow, {BackgroundTransparency = 1})
+end
+
 --==================== UI COMPONENTS ====================
 makeAppleToggle = function(parent, label, order, onChanged)
 local state = false
@@ -853,7 +857,7 @@ Transparency = selected and 0.35 or 0.85
 end
 render()
 btn.MouseButton1Click:Connect(function()
-if shouldIgnoreClick() then return end
+if shouldIgnoreClick(btn) then return end
 playOptionSound()
 -- deseleccionar todas
 for _,c in ipairs(parent:GetChildren()) do
@@ -2708,26 +2712,25 @@ BtnMin.MouseButton1Click:Connect(function()
 	end
 end)
 
-btn.MouseButton1Click:Connect(function()
-    if shouldIgnoreClick(btn) then return end
+BtnClose.MouseButton1Click:Connect(function()
+    if shouldIgnoreClick(BtnClose) then return end
 
     pcall(blurOut)
     playOptionSound()
     getgenv().GlassmasUI_Running = false
-    
-    -- 🔥 Apagar Fly si estaba activo
+
     if FlyEnabled then stopFly() end
-    
-    -- 🔥 BORRAR TODO EL ESP
+
     clearESP()
-    disableESP()  -- apaga flags también
-    
+    disableESP()
+
     tween(WStroke, TFast, {Transparency = 1})
     tween(Window, TSlow, {BackgroundTransparency = 1, Size = UDim2.new(0, 520, 0, 0)})
     task.delay(0.42, function()
         if UI then UI:Destroy() end
     end)
 end)
+
 
 --==================== FINAL ====================
 AddLog("🧪 Sistema de logs iniciado correctamente")
