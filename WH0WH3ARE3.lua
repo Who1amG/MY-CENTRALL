@@ -808,14 +808,22 @@ render()
 end)
 return btn
 end
--- crear lista de armas
-if Weapons then
-for _, weapon in ipairs(Weapons) do
-makeGunSelectButton(GunsScroll, weapon)
-end
+-- === DROPDOWN GUNS ===
+local GunsHeader, GunsContainer, GunsListLayout =
+    makeDropdownHeaderDynamic(GunsScroll, "🔫 GUNS")
+
+GunsHeader.LayoutOrder = 1
+GunsContainer.LayoutOrder = 2
+
+if Weapons and #Weapons > 0 then
+    for i, weapon in ipairs(Weapons) do
+        local btn = makeGunSelectButton(GunsContainer, weapon)
+        btn.LayoutOrder = i
+    end
 else
-makeAppleAction(GunsScroll, "❌ No se detectaron armas", 1, function() end)
+    makeAppleAction(GunsContainer, "❌ No se detectaron armas", 1, function() end)
 end
+
 -- botón BUY (SIEMPRE AL FINAL)
 local BuyGunBtn = makeAppleAction(
 GunsScroll,
