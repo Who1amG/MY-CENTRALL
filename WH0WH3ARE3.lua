@@ -1,7 +1,7 @@
 -- 🦈 Glassmas UI • Principal (Apple Glass Christmas) • Single Script 
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
---v1.4
+--v2
 
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
