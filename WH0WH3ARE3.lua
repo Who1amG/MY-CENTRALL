@@ -487,8 +487,17 @@ Window.Active = true
 Window.Selectable = true
 local function updateDrag(input)
     local delta = input.Position - dragStart
-    Window.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    if delta.Magnitude > 2 then
+        lastDragTime = tick()
+    end
+    Window.Position = UDim2.new(
+        startPos.X.Scale,
+        startPos.X.Offset + delta.X,
+        startPos.Y.Scale,
+        startPos.Y.Offset + delta.Y
+    )
 end
+
 Window.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         DraggingUI = true
@@ -513,9 +522,13 @@ UserInputService.InputChanged:Connect(function(input)
         updateDrag(input)
     end
 end)
+local lastDragTime = 0
+
 shouldIgnoreClick = function()
-    return DraggingUI
+    -- solo ignora si REALMENTE se estaba arrastrando
+    return DraggingUI and (tick() - lastDragTime < 0.15)
 end
+
 --==================== SNOW LAYER ====================
 local SnowLayer = Instance.new("Frame", Window)
 SnowLayer.Name = "SnowLayer"
@@ -2280,17 +2293,15 @@ return
 end
 -- Toggle Fly con tecla asignada
 if input.KeyCode == FlyKey then
-	local newState = not flyToggle.Get()
-	flyToggle.Set(newState)
-
-	if newState then
-		startFly()
-	else
-		stopFly()
-	end
-	return
+local newState = not flyToggle.Get()
+flyToggle.Set(newState)
+if newState then
+startFly()
+else
+stopFly()
 end
-
+return
+end
     -- Movimiento solo si Fly activo
     if not FlyEnabled then return end
     if input.KeyCode == Enum.KeyCode.W then FlyMove.F = 1 end
@@ -2300,7 +2311,6 @@ end
     if input.KeyCode == Enum.KeyCode.Space then FlyMove.U = 1 end
     if input.KeyCode == Enum.KeyCode.LeftControl then FlyMove.D = 1 end
 end)
-
 UserInputService.InputEnded:Connect(function(input, gpe)
     if gpe then return end
     if not FlyEnabled then return end
@@ -2311,88 +2321,71 @@ UserInputService.InputEnded:Connect(function(input, gpe)
     if input.KeyCode == Enum.KeyCode.Space then FlyMove.U = 0 end
     if input.KeyCode == Enum.KeyCode.LeftControl then FlyMove.D = 0 end
 end)
-
 -- Slider velocidad (igual)
 local FlyHeader, FlyContainer = makeDropdownHeaderDynamic(MiscLeft, "⚡ Velocidad")
 FlyHeader.LayoutOrder = 2
 FlyContainer.LayoutOrder = 3
-
-
 -- Snowmans
 makeAppleAction(MiscLeft, "☃️ Recolectar Snowmans (ONE SHOT)", 4, function()
-	if snowCollectRunning then
-		Notify("⏳ Ya se está recolectando...", false)
-		return
-	end
-	startCollectSnowmans()
+if snowCollectRunning then
+Notify("⏳ Ya se está recolectando...", false)
+return
+end
+startCollectSnowmans()
 end)
-
 -- Dinero (DESACTIVADO - SOLO INFO)
 -- Dinero (LIMPIEZA TOTAL REAL)
 -- Dinero (LIMPIEZA TOTAL REAL)
 -- Dinero (LIMPIEZA TOTAL REAL)
 local dupeMoneyBtn = makeAppleAction(
-	MiscLeft,
-	"💰 LIMPIAR TODO EL DINERO",
-	5,
-	function()
-		if moneyWashRunning then
-			Notify("⏳ Ya se está limpiando dinero...", false)
-			return
-		end
-
-		-- 📍 GUARDAR POSICIÓN EXACTA
-		local _, _, hrp = getCharParts()
-		if not hrp then
-			Notify("❌ Character no listo", false)
-			return
-		end
-		local originalCF = hrp.CFrame
-
-		AddLog("🧼 Limpieza total iniciada")
-
-		-- 🖤 pantalla negra SOLO 8 segundos
-		showCleaningScreen(9)
-
-		-- 🚀 ejecutar dryer
-		task.spawn(runMoneyDryer)
-
-		-- ⏱️ REGRESAR A LOS 6 SEGUNDOS
-		task.delay(6, function()
-			local _, _, hrp2 = getCharParts()
-			if hrp2 then
-				hrp2.CFrame = originalCF
-				AddLog("↩️ Posición original restaurada")
-			end
-		end)
-	end
+MiscLeft,
+"💰 LIMPIAR TODO EL DINERO",
+5,
+function()
+if moneyWashRunning then
+Notify("⏳ Ya se está limpiando dinero...", false)
+return
+end
+-- 📍 GUARDAR POSICIÓN EXACTA
+local _, _, hrp = getCharParts()
+if not hrp then
+Notify("❌ Character no listo", false)
+return
+end
+local originalCF = hrp.CFrame
+AddLog("🧼 Limpieza total iniciada")
+-- 🖤 pantalla negra SOLO 8 segundos
+showCleaningScreen(9)
+-- 🚀 ejecutar dryer
+task.spawn(runMoneyDryer)
+-- ⏱️ REGRESAR A LOS 6 SEGUNDOS
+task.delay(6, function()
+local _, _, hrp2 = getCharParts()
+if hrp2 then
+hrp2.CFrame = originalCF
+AddLog("↩️ Posición original restaurada")
+end
+end)
+end
 )
-
 dupeMoneyBtn:SetAttribute("NoDrag", true)
 dupeMoneyBtn.TextSize = 14
-
 -- Tooltip SIN click
 attachTooltip(
-	dupeMoneyBtn,
-	"LIMPIA TODO TU DINERO DE UNA\n\nRECOMENDACIÓN:\nTener de 30K a 100K en rojo (avaces falla🔴) "
+dupeMoneyBtn,
+"LIMPIA TODO TU DINERO DE UNA\n\nRECOMENDACIÓN:\nTener de 30K a 100K en rojo (avaces falla🔴) "
 )
-
-
-
 dupeMoneyBtn:SetAttribute("NoDrag", true)
 dupeMoneyBtn.TextSize = 14
-
 -- Tooltip SIN click
 attachTooltip(
-	dupeMoneyBtn,
-	"LIMPIA TODO TU DINERO DE UNA\n\nRECOMENDACIÓN:\nTener de 30K a 100K en rojo (avaces falla🔴) "
+dupeMoneyBtn,
+"LIMPIA TODO TU DINERO DE UNA\n\nRECOMENDACIÓN:\nTener de 30K a 100K en rojo (avaces falla🔴) "
 )
-
 do
     local SliderFrame = Instance.new("Frame", FlyContainer)
     SliderFrame.Size = UDim2.new(1, 0, 0, UI_ITEM_HEIGHT + 12)
     SliderFrame.BackgroundTransparency = 1
-
     local Title = Instance.new("TextLabel", SliderFrame)
     Title.BackgroundTransparency = 1
     Title.Size = UDim2.new(1, 0, 0, 22)
@@ -2401,7 +2394,6 @@ do
     Title.TextColor3 = Theme.Text
     Title.TextXAlignment = Enum.TextXAlignment.Left
     Title.Text = "⚡ Velocidad de vuelo"
-
     local BarBack = Instance.new("Frame", SliderFrame)
     BarBack.Position = UDim2.new(0, 0, 0, 32)
     BarBack.Size = UDim2.new(1, 0, 0, 10)
@@ -2409,43 +2401,35 @@ do
     BarBack.BackgroundTransparency = 0.65
     BarBack.BorderSizePixel = 0
     Instance.new("UICorner", BarBack).CornerRadius = UDim.new(1,0)
-
     local BarFill = Instance.new("Frame", BarBack)
     BarFill.BackgroundColor3 = Theme.Accent
     BarFill.BorderSizePixel = 0
     Instance.new("UICorner", BarFill).CornerRadius = UDim.new(1,0)
-
     local Knob = Instance.new("Frame", BarBack)
     Knob.Size = UDim2.new(0,18,0,18)
     Knob.BackgroundColor3 = Color3.fromRGB(235,235,235)
     Knob.BorderSizePixel = 0
     Knob.ZIndex = 42
     Instance.new("UICorner", Knob).CornerRadius = UDim.new(1,0)
-
     -- 🔒 esto evita que el slider mueva el UI
     SliderFrame:SetAttribute("NoDrag", true)
     BarBack:SetAttribute("NoDrag", true)
     BarFill:SetAttribute("NoDrag", true)
     Knob:SetAttribute("NoDrag", true)
-
     local dragging = false
-
     local function setFromX(x)
         local pct = math.clamp(
             (x - BarBack.AbsolutePosition.X) / BarBack.AbsoluteSize.X,
             0, 1
         )
-
         FlySpeed = math.floor(Fly_MIN + (Fly_MAX - Fly_MIN) * pct)
         BarFill.Size = UDim2.new(pct, 0, 1, 0)
         Knob.Position = UDim2.new(pct, -9, 0.5, -9)
     end
-
     BarBack.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
             setFromX(input.Position.X)
-
             local conn
             conn = input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
@@ -2455,13 +2439,11 @@ do
             end)
         end
     end)
-
     UserInputService.InputChanged:Connect(function(i)
         if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
             setFromX(i.Position.X)
         end
     end)
-
     -- valor inicial
     task.defer(function()
         local pct = (FlySpeed - Fly_MIN) / (Fly_MAX - Fly_MIN)
@@ -2469,79 +2451,66 @@ do
         Knob.Position = UDim2.new(pct, -9, 0.5, -9)
     end)
 end
-
-
 --==================== MISC: BACKPACK BUY ====================
 local function getAvailableBackpacks()
-	local list = {}
-	if not ItemsFolder then return list end
-
-	for _,v in ipairs(ItemsFolder:GetChildren()) do
-		if v and v.Name and tostring(v.Name):lower():find("backpack") then
-			if v.Name ~= "BackpackARPClock" and v.Name ~= "BackpackBlack" then
-				table.insert(list, v.Name)
-			end
-		end
-	end
-
-	table.sort(list)
-	return list
+local list = {}
+if not ItemsFolder then return list end
+for _,v in ipairs(ItemsFolder:GetChildren()) do
+if v and v.Name and tostring(v.Name):lower():find("backpack") then
+if v.Name ~= "BackpackARPClock" and v.Name ~= "BackpackBlack" then
+table.insert(list, v.Name)
 end
-
+end
+end
+table.sort(list)
+return list
+end
 local function buySingleBackpack(backpackName)
-	if not BackpackShops then
-		Notify("❌ BackpackShops no existe", false)
-		AddLog("❌ BackpackShops no existe")
-		return
-	end
-
-	local char, _, hrp = getCharParts()
-	if not (char and hrp) then
-		Notify("❌ Character no listo", false)
-		AddLog("❌ Character no listo")
-		return
-	end
-
-	if playerHasTool(backpackName) then
-		Notify("✅ Ya tienes: "..backpackName, true)
-		AddLog("🎒 Ya tienes: "..backpackName)
-		return
-	end
-
-	local originalCFrame = hrp.CFrame
-	local found = false
-
-	for _, shop in ipairs(BackpackShops:GetChildren()) do
-		for _, obj in ipairs(shop:GetDescendants()) do
-			if obj:IsA("ProximityPrompt") and obj.ActionText then
-				local a = obj.ActionText:lower()
-				if a:find("buy") then
-					-- filtro por nombre aproximado
-					local key = backpackName:lower():gsub("backpack","")
-					if key == "" then key = backpackName:lower() end
-					if a:find(key) or (backpackName == "BackpackLV" and a:find("lv")) then
-						found = true
-						local part = obj.Parent
-						if part and part:IsA("BasePart") then
-							tpStanding(part, 2.2)
-							task.wait(0.25)
-							pcall(function() obj.HoldDuration = 0 end)
-
-							local ok = false
-							if fireproximityprompt then
-								ok = pcall(function() fireproximityprompt(obj) end)
-							else
-								ok = pcall(function() PPS:TriggerPrompt(obj) end)
-							end
-
-							task.wait(0.8)
-							tpBack(originalCFrame)
-
-							if ok then
-	Notify("📨 Compra enviada: "..backpackName, true)
-	AddLog("📨 Solicitud enviada: "..backpackName)
-
-	--[[ 
+if not BackpackShops then
+Notify("❌ BackpackShops no existe", false)
+AddLog("❌ BackpackShops no existe")
+return
+end
+local char, _, hrp = getCharParts()
+if not (char and hrp) then
+Notify("❌ Character no listo", false)
+AddLog("❌ Character no listo")
+return
+end
+if playerHasTool(backpackName) then
+Notify("✅ Ya tienes: "..backpackName, true)
+AddLog("🎒 Ya tienes: "..backpackName)
+return
+end
+local originalCFrame = hrp.CFrame
+local found = false
+for _, shop in ipairs(BackpackShops:GetChildren()) do
+for _, obj in ipairs(shop:GetDescendants()) do
+if obj:IsA("ProximityPrompt") and obj.ActionText then
+local a = obj.ActionText:lower()
+if a:find("buy") then
+-- filtro por nombre aproximado
+local key = backpackName:lower():gsub("backpack","")
+if key == "" then key = backpackName:lower() end
+if a:find(key) or (backpackName == "BackpackLV" and a:find("lv")) then
+found = true
+local part = obj.Parent
+if part and part:IsA("BasePart") then
+tpStanding(part, 2.2)
+task.wait(0.25)
+pcall(function() obj.HoldDuration = 0 end)
+local ok = false
+if fireproximityprompt then
+ok = pcall(function() fireproximityprompt(obj) end)
+else
+ok = pcall(function() PPS:TriggerPrompt(obj) end)
+end
+task.wait(0.8)
+tpBack(originalCFrame)
+if ok then
+Notify("📨 Compra enviada: "..backpackName, true)
+AddLog("📨 Solicitud enviada: "..backpackName)
+--[[
 task.spawn(function()
     local success = waitForBackpackChange(3)
     if success then
@@ -2553,31 +2522,25 @@ task.spawn(function()
     end
 end)
 ]]
-
 else
-	Notify("❌ Prompt falló: "..backpackName, false)
-	AddLog("❌ Prompt falló: "..backpackName)
+Notify("❌ Prompt falló: "..backpackName, false)
+AddLog("❌ Prompt falló: "..backpackName)
 end
-
-
-							return
-						end
-					end
-				end
-			end
-		end
-	end
-
-	if not found then
-		Notify("❌ No se encontró la siguiente: "..backpackName, false)
-		AddLog("❌ No se encontró prompt: "..backpackName)
-	end
+return
 end
-
+end
+end
+end
+end
+end
+if not found then
+Notify("❌ No se encontró la siguiente: "..backpackName, false)
+AddLog("❌ No se encontró prompt: "..backpackName)
+end
+end
 local BackpackHeader, BackpackContainer = makeDropdownHeaderDynamic(MiscRight, "🎒 Mochilas")
 BackpackHeader.LayoutOrder = 4
 BackpackContainer.LayoutOrder = 5
-
 -- 🔄 RECUPERAR MOCHILAS
 local backpacks = getAvailableBackpacks()
 if #backpacks == 0 then
@@ -2591,7 +2554,6 @@ else
         btn.TextSize = 13
     end
 end
-
 -- 🔁 SERVER HOP FIABLE 2025 (sin readfile/writefile + fallback random)
 local serverHopBtn = makeAppleAction(
     MiscRight,
@@ -2600,36 +2562,36 @@ local serverHopBtn = makeAppleAction(
     function()
         Drag.active = false
         Drag.pending = false
-        
+       
         Notify("🔁 Buscando servidor nuevo...", true)
         AddLog("🔁 Server Hop iniciado")
-        
+       
         local placeId = game.PlaceId
         local jobId = game.JobId
         local servers = {}
         local cursor = ""
-        
+       
         -- Intento API (mejorado: limit=50 para evitar bugs)
         local success, err = pcall(function()
-            for i = 1, 8 do  -- 8 páginas = 400 servers máx
+            for i = 1, 8 do -- 8 páginas = 400 servers máx
                 local url = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=50"
                 if cursor ~= "" then url = url .. "&cursor=" .. cursor end
-                
+               
                 local body = game:HttpGet(url)
                 local data = HttpService:JSONDecode(body)
-                
+               
                 for _, srv in ipairs(data.data) do
                     if srv.id ~= jobId and srv.playing < srv.maxPlayers then
                         table.insert(servers, srv.id)
                     end
                 end
-                
+               
                 cursor = data.nextPageCursor or ""
                 if cursor == "" then break end
                 task.wait(0.2)
             end
         end)
-        
+       
         if #servers > 0 then
             local target = servers[math.random(#servers)]
             AddLog("✅ Encontrados " .. #servers .. " servers → Hopping a " .. target)
@@ -2637,18 +2599,16 @@ local serverHopBtn = makeAppleAction(
             TeleportService:TeleportToPlaceInstance(placeId, target, LocalPlayer)
             return
         end
-        
+       
         -- Fallback infalible: Teleport random (Roblox elige uno con espacio)
         Notify("🔁 API sin resultados → Hop random", true)
         AddLog("⚠️ Fallback random hop")
         TeleportService:Teleport(placeId, LocalPlayer)
     end
 )
-
 serverHopBtn.Size = UDim2.new(1, 0, 0, 44)
 serverHopBtn.TextSize = 14
 serverHopBtn:SetAttribute("NoDrag", true)
-
 -- 🔄 REJOIN SERVER (MISMO SERVER)
 local rejoinBtn = makeAppleAction(
     MiscRight,
@@ -2657,21 +2617,16 @@ local rejoinBtn = makeAppleAction(
     function()
         Drag.active = false
         Drag.pending = false
-
         Notify("🔄 Reuniéndose al mismo server...", true)
         AddLog("🔄 Rejoin Server ejecutado")
-
         local ts = game:GetService("TeleportService")
         local p = game:GetService("Players").LocalPlayer
-
         ts:Teleport(game.PlaceId, p)
     end
 )
-
 rejoinBtn.Size = UDim2.new(1, 0, 0, 44)
 rejoinBtn.TextSize = 14
 rejoinBtn:SetAttribute("NoDrag", true)
-
 -- 🔁 REJOIN WITH SCRIPT (AUTO LOAD)
 local rejoinWithScriptBtn = makeAppleAction(
     MiscRight,
@@ -2680,10 +2635,8 @@ local rejoinWithScriptBtn = makeAppleAction(
     function()
         Drag.active = false
         Drag.pending = false
-
         Notify("🔁 Rejoin + auto script...", true)
         AddLog("🔁 Rejoin with Script iniciado")
-
         -- 🔒 Script en cola (se ejecuta al entrar)
        if queue_on_teleport then
     queue_on_teleport([[
@@ -2693,68 +2646,60 @@ local rejoinWithScriptBtn = makeAppleAction(
         end)
     ]])
 end
-
-
         local ts = game:GetService("TeleportService")
         local p = game:GetService("Players").LocalPlayer
         ts:Teleport(game.PlaceId, p)
     end
 )
-
 rejoinWithScriptBtn.Size = UDim2.new(1, 0, 0, 44)
 rejoinWithScriptBtn.TextSize = 14
 rejoinWithScriptBtn:SetAttribute("NoDrag", true)
-
-
-
-
 --==================== MINIMIZE / CLOSE ====================
 local minimized = false
 local originalSize = Window.Size
-
 BtnMin.MouseButton1Click:Connect(function()
-	if shouldIgnoreClick() then return end
-	minimized = not minimized
-	playOptionSound()
-
-	if minimized then
-		tween(Window, TMed, {Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset, 0, 56)})
-		task.delay(0.16, function()
-			if minimized then
-				TabsBar.Visible = false
-				Content.Visible = false
-				SnowLayer.Visible = true
-			end
-		end)
-	else
-		TabsBar.Visible = true
-		Content.Visible = true
-		tween(Window, TMed, {Size = originalSize})
-	end
+if shouldIgnoreClick() then return end
+minimized = not minimized
+playOptionSound()
+if minimized then
+tween(Window, TMed, {Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset, 0, 56)})
+task.delay(0.16, function()
+if minimized then
+TabsBar.Visible = false
+Content.Visible = false
+SnowLayer.Visible = true
+end
 end)
-
+else
+TabsBar.Visible = true
+Content.Visible = true
+tween(Window, TMed, {Size = originalSize})
+end
+end)
 BtnClose.MouseButton1Click:Connect(function()
     if shouldIgnoreClick() then return end
     blurOut()
     playOptionSound()
     getgenv().GlassmasUI_Running = false
-    
+   
     -- 🔥 Apagar Fly si estaba activo
     if FlyEnabled then stopFly() end
-    
+   
     -- 🔥 BORRAR TODO EL ESP
     clearESP()
-    disableESP()  -- apaga flags también
-    
+    disableESP() -- apaga flags también
+   
     tween(WStroke, TFast, {Transparency = 1})
     tween(Window, TSlow, {BackgroundTransparency = 1, Size = UDim2.new(0, 520, 0, 0)})
     task.delay(0.42, function()
         if UI then UI:Destroy() end
     end)
 end)
-
 --==================== FINAL ====================
 AddLog("🧪 Sistema de logs iniciado correctamente")
 Notify("Made By SPK 💎", true)
 blurIn()
 print("[GlassmasUI] Loaded • Fixed • Tabs • Settings • Misc • Visual Logs")
+
+```
+```
