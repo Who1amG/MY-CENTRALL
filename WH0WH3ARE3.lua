@@ -1,8 +1,8 @@
 -- 🦈 Glassmas UI • Principal (Apple Glass Christmas) • Single Script
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
---v2.2
---fixes v12
+--v2.1
+--fixes v9
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -55,6 +55,16 @@ Accent = Styles[CurrentStyle].Accent,
 Text = Color3.fromRGB(245,248,255),
 Muted = Color3.fromRGB(210,220,255),
 }
+--==================== ANTI DUPLICATE (FIXED - CIERRA LA VIEJA) ====================
+if getgenv().GlassmasUI_Running then
+    pcall(function()
+        if getgenv().GlassmasUI_Shutdown then
+            getgenv().GlassmasUI_Shutdown() -- cierra la vieja
+        end
+    end)
+    task.wait(0.5) -- espera a que se destruya
+end
+getgenv().GlassmasUI_Running = true
 --==================== SAFE FOLDERS (NO CRASH) ====================
 local ElementsFolder = RS:FindFirstChild("Elements")
 local ItemsFolder = ElementsFolder and ElementsFolder:FindFirstChild("ItemsFolder")
@@ -254,6 +264,20 @@ end
 local function playOptionSound()
 pcall(function() SoundService:PlayLocalSound(S_Click) end)
 end
+--==================== FAKE BLUR BACKDROP (SOLO UI) ====================
+local Backdrop = Instance.new("Frame", UI)
+Backdrop.Name = "Backdrop"
+Backdrop.Size = UDim2.new(1, 0, 1, 0)
+Backdrop.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Backdrop.BackgroundTransparency = 1
+Backdrop.ZIndex = 1
+Backdrop.Visible = true
+local function blurIn()
+tween(Backdrop, TSlow, {BackgroundTransparency = 0.55})
+end
+local function blurOut()
+tween(Backdrop, TSlow, {BackgroundTransparency = 1})
+end
 --==================== TWEENS ====================
 local TFast = TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local TMed = TweenInfo.new(0.26, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
@@ -265,25 +289,6 @@ local function tween(obj, info, props)
         return t
     end
 end
-
-
---==================== FAKE BLUR BACKDROP (SOLO UI) ====================
-local Backdrop = Instance.new("Frame", UI)
-Backdrop.Name = "Backdrop"
-Backdrop.Size = UDim2.new(1, 0, 1, 0)
-Backdrop.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-Backdrop.BackgroundTransparency = 1
-Backdrop.ZIndex = 1
-Backdrop.Visible = true
-
-local function blurIn()
-    tween(Backdrop, TSlow, {BackgroundTransparency = 0.55})
-end
-
-local function blurOut()
-    tween(Backdrop, TSlow, {BackgroundTransparency = 1})
-end
-
 --==================== UI COMPONENTS ====================
 makeAppleToggle = function(parent, label, order, onChanged)
 local state = false
@@ -672,119 +677,59 @@ PageVisual:SetAttribute("NoDrag", true)
 PageVisual.BorderSizePixel = 0
 PageVisual.ScrollBarImageTransparency = 0
 local Weapons = {
--- 🔫 RIFLES
-{Name="AR556 GreenTip", Ammo="5.56"},
-{Name="308ARP", Ammo="5.56"},
-{Name="Vepr 12 Defender", Ammo="Slugs"},
-{Name="Tan Arp", Ammo="5.56"},
-{Name="556Rifle", Ammo="5.56"},
-{Name="SIGMCX", Ammo="5.56"},
-{Name="AK74", Ammo="7.62x39mm"},
-{Name="Kriss Alpine Gen II", Ammo="Extended"},
-{Name="M16A2", Ammo="5.56"},
-{Name="BlackMiniDrac", Ammo="7.62x39mm"},
-{Name="GFR AR10", Ammo="5.56"},
-{Name="ZPAP 762", Ammo="7.62x39mm"},
-{Name="SLIMEBALL762", Ammo="5.56"},
-{Name="AR-223", Ammo="5.56"},
-{Name="Colt 723", Ammo="5.56"},
-{Name="223Mini", Ammo="5.56"},
-{Name="BCM4", Ammo="5.56"},
-{Name="PLR-16", Ammo="5.56"},
-
--- 🔫 PISTOLAS
-{Name="Hellcat XD", Ammo="Extended"},
-{Name="G24 Competition", Ammo="Extended"},
-{Name="PSA ROCK 5.7", Ammo="9mm"},
-{Name="G41 MOS Kriss", Ammo="Extended"},
-{Name="Ruger LCP", Ammo="9mm"},
-{Name="G27 Extended", Ammo="Extended"},
-{Name="Glock 36", Ammo="9mm"},
-{Name="SS MR920P", Ammo="9mm"},
-{Name="P80 Extended", Ammo="Extended"},
-{Name="G48 PerformanceTrigger", Ammo="9mm"},
-{Name="Engraved Colt .38 Super", Ammo="Extended"},
-{Name="Canik MC9 Prime", Ammo="Extended"},
-{Name="38. Smith&Wesson", Ammo="Bullets"},
-{Name="G43X", Ammo="Extended"},
-{Name="G22 Compensated", Ammo="Extended"},
-{Name="FNXBeam", Ammo="Extended"},
-{Name="S&W M2.0 Clearmag", Ammo="9mm"},
-{Name="Matchmaster 1911", Ammo="9mm"},
-{Name="Springfield Echelon", Ammo="9mm"},
-{Name="Springfield Hellcat", Ammo="9mm"},
-{Name="G19XPSAGrip", Ammo="Extended"},
-{Name="Glock-17", Ammo="9mm"},
-{Name="G40VectMag", Ammo="Extended"},
-{Name="Python", Ammo="Bullets"},
-{Name="G31C", Ammo="9mm"},
-{Name="Glock19x Extended", Ammo="Extended"},
-{Name="G26", Ammo="9mm"},
-{Name="G17Gen5Vect", Ammo="Extended"},
-{Name="G23Gen4 Extended", Ammo="Extended"},
+{Name="AR556 GreenTip"},
+{Name="308ARP"},
+{Name="Vepr 12 Defender"},
+{Name="Tan Arp"},
+{Name="556Rifle"},
+{Name="SIGMCX"},
+{Name="AK74"},
+{Name="Kriss Alpine Gen II"},
+{Name="M16A2"},
+{Name="BlackMiniDrac"},
+{Name="GFR AR10"},
+{Name="ZPAP 762"},
+{Name="SLIMEBALL762"},
+{Name="AR-223"},
+{Name="Colt 723"},
+{Name="223Mini"},
+{Name="BCM4"},
+{Name="PLR-16"},
+{Name="Hellcat XD"},
+{Name="G24 Competition"},
+{Name="PSA ROCK 5.7"},
+{Name="G41 MOS Kriss"},
+{Name="Ruger LCP"},
+{Name="G27 Extended"},
+{Name="Glock 36"},
+{Name="SS MR920P"},
+{Name="P80 Extended"},
+{Name="G48 PerformanceTrigger"},
+{Name="Engraved Colt .38 Super"},
+{Name="Canik MC9 Prime"},
+{Name="38. Smith&Wesson"},
+{Name="G43X"},
+{Name="G22 Compensated"},
+{Name="FNXBeam"},
+{Name="S&W M2.0 Clearmag"},
+{Name="Matchmaster 1911"},
+{Name="Springfield Echelon"},
+{Name="Springfield Hellcat"},
+{Name="G19XPSAGrip"},
+{Name="Glock-17"},
+{Name="G40VectMag"},
+{Name="Python"},
+{Name="G31C"},
+{Name="Glock19x Extended"},
+{Name="G26"},
+{Name="G17Gen5Vect"},
+{Name="G23Gen4 Extended"},
 }
-
 local function BuyWeaponAndAmmo(weapon)
-    local Remote = RS:WaitForChild("Events"):WaitForChild("ServerEvent")
-
-    -- comprar arma
-    Remote:FireServer("BuyItemTool", weapon.Name)
-    task.wait(0.15)
-
-    -- comprar munición x2
-    for i = 1, 2 do
-        Remote:FireServer("BuyItemTool", weapon.Ammo)
-        task.wait(0.1)
-    end
+local RS = game:GetService("ReplicatedStorage")
+local Remote = RS:WaitForChild("Events"):WaitForChild("ServerEvent")
+Remote:FireServer("BuyItemTool", weapon.Name)
 end
-
-local function makeDropdownHeaderDynamic(parent, titleText)
-local headerBtn = Instance.new("TextButton", parent)
-headerBtn.AutoButtonColor = false
-headerBtn.Size = UDim2.new(1, 0, 0, 44)
-headerBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
-headerBtn.BackgroundTransparency = 0.88
-headerBtn.BorderSizePixel = 0
-headerBtn.Text = titleText .. " ▸"
-headerBtn.Font = Fonts[CurrentFontName]
-headerBtn.TextSize = 14
-headerBtn.TextColor3 = Theme.Text
-headerBtn.ZIndex = 41
-Instance.new("UICorner", headerBtn).CornerRadius = UDim.new(0, 14)
-local st = Instance.new("UIStroke", headerBtn)
-st.Thickness = 1
-st.Color = Theme.Accent
-st.Transparency = 0.80
-local container = Instance.new("Frame", parent)
-container.BackgroundTransparency = 1
-container.ClipsDescendants = true
-container.Size = UDim2.new(1, 0, 0, 0)
-container.ZIndex = 41
-local list = Instance.new("UIListLayout", container)
-list.Padding = UDim.new(0, UI_ITEM_PADDING)
-list.SortOrder = Enum.SortOrder.LayoutOrder
-list.HorizontalAlignment = Enum.HorizontalAlignment.Center
-local open = false
-local function refreshSize(animated)
-local h = list.AbsoluteContentSize.Y + 6
-local target = open
-and UDim2.new(1, 0, 0, h)
-or UDim2.new(1, 0, 0, 0)
-if animated then tween(container, TMed, {Size = target}) else container.Size = target end
-end
-list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-if open then refreshSize(false) end
-end)
-headerBtn.MouseButton1Click:Connect(function()
-if shouldIgnoreClick() then return end
-open = not open
-playOptionSound()
-headerBtn.Text = titleText .. (open and " ▾" or " ▸")
-refreshSize(true)
-end)
-return headerBtn, container, list
-end
-
 --==================== GUNS PAGE ====================
 local PageGuns = newPageFrame()
 -- Scroll vertical (como mochilas)
@@ -862,29 +807,37 @@ render()
 end)
 return btn
 end
--- 🔽 DROPDOWN ARMAS
-local GunsHeader, GunsContainer, GunsListLayout =
-    makeDropdownHeaderDynamic(GunsScroll, "🔫 ARMAS")
-
-GunsHeader.LayoutOrder = 1
-GunsContainer.LayoutOrder = 2
-
+-- crear lista de armas
+if Weapons then
 for _, weapon in ipairs(Weapons) do
-    local btn = makeAppleAction(
-        GunsContainer,
-        "• "..weapon.Name.." | "..weapon.Ammo,
-        0,
-        function()
-            Notify("🛒 Comprando "..weapon.Name.." + Ammo", true)
-            AddLog("🛒 Buy: "..weapon.Name.." + "..weapon.Ammo)
-            BuyWeaponAndAmmo(weapon)
-        end
-    )
-    btn.Size = UDim2.new(1, 0, 0, 38)
-    btn.TextSize = 13
-    btn:SetAttribute("NoDrag", true)
+makeGunSelectButton(GunsScroll, weapon)
 end
-
+else
+makeAppleAction(GunsScroll, "❌ No se detectaron armas", 1, function() end)
+end
+-- botón BUY (SIEMPRE AL FINAL)
+local BuyGunBtn = makeAppleAction(
+GunsScroll,
+"🛒 BUY ARMA SELECCIONADA",
+999,
+function()
+if not SelectedWeapon then
+Notify("❌ Selecciona un arma primero", false)
+return
+end
+Notify("🛒 Comprando: "..SelectedWeapon.Name, true)
+AddLog("🛒 Buy Gun: "..SelectedWeapon.Name)
+-- TU FUNCIÓN REAL
+if BuyWeaponAndAmmo then
+BuyWeaponAndAmmo(SelectedWeapon)
+else
+Notify("❌ BuyWeaponAndAmmo no existe", false)
+end
+end
+)
+BuyGunBtn.Size = UDim2.new(1, -24, 0, 44)
+BuyGunBtn.TextSize = 14
+BuyGunBtn:SetAttribute("NoDrag", true)
 local PageSettings = newPageFrame()
 local PageMisc = Instance.new("ScrollingFrame", Content)
 PageMisc.BackgroundTransparency = 1
@@ -1100,7 +1053,52 @@ end)
 Tabs.Settings.MouseButton1Click:Connect(function()
 switchPage(PageSettings, PageSettingsKey)
 end)
-
+local function makeDropdownHeaderDynamic(parent, titleText)
+local headerBtn = Instance.new("TextButton", parent)
+headerBtn.AutoButtonColor = false
+headerBtn.Size = UDim2.new(1, 0, 0, 44)
+headerBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
+headerBtn.BackgroundTransparency = 0.88
+headerBtn.BorderSizePixel = 0
+headerBtn.Text = titleText .. " ▸"
+headerBtn.Font = Fonts[CurrentFontName]
+headerBtn.TextSize = 14
+headerBtn.TextColor3 = Theme.Text
+headerBtn.ZIndex = 41
+Instance.new("UICorner", headerBtn).CornerRadius = UDim.new(0, 14)
+local st = Instance.new("UIStroke", headerBtn)
+st.Thickness = 1
+st.Color = Theme.Accent
+st.Transparency = 0.80
+local container = Instance.new("Frame", parent)
+container.BackgroundTransparency = 1
+container.ClipsDescendants = true
+container.Size = UDim2.new(1, 0, 0, 0)
+container.ZIndex = 41
+local list = Instance.new("UIListLayout", container)
+list.Padding = UDim.new(0, UI_ITEM_PADDING)
+list.SortOrder = Enum.SortOrder.LayoutOrder
+list.HorizontalAlignment = Enum.HorizontalAlignment.Center
+local open = false
+local function refreshSize(animated)
+local h = list.AbsoluteContentSize.Y + 6
+local target = open
+and UDim2.new(1, 0, 0, h)
+or UDim2.new(1, 0, 0, 0)
+if animated then tween(container, TMed, {Size = target}) else container.Size = target end
+end
+list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+if open then refreshSize(false) end
+end)
+headerBtn.MouseButton1Click:Connect(function()
+if shouldIgnoreClick() then return end
+open = not open
+playOptionSound()
+headerBtn.Text = titleText .. (open and " ▾" or " ▸")
+refreshSize(true)
+end)
+return headerBtn, container, list
+end
 --==================== APPLE CLEANING SCREEN ====================
 local function showCleaningScreen(duration)
 local gui = Instance.new("ScreenGui")
@@ -1402,20 +1400,6 @@ local function enableESP()
         end
     end
 end
-
-
---==================== ANTI DUPLICATE ====================
-if getgenv().GlassmasUI_Running then
-    pcall(function()
-        if getgenv().GlassmasUI_Shutdown then
-            getgenv().GlassmasUI_Shutdown()
-        end
-    end)
-    task.wait(0.5)
-end
-getgenv().GlassmasUI_Running = true
-
-
 -- === Respawn hook (sin loops raros) ===
 local function hookCharacter(player)
     if ESP.Conns["char_" .. player.UserId] then
