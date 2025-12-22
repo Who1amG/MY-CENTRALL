@@ -1,6 +1,7 @@
 -- 🦈 Glassmas UI • Principal (Apple Glass Christmas) • Single Script 
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
+--v1
 
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -563,45 +564,51 @@ end
 local BtnClose = makeDot(Color3.fromRGB(255, 95, 90), 16)
 local BtnMin   = makeDot(Color3.fromRGB(255, 200, 80), 40)
 
---==================== DRAG ANYWHERE (CLEAN & FIXED) ====================
+--==================== DRAG WINDOW (FINAL FIX) ====================
 
-local Drag = {
-	active = false,
-	startPos = nil,
-	startMouse = nil
-}
+local DraggingUI = false
+local DragStartMouse
+local DragStartPos
 
-local function beginDrag(input)
+local function canDrag(target)
+	if not target then return true end
+	if target:GetAttribute("NoDrag") then return false end
+	if target:IsA("TextBox") then return false end
+	return true
+end
+
+Header.InputBegan:Connect(function(input)
 	if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
-	if input.Target and input.Target:GetAttribute("NoDrag") then return end
-	if input.Target and input.Target:IsA("TextBox") then return end
+	if not canDrag(input.Target) then return end
 
-	Drag.active = true
-	Drag.startMouse = input.Position
-	Drag.startPos = Window.Position
-end
-
-local function endDrag(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-	end
-end
-
-Window.InputBegan:Connect(beginDrag)
-Header.InputBegan:Connect(beginDrag)
-UserInputService.InputEnded:Connect(endDrag)
+	DraggingUI = true
+	DragStartMouse = input.Position
+	DragStartPos = Window.Position
+end)
 
 UserInputService.InputChanged:Connect(function(input)
-	if not Drag.active then return end
+	if not DraggingUI then return end
 	if input.UserInputType ~= Enum.UserInputType.MouseMovement then return end
 
-	local delta = input.Position - Drag.startMouse
+	local delta = input.Position - DragStartMouse
 	Window.Position = UDim2.new(
-		Drag.startPos.X.Scale,
-		Drag.startPos.X.Offset + delta.X,
-		Drag.startPos.Y.Scale,
-		Drag.startPos.Y.Offset + delta.Y
+		DragStartPos.X.Scale,
+		DragStartPos.X.Offset + delta.X,
+		DragStartPos.Y.Scale,
+		DragStartPos.Y.Offset + delta.Y
 	)
 end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		DraggingUI = false
+	end
+end)
+
+shouldIgnoreClick = function()
+	return DraggingUI
+end
+
 
 shouldIgnoreClick = function()
 	return false
