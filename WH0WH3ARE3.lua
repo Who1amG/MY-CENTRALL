@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes 51..
+--fixes 52..
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -349,7 +349,7 @@ tween(b, TFast, {BackgroundTransparency = state and 0.82 or 0.88})
 end
 render()
 b.MouseButton1Click:Connect(function()
-if shouldIgnoreClick() then return end
+if shouldIgnoreClick(b) then return end
 state = not state
 playOptionSound()
 render()
@@ -381,7 +381,8 @@ st.Thickness = 1
 st.Color = Theme.Accent
 st.Transparency = 0.75
 b.MouseButton1Click:Connect(function()
-if shouldIgnoreClick() then return end
+if shouldIgnoreClick(b) then return end
+
 playOptionSound()
 if onClick then onClick() end
 end)
@@ -881,12 +882,16 @@ render()
 btn.MouseButton1Click:Connect(function()
 if shouldIgnoreClick(btn) then return end
 playOptionSound()
+			
 -- deseleccionar todas
 for _,c in ipairs(parent:GetChildren()) do
 if c:IsA("TextButton") then
 c:SetAttribute("Selected", false)
+					  
 end
-end
+  
+   end
+			
 selected = true
 btn:SetAttribute("Selected", true)
 SelectedWeapon = weapon
@@ -1616,7 +1621,7 @@ preview.ZIndex = 42
 preview:SetAttribute("NoDrag", true)
 Instance.new("UICorner", preview).CornerRadius = UDim.new(0, 6)
 colorBtn.MouseButton1Click:Connect(function()
-if shouldIgnoreClick() then return end
+    if shouldIgnoreClick(colorBtn) then return end
 playOptionSound()
 Notify("🎨 Selector de color desactivado (próxima versión)", false)
 end)
@@ -1775,7 +1780,7 @@ Instance.new("UICorner", SetKeyBtn).CornerRadius = UDim.new(0, 10)
 local hideKey = Enum.KeyCode.H
 local uiVisible = true
 SetKeyBtn.MouseButton1Click:Connect(function()
-if shouldIgnoreClick() then return end
+    if shouldIgnoreClick(SetKeyBtn) then return end
 playOptionSound()
 local txt = tostring(KeyBox.Text or ""):upper()
 if #txt ~= 1 or not Enum.KeyCode[txt] then
@@ -1884,7 +1889,6 @@ fontToggles[name] = tog
 end
 fontToggles[CurrentFontName].Set(true)
 -- ==================== CAMERA SETUP (EXACT) ====================
-local Camera = workspace.CurrentCamera
 local BASE_CAMERA_CFRAME = CFrame.new(
 -720.347595, 48.588726, 261.107269,
 -0.999807477, -0.00462738099, -0.0190718602,
@@ -2207,19 +2211,13 @@ end)
             local clicks = MONEY_WASH_TIME * MONEY_WASH_CPS
             for _ = 1, clicks do
                 if not moneyWashRunning then break end
-                pcall(function()
-											
+					
 pcall(function()
     triggerPromptSafe(prompt)
 end)
 
-task.wait()
-										
-pcall(function()
-    triggerPromptSafe(prompt)
-end)
+task.wait(1 / MONEY_WASH_CPS)
 
-                task.wait(1 / MONEY_WASH_CPS - 0.01)
             end
         end)
     end
@@ -2291,7 +2289,7 @@ SetFlyKeyBtn.TextColor3 = Theme.Text
 Instance.new("UICorner", SetFlyKeyBtn).CornerRadius = UDim.new(0, 10)
 SetFlyKeyBtn:SetAttribute("NoDrag", true)
 SetFlyKeyBtn.MouseButton1Click:Connect(function()
-if shouldIgnoreClick() then return end
+    if shouldIgnoreClick(SetFlyKeyBtn) then return end
 playOptionSound()
 waitingFlyKey = true
 SetFlyKeyBtn.Text = "[ ... ]"
@@ -2394,13 +2392,8 @@ end
 end)
 end
 )
-dupeMoneyBtn:SetAttribute("NoDrag", true)
-dupeMoneyBtn.TextSize = 14
--- Tooltip SIN click
-attachTooltip(
-dupeMoneyBtn,
-"LIMPIA TODO TU DINERO DE UNA\n\nRECOMENDACIÓN:\nTener de 30K a 100K en rojo (avaces falla🔴) "
-)
+
+
 dupeMoneyBtn:SetAttribute("NoDrag", true)
 dupeMoneyBtn.TextSize = 14
 -- Tooltip SIN click
@@ -2695,7 +2688,7 @@ rejoinWithScriptBtn:SetAttribute("NoDrag", true)
 local originalSize = Window.Size
 
 BtnMin.MouseButton1Click:Connect(function()
-	if shouldIgnoreClick() then return end
+    if shouldIgnoreClick(BtnMin) then return end
 	minimized = not minimized
 	playOptionSound()
 
