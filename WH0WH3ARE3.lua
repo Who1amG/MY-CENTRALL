@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes 52..
+--fixes 51..
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -822,7 +822,16 @@ local Weapons = {
 }
 local function BuyWeaponAndAmmo(weapon)
 local RS = game:GetService("ReplicatedStorage")
-local Remote = RS:WaitForChild("Events"):WaitForChild("ServerEvent")
+local Events = RS:FindFirstChild("Events")
+if not Events then
+Notify("❌ Events no encontrado en ReplicatedStorage", false)
+return
+end
+local Remote = Events:FindFirstChild("ServerEvent")
+if not Remote then
+Notify("❌ ServerEvent no encontrado", false)
+return
+end
 Remote:FireServer("BuyItemTool", weapon.Name)
 end
 --==================== GUNS PAGE ====================
@@ -1921,18 +1930,49 @@ v.HoldDuration = 0
 v.RequiresLineOfSight = false
 end
 end
-local dryersFolder = Workspace:WaitForChild("MoneyDryers")
+local dryersFolder = Workspace:FindFirstChild("MoneyDryers")
+if not dryersFolder then
+Notify("❌ MoneyDryers no encontrado", false)
+return
+end
 local dryers = dryersFolder:GetChildren()
-if #dryers < 2 then return end
-local PromptA = dryers[4]:WaitForChild("WashingPromptPart"):WaitForChild("ProximityPrompt")
-local PromptB = dryers[5]:WaitForChild("WashingPromptPart"):WaitForChild("ProximityPrompt")
+if #dryers < 5 then
+Notify("❌ No hay suficientes lavadoras (necesita al menos 5)", false)
+return
+end
+local dryerA = dryers[4]
+local dryerB = dryers[5]
+if not dryerA or not dryerB then
+Notify("❌ Lavadoras específicas no encontradas", false)
+return
+end
+local wPartA = dryerA:FindFirstChild("WashingPromptPart")
+if not wPartA then
+Notify("❌ WashingPromptPart no encontrado en lavadora A", false)
+return
+end
+local PromptA = wPartA:FindFirstChildOfClass("ProximityPrompt")
+if not PromptA then
+Notify("❌ ProximityPrompt no encontrado en lavadora A", false)
+return
+end
+local wPartB = dryerB:FindFirstChild("WashingPromptPart")
+if not wPartB then
+Notify("❌ WashingPromptPart no encontrado en lavadora B", false)
+return
+end
+local PromptB = wPartB:FindFirstChildOfClass("ProximityPrompt")
+if not PromptB then
+Notify("❌ ProximityPrompt no encontrado en lavadora B", false)
+return
+end
 local _, hum, hrp = getCharParts()
 if not (hum and hrp) then return end
 -- cámara exacta (1 frame, sin lock)
 SetCameraOnceExact()
 -- TP exacto A↔B
-local pA = PromptA.Parent.Position
-local pB = PromptB.Parent.Position
+local pA = wPartA.Position
+local pB = wPartB.Position
 local mid = (pA + pB) / 2
 hrp.CFrame = CFrame.new(mid, mid + (pA - pB).Unit)
 local SPAM_ON = true
@@ -1956,7 +1996,7 @@ task.delay(30, function()
 SPAM_ON = false
 end)
 end
--- ==================== MONEY LAUNDER HELPERS (NO TOCAR) ====================
+--==================== MONEY LAUNDER HELPERS (NO TOCAR) ====================
 local moneyWashRunning = false
 local MONEY_WASH_TIME = 30
 local MONEY_WASH_CPS = 10
@@ -2128,11 +2168,12 @@ pcall(function()
 cam.CFrame = CFrame.new(cam.CFrame.Position, prompt.Parent.Position)
 end)
 task.wait(0.25)
-			
-local ok = pcall(function()
-    triggerPromptSafe(prompt)
-end)
-
+local ok = false
+if fireproximityprompt then
+ok = pcall(function() fireproximityprompt(prompt) end)
+else
+ok = pcall(function() PPS:TriggerPrompt(prompt) end)
+end
 if ok then
 collected += 1
 processed[m] = true
@@ -2200,13 +2241,26 @@ local function washMoney(dupeMode)
     forcePrompt(mainDryer)
     if dupeDryer then forcePrompt(dupeDryer) end
     -- Clicks iniciales 100% paralelos
-task.spawn(function()
+    task.spawn(function()
     pcall(function()
-        triggerPromptSafe(mainDryer.prompt)
+        if fireproximityprompt then
+            fireproximityprompt(mainDryer.prompt)
+        else
+            PPS:TriggerPrompt(mainDryer.prompt)
+        end
     end)
 end)
-
-
+if dupeDryer then
+    task.spawn(function()
+        pcall(function()
+            if fireproximityprompt then
+                fireproximityprompt(dupeDryer.prompt)
+            else
+                PPS:TriggerPrompt(dupeDryer.prompt)
+            end
+        end)
+    end)
+end
     task.wait(0.8)
     -- Auto-clicker ultra rápido
     local function startClicker(prompt)
@@ -2214,13 +2268,22 @@ end)
             local clicks = MONEY_WASH_TIME * MONEY_WASH_CPS
             for _ = 1, clicks do
                 if not moneyWashRunning then break end
-					
-pcall(function()
-    triggerPromptSafe(prompt)
+                pcall(function()
+    if fireproximityprompt then
+        fireproximityprompt(prompt)
+    else
+        PPS:TriggerPrompt(prompt)
+    end
 end)
-
-task.wait(1 / MONEY_WASH_CPS)
-
+task.wait()
+pcall(function()
+    if fireproximityprompt then
+        fireproximityprompt(prompt)
+    else
+        PPS:TriggerPrompt(prompt)
+    end
+end)
+                task.wait(1 / MONEY_WASH_CPS - 0.01)
             end
         end)
     end
@@ -2292,7 +2355,7 @@ SetFlyKeyBtn.TextColor3 = Theme.Text
 Instance.new("UICorner", SetFlyKeyBtn).CornerRadius = UDim.new(0, 10)
 SetFlyKeyBtn:SetAttribute("NoDrag", true)
 SetFlyKeyBtn.MouseButton1Click:Connect(function()
-    if shouldIgnoreClick(SetFlyKeyBtn) then return end
+if shouldIgnoreClick() then return end
 playOptionSound()
 waitingFlyKey = true
 SetFlyKeyBtn.Text = "[ ... ]"
@@ -2395,8 +2458,13 @@ end
 end)
 end
 )
-
-
+dupeMoneyBtn:SetAttribute("NoDrag", true)
+dupeMoneyBtn.TextSize = 14
+-- Tooltip SIN click
+attachTooltip(
+dupeMoneyBtn,
+"LIMPIA TODO TU DINERO DE UNA\n\nRECOMENDACIÓN:\nTener de 30K a 100K en rojo (avaces falla🔴) "
+)
 dupeMoneyBtn:SetAttribute("NoDrag", true)
 dupeMoneyBtn.TextSize = 14
 -- Tooltip SIN click
@@ -2521,13 +2589,12 @@ if part and part:IsA("BasePart") then
 tpStanding(part, 2.2)
 task.wait(0.25)
 pcall(function() obj.HoldDuration = 0 end)
-													
-local ok = pcall(function()
-    triggerPromptSafe(obj)
-end)
-
-
-
+local ok = false
+if fireproximityprompt then
+ok = pcall(function() fireproximityprompt(obj) end)
+else
+ok = pcall(function() PPS:TriggerPrompt(obj) end)
+end
 task.wait(0.8)
 tpBack(originalCFrame)
 if ok then
@@ -2688,10 +2755,11 @@ rejoinWithScriptBtn:SetAttribute("NoDrag", true)
 
 
 --==================== MINIMIZE / CLOSE ====================
+local minimized = false
 local originalSize = Window.Size
 
 BtnMin.MouseButton1Click:Connect(function()
-    if shouldIgnoreClick(BtnMin) then return end
+	if shouldIgnoreClick() then return end
 	minimized = not minimized
 	playOptionSound()
 
@@ -2712,24 +2780,24 @@ BtnMin.MouseButton1Click:Connect(function()
 end)
 
 BtnClose.MouseButton1Click:Connect(function()
-    if shouldIgnoreClick(BtnClose) then return end
-
+    if shouldIgnoreClick() then return end
     pcall(blurOut)
     playOptionSound()
     getgenv().GlassmasUI_Running = false
-
+    
+    -- 🔥 Apagar Fly si estaba activo
     if FlyEnabled then stopFly() end
-
+    
+    -- 🔥 BORRAR TODO EL ESP
     clearESP()
-    disableESP()
-
+    disableESP()  -- apaga flags también
+    
     tween(WStroke, TFast, {Transparency = 1})
     tween(Window, TSlow, {BackgroundTransparency = 1, Size = UDim2.new(0, 520, 0, 0)})
     task.delay(0.42, function()
         if UI then UI:Destroy() end
     end)
 end)
-
 
 --==================== FINAL ====================
 AddLog("🧪 Sistema de logs iniciado correctamente")
