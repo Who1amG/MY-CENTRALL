@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v13
+--fixes 50..
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -13,6 +13,28 @@ local PPS = game:GetService("ProximityPromptService")
 local RS = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
+
+--==================== SAFE fireproximityprompt ====================
+local SAFE_fireproximityprompt = nil
+
+pcall(function()
+    if typeof(fireproximityprompt) == "function" then
+        SAFE_fireproximityprompt = fireproximityprompt
+    end
+end)
+
+local function triggerPromptSafe(prompt)
+    if not prompt then return end
+
+    if SAFE_fireproximityprompt then
+        SAFE_fireproximityprompt(prompt)
+    else
+        pcall(function()
+            game:GetService("ProximityPromptService"):TriggerPrompt(prompt)
+        end)
+    end
+end
+
 -- ==================== PREDECLARE FUNCTIONS (FIX) ====================
 local Notify
 local AddLog
