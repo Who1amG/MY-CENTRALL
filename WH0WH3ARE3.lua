@@ -275,12 +275,7 @@ Backdrop.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 Backdrop.BackgroundTransparency = 1
 Backdrop.ZIndex = 1
 Backdrop.Visible = true
-local function blurIn()
-tween(Backdrop, TSlow, {BackgroundTransparency = 0.55})
-end
-local function blurOut()
-tween(Backdrop, TSlow, {BackgroundTransparency = 1})
-end
+
 --==================== TWEENS ====================
 local TFast = TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local TMed = TweenInfo.new(0.26, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
@@ -292,6 +287,15 @@ local function tween(obj, info, props)
         return t
     end
 end
+
+local function blurIn()
+    tween(Backdrop, TSlow, {BackgroundTransparency = 0.55})
+end
+
+local function blurOut()
+    tween(Backdrop, TSlow, {BackgroundTransparency = 1})
+end
+
 --==================== UI COMPONENTS ====================
 makeAppleToggle = function(parent, label, order, onChanged)
 local state = false
@@ -471,6 +475,7 @@ Title.Text = "Who We Are😈"
 Title.ZIndex = 21
 local function makeDot(color, x)
 local b = Instance.new("TextButton", Header)
+	b:SetAttribute("NoDrag", true)
 b.Text = ""
 b.AutoButtonColor = false
 b.Size = UDim2.new(0, 14, 0, 14)
@@ -733,6 +738,64 @@ local RS = game:GetService("ReplicatedStorage")
 local Remote = RS:WaitForChild("Events"):WaitForChild("ServerEvent")
 Remote:FireServer("BuyItemTool", weapon.Name)
 end
+
+
+    list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        if open then refreshSize(false) end
+    end)
+
+    headerBtn.MouseButton1Click:Connect(function()
+        if shouldIgnoreClick() then return end
+        open = not open
+        playOptionSound()
+        headerBtn.Text = titleText .. (open and " ▾" or " ▸")
+        refreshSize(true)
+    end)
+
+    return headerBtn, container, list
+end
+
+local function makeDropdownHeaderDynamic(parent, titleText)
+    local headerBtn = Instance.new("TextButton", parent)
+    headerBtn.AutoButtonColor = false
+    headerBtn.Size = UDim2.new(1, 0, 0, 44)
+    headerBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
+    headerBtn.BackgroundTransparency = 0.88
+    headerBtn.BorderSizePixel = 0
+    headerBtn.Text = titleText .. " ▸"
+    headerBtn.Font = Fonts[CurrentFontName]
+    headerBtn.TextSize = 14
+    headerBtn.TextColor3 = Theme.Text
+    headerBtn.ZIndex = 41
+    Instance.new("UICorner", headerBtn).CornerRadius = UDim.new(0, 14)
+
+    local st = Instance.new("UIStroke", headerBtn)
+    st.Thickness = 1
+    st.Color = Theme.Accent
+    st.Transparency = 0.80
+
+    local container = Instance.new("Frame", parent)
+    container.BackgroundTransparency = 1
+    container.ClipsDescendants = true
+    container.Size = UDim2.new(1, 0, 0, 0)
+    container.ZIndex = 41
+
+    local list = Instance.new("UIListLayout", container)
+    list.Padding = UDim.new(0, UI_ITEM_PADDING)
+    list.SortOrder = Enum.SortOrder.LayoutOrder
+    list.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+    local open = false
+    local function refreshSize(animated)
+        local h = list.AbsoluteContentSize.Y + 6
+        local target = open and UDim2.new(1,0,0,h) or UDim2.new(1,0,0,0)
+        if animated then
+            tween(container, TMed, {Size = target})
+        else
+            container.Size = target
+        end
+    end
+
 --==================== GUNS PAGE ====================
 local PageGuns = newPageFrame()
 -- Scroll vertical (como mochilas)
@@ -862,6 +925,7 @@ PageMisc.Active = true
 PageMisc:SetAttribute("NoDrag", true)
 PageMisc.BorderSizePixel = 0
 PageMisc.ScrollBarImageTransparency = 0
+
 --==================== VISUAL CONTENT ====================
 local VisualContent = Instance.new("Frame", PageVisual)
 VisualContent.BackgroundTransparency = 1
@@ -1064,52 +1128,7 @@ end)
 Tabs.Settings.MouseButton1Click:Connect(function()
 switchPage(PageSettings, PageSettingsKey)
 end)
-local function makeDropdownHeaderDynamic(parent, titleText)
-local headerBtn = Instance.new("TextButton", parent)
-headerBtn.AutoButtonColor = false
-headerBtn.Size = UDim2.new(1, 0, 0, 44)
-headerBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
-headerBtn.BackgroundTransparency = 0.88
-headerBtn.BorderSizePixel = 0
-headerBtn.Text = titleText .. " ▸"
-headerBtn.Font = Fonts[CurrentFontName]
-headerBtn.TextSize = 14
-headerBtn.TextColor3 = Theme.Text
-headerBtn.ZIndex = 41
-Instance.new("UICorner", headerBtn).CornerRadius = UDim.new(0, 14)
-local st = Instance.new("UIStroke", headerBtn)
-st.Thickness = 1
-st.Color = Theme.Accent
-st.Transparency = 0.80
-local container = Instance.new("Frame", parent)
-container.BackgroundTransparency = 1
-container.ClipsDescendants = true
-container.Size = UDim2.new(1, 0, 0, 0)
-container.ZIndex = 41
-local list = Instance.new("UIListLayout", container)
-list.Padding = UDim.new(0, UI_ITEM_PADDING)
-list.SortOrder = Enum.SortOrder.LayoutOrder
-list.HorizontalAlignment = Enum.HorizontalAlignment.Center
-local open = false
-local function refreshSize(animated)
-local h = list.AbsoluteContentSize.Y + 6
-local target = open
-and UDim2.new(1, 0, 0, h)
-or UDim2.new(1, 0, 0, 0)
-if animated then tween(container, TMed, {Size = target}) else container.Size = target end
-end
-list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-if open then refreshSize(false) end
-end)
-headerBtn.MouseButton1Click:Connect(function()
-if shouldIgnoreClick() then return end
-open = not open
-playOptionSound()
-headerBtn.Text = titleText .. (open and " ▾" or " ▸")
-refreshSize(true)
-end)
-return headerBtn, container, list
-end
+
 --==================== APPLE CLEANING SCREEN ====================
 local function showCleaningScreen(duration)
 local gui = Instance.new("ScreenGui")
@@ -1149,12 +1168,7 @@ TweenService:Create(text, TweenInfo.new(1.8, Enum.EasingStyle.Sine), {
 Position = UDim2.new(0.5,0,0.5,-6)
 }):Play()
 task.wait(1.8)
-TweenService:Create(text, TweenInfo.new(1.8, Enum.EasingStyle.Sine), {
-Position = UDim2.new(0.5,0,0.5,6)
-}):Play()
-task.wait(1.8)
-end
-end)
+	
 -- cerrar automático
 task.delay(duration, function()
 if gui.Parent then
@@ -1840,7 +1854,6 @@ fontToggles[name] = tog
 end
 fontToggles[CurrentFontName].Set(true)
 -- ==================== CAMERA SETUP (EXACT) ====================
-local Camera = workspace.CurrentCamera
 local BASE_CAMERA_CFRAME = CFrame.new(
 -720.347595, 48.588726, 261.107269,
 -0.999807477, -0.00462738099, -0.0190718602,
@@ -2361,13 +2374,7 @@ end
 end)
 end
 )
-dupeMoneyBtn:SetAttribute("NoDrag", true)
-dupeMoneyBtn.TextSize = 14
--- Tooltip SIN click
-attachTooltip(
-dupeMoneyBtn,
-"LIMPIA TODO TU DINERO DE UNA\n\nRECOMENDACIÓN:\nTener de 30K a 100K en rojo (avaces falla🔴) "
-)
+
 dupeMoneyBtn:SetAttribute("NoDrag", true)
 dupeMoneyBtn.TextSize = 14
 -- Tooltip SIN click
