@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v11
+--fixes 5% fix
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -733,6 +733,26 @@ Remote:FireServer("BuyItemTool", weapon.Name)
 end
 --==================== GUNS PAGE ====================
 local PageGuns = newPageFrame()
+-- 🔘 Botón para mostrar/ocultar lista de armas
+local showGuns = true
+
+local ToggleGunsBtn = makeAppleAction(
+    PageGuns,
+    "📜 Mostrar lista de armas",
+    0,
+    function()
+        showGuns = not showGuns
+        GunsScroll.Visible = showGuns
+        ToggleGunsBtn.Text = showGuns
+            and "📜 Ocultar lista de armas"
+            or "📜 Mostrar lista de armas"
+    end
+)
+
+ToggleGunsBtn.Size = UDim2.new(1, -24, 0, 44)
+ToggleGunsBtn.TextSize = 14
+ToggleGunsBtn:SetAttribute("NoDrag", true)
+
 -- Scroll vertical (como mochilas)
 local GunsScroll = Instance.new("ScrollingFrame", PageGuns)
 GunsScroll.Visible = true
@@ -758,25 +778,7 @@ GunsScroll.CanvasSize = UDim2.new(
 )
 end)
 
--- 🔘 Botón para mostrar/ocultar lista de armas
-local showGuns = true
 
-local ToggleGunsBtn = makeAppleAction(
-    PageGuns,
-    "📜 Mostrar lista de armas",
-    0,
-    function()
-        showGuns = not showGuns
-        GunsScroll.Visible = showGuns
-        ToggleGunsBtn.Text = showGuns
-            and "📜 Ocultar lista de armas"
-            or "📜 Mostrar lista de armas"
-    end
-)
-
-ToggleGunsBtn.Size = UDim2.new(1, -24, 0, 44)
-ToggleGunsBtn.TextSize = 14
-ToggleGunsBtn:SetAttribute("NoDrag", true)
 
 -- arma seleccionada
 local SelectedWeapon = nil
