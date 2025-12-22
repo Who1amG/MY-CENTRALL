@@ -1,7 +1,7 @@
 -- 🦈 Glassmas UI • Principal (Apple Glass Christmas) • Single Script 
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
---v2
+--v3
 
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -564,7 +564,7 @@ end
 local BtnClose = makeDot(Color3.fromRGB(255, 95, 90), 16)
 local BtnMin   = makeDot(Color3.fromRGB(255, 200, 80), 40)
 
---==================== DRAG WINDOW (FINAL FIX) ====================
+--==================== DRAG WINDOW (GLOBAL - ANYWHERE) ====================
 
 local DraggingUI = false
 local DragStartMouse
@@ -577,7 +577,7 @@ local function canDrag(target)
 	return true
 end
 
-Header.InputBegan:Connect(function(input)
+Window.InputBegan:Connect(function(input)
 	if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
 	if not canDrag(input.Target) then return end
 
@@ -608,7 +608,6 @@ end)
 shouldIgnoreClick = function()
 	return DraggingUI
 end
-
 
 
 --==================== SNOW LAYER ====================
