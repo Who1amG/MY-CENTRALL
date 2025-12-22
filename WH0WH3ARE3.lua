@@ -2,7 +2,8 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v8
+--fixes v9
+-- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -227,7 +228,7 @@ UI.ResetOnSpawn = false
 UI.Parent = PlayerGui
 getgenv().GlassmasUI_Shutdown = function()
     getgenv().GlassmasUI_Running = false
-  
+   
     -- Apagar Fly
     if FlyEnabled then stopFly() end
     -- 🔥 Apagar ESP refactor (si existe)
@@ -240,11 +241,11 @@ getgenv().GlassmasUI_Shutdown = function()
         disableESP()
     end
 end)
-  
+   
     -- Borrar ESP
     clearESP()
     disableESP()
-  
+   
     pcall(function()
         if UI then UI:Destroy() end
     end)
@@ -677,69 +678,58 @@ PageVisual:SetAttribute("NoDrag", true)
 PageVisual.BorderSizePixel = 0
 PageVisual.ScrollBarImageTransparency = 0
 local Weapons = {
--- 🔫 RIFLES
-{Name="AR556 GreenTip", Ammo="5.56"},
-{Name="308ARP", Ammo="5.56"},
-{Name="Vepr 12 Defender", Ammo="Slugs"},
-{Name="Tan Arp", Ammo="5.56"},
-{Name="556Rifle", Ammo="5.56"},
-{Name="SIGMCX", Ammo="5.56"},
-{Name="AK74", Ammo="7.62x39mm"},
-{Name="Kriss Alpine Gen II", Ammo="Extended"},
-{Name="M16A2", Ammo="5.56"},
-{Name="BlackMiniDrac", Ammo="7.62x39mm"},
-{Name="GFR AR10", Ammo="5.56"},
-{Name="ZPAP 762", Ammo="7.62x39mm"},
-{Name="SLIMEBALL762", Ammo="5.56"},
-{Name="AR-223", Ammo="5.56"},
-{Name="Colt 723", Ammo="5.56"},
-{Name="223Mini", Ammo="5.56"},
-{Name="BCM4", Ammo="5.56"},
-{Name="PLR-16", Ammo="5.56"},
--- 🔫 PISTOLAS
-{Name="Hellcat XD", Ammo="Extended"},
-{Name="G24 Competition", Ammo="Extended"},
-{Name="PSA ROCK 5.7", Ammo="9mm"},
-{Name="G41 MOS Kriss", Ammo="Extended"},
-{Name="Ruger LCP", Ammo="9mm"},
-{Name="G27 Extended", Ammo="Extended"},
-{Name="Glock 36", Ammo="9mm"},
-{Name="SS MR920P", Ammo="9mm"},
-{Name="P80 Extended", Ammo="Extended"},
-{Name="G48 PerformanceTrigger", Ammo="9mm"},
-{Name="Engraved Colt .38 Super", Ammo="Extended"},
-{Name="Canik MC9 Prime", Ammo="Extended"},
-{Name="38. Smith&Wesson", Ammo="Bullets"},
-{Name="G43X", Ammo="Extended"},
-{Name="G22 Compensated", Ammo="Extended"},
-{Name="FNXBeam", Ammo="Extended"},
-{Name="S&W M2.0 Clearmag", Ammo="9mm"},
-{Name="Matchmaster 1911", Ammo="9mm"},
-{Name="Springfield Echelon", Ammo="9mm"},
-{Name="Springfield Hellcat", Ammo="9mm"},
-{Name="G19XPSAGrip", Ammo="Extended"},
-{Name="Glock-17", Ammo="9mm"},
-{Name="G40VectMag", Ammo="Extended"},
-{Name="Python", Ammo="Bullets"},
-{Name="G31C", Ammo="9mm"},
-{Name="Glock19x Extended", Ammo="Extended"},
-{Name="G26", Ammo="9mm"},
-{Name="G17Gen5Vect", Ammo="Extended"},
-{Name="G23Gen4 Extended", Ammo="Extended"},
+{Name="AR556 GreenTip"},
+{Name="308ARP"},
+{Name="Vepr 12 Defender"},
+{Name="Tan Arp"},
+{Name="556Rifle"},
+{Name="SIGMCX"},
+{Name="AK74"},
+{Name="Kriss Alpine Gen II"},
+{Name="M16A2"},
+{Name="BlackMiniDrac"},
+{Name="GFR AR10"},
+{Name="ZPAP 762"},
+{Name="SLIMEBALL762"},
+{Name="AR-223"},
+{Name="Colt 723"},
+{Name="223Mini"},
+{Name="BCM4"},
+{Name="PLR-16"},
+{Name="Hellcat XD"},
+{Name="G24 Competition"},
+{Name="PSA ROCK 5.7"},
+{Name="G41 MOS Kriss"},
+{Name="Ruger LCP"},
+{Name="G27 Extended"},
+{Name="Glock 36"},
+{Name="SS MR920P"},
+{Name="P80 Extended"},
+{Name="G48 PerformanceTrigger"},
+{Name="Engraved Colt .38 Super"},
+{Name="Canik MC9 Prime"},
+{Name="38. Smith&Wesson"},
+{Name="G43X"},
+{Name="G22 Compensated"},
+{Name="FNXBeam"},
+{Name="S&W M2.0 Clearmag"},
+{Name="Matchmaster 1911"},
+{Name="Springfield Echelon"},
+{Name="Springfield Hellcat"},
+{Name="G19XPSAGrip"},
+{Name="Glock-17"},
+{Name="G40VectMag"},
+{Name="Python"},
+{Name="G31C"},
+{Name="Glock19x Extended"},
+{Name="G26"},
+{Name="G17Gen5Vect"},
+{Name="G23Gen4 Extended"},
 }
-local Remote = RS:WaitForChild("Events"):WaitForChild("ServerEvent")
--- =========================
--- 🧠 COMPRA REAL
--- =========================
 local function BuyWeaponAndAmmo(weapon)
-    -- comprar arma
-    Remote:FireServer("BuyItemTool", weapon.Name)
-    task.wait(0.15)
-    -- comprar ammo 4 veces
-    for i = 1, 2 do
-        Remote:FireServer("BuyItemTool", weapon.Ammo)
-        task.wait(0.1)
-    end
+local RS = game:GetService("ReplicatedStorage")
+local Remote = RS:WaitForChild("Events"):WaitForChild("ServerEvent")
+Remote:FireServer("BuyItemTool", weapon.Name)
 end
 --==================== GUNS PAGE ====================
 local PageGuns = newPageFrame()
@@ -766,68 +756,21 @@ GunsScroll.CanvasSize = UDim2.new(
 0, GunsList.AbsoluteContentSize.Y + 80
 )
 end)
--- Dropdown for ARMAS
-local function makeDropdownHeaderDynamic(parent, titleText)
-local headerBtn = Instance.new("TextButton", parent)
-headerBtn.AutoButtonColor = false
-headerBtn.Size = UDim2.new(1, 0, 0, 44)
-headerBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
-headerBtn.BackgroundTransparency = 0.88
-headerBtn.BorderSizePixel = 0
-headerBtn.Text = titleText .. " ▸"
-headerBtn.Font = Fonts[CurrentFontName]
-headerBtn.TextSize = 14
-headerBtn.TextColor3 = Theme.Text
-headerBtn.ZIndex = 41
-Instance.new("UICorner", headerBtn).CornerRadius = UDim.new(0, 14)
-local st = Instance.new("UIStroke", headerBtn)
-st.Thickness = 1
-st.Color = Theme.Accent
-st.Transparency = 0.80
-local container = Instance.new("Frame", parent)
-container.BackgroundTransparency = 1
-container.ClipsDescendants = true
-container.Size = UDim2.new(1, 0, 0, 0)
-container.ZIndex = 41
-local list = Instance.new("UIListLayout", container)
-list.Padding = UDim.new(0, UI_ITEM_PADDING)
-list.SortOrder = Enum.SortOrder.LayoutOrder
-list.HorizontalAlignment = Enum.HorizontalAlignment.Center
-local open = false
-local function refreshSize(animated)
-local h = list.AbsoluteContentSize.Y + 6
-local target = open
-and UDim2.new(1, 0, 0, h)
-or UDim2.new(1, 0, 0, 0)
-if animated then tween(container, TMed, {Size = target}) else container.Size = target end
-end
-list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-if open then refreshSize(false) end
-end)
-headerBtn.MouseButton1Click:Connect(function()
-if shouldIgnoreClick() then return end
-open = not open
-playOptionSound()
-headerBtn.Text = titleText .. (open and " ▾" or " ▸")
-refreshSize(true)
-end)
-return headerBtn, container, list
-end
-local ArmsHeader, ArmsContainer = makeDropdownHeaderDynamic(GunsScroll, "ARMAS")
-ArmsHeader.LayoutOrder = 1
-ArmsContainer.LayoutOrder = 2
--- botón arma (compra directa)
-local function makeGunBuyButton(parent, weapon)
+-- arma seleccionada
+local SelectedWeapon = nil
+-- botón arma (selección)
+local function makeGunSelectButton(parent, weapon)
+local selected = false
 local btn = Instance.new("TextButton", parent)
 btn.AutoButtonColor = false
 btn.Size = UDim2.new(1, -24, 0, 42)
 btn.BackgroundColor3 = Color3.fromRGB(255,255,255)
 btn.BackgroundTransparency = 0.88
 btn.BorderSizePixel = 0
-btn.Text = weapon.Name.." | Ammo: "..weapon.Ammo.." x4"
+btn.Text = "🔫 "..weapon.Name
 btn.Font = Fonts[CurrentFontName]
-btn.TextSize = 13
-btn.TextColor3 = Color3.fromRGB(230,230,230)
+btn.TextSize = 14
+btn.TextColor3 = Theme.Text
 btn.ZIndex = 41
 btn:SetAttribute("NoDrag", true)
 Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 14)
@@ -835,21 +778,67 @@ local st = Instance.new("UIStroke", btn)
 st.Color = Theme.Accent
 st.Thickness = 1
 st.Transparency = 0.85
+local function render()
+tween(btn, TFast, {
+BackgroundTransparency = selected and 0.80 or 0.88
+})
+tween(st, TFast, {
+Transparency = selected and 0.35 or 0.85
+})
+end
+render()
 btn.MouseButton1Click:Connect(function()
 if shouldIgnoreClick() then return end
 playOptionSound()
-BuyWeaponAndAmmo(weapon)
+-- deseleccionar todas
+for _,c in ipairs(parent:GetChildren()) do
+if c:IsA("TextButton") then
+c:SetAttribute("Selected", false)
+end
+end
+selected = true
+btn:SetAttribute("Selected", true)
+SelectedWeapon = weapon
+render()
+Notify("🔫 Seleccionada: "..weapon.Name, true)
+end)
+btn:GetAttributeChangedSignal("Selected"):Connect(function()
+selected = btn:GetAttribute("Selected") == true
+render()
 end)
 return btn
 end
 -- crear lista de armas
 if Weapons then
 for _, weapon in ipairs(Weapons) do
-makeGunBuyButton(ArmsContainer, weapon)
+makeGunSelectButton(GunsScroll, weapon)
 end
 else
-makeAppleAction(ArmsContainer, "❌ No se detectaron armas", 1, function() end)
+makeAppleAction(GunsScroll, "❌ No se detectaron armas", 1, function() end)
 end
+-- botón BUY (SIEMPRE AL FINAL)
+local BuyGunBtn = makeAppleAction(
+GunsScroll,
+"🛒 BUY ARMA SELECCIONADA",
+999,
+function()
+if not SelectedWeapon then
+Notify("❌ Selecciona un arma primero", false)
+return
+end
+Notify("🛒 Comprando: "..SelectedWeapon.Name, true)
+AddLog("🛒 Buy Gun: "..SelectedWeapon.Name)
+-- TU FUNCIÓN REAL
+if BuyWeaponAndAmmo then
+BuyWeaponAndAmmo(SelectedWeapon)
+else
+Notify("❌ BuyWeaponAndAmmo no existe", false)
+end
+end
+)
+BuyGunBtn.Size = UDim2.new(1, -24, 0, 44)
+BuyGunBtn.TextSize = 14
+BuyGunBtn:SetAttribute("NoDrag", true)
 local PageSettings = newPageFrame()
 local PageMisc = Instance.new("ScrollingFrame", Content)
 PageMisc.BackgroundTransparency = 1
@@ -1065,6 +1054,52 @@ end)
 Tabs.Settings.MouseButton1Click:Connect(function()
 switchPage(PageSettings, PageSettingsKey)
 end)
+local function makeDropdownHeaderDynamic(parent, titleText)
+local headerBtn = Instance.new("TextButton", parent)
+headerBtn.AutoButtonColor = false
+headerBtn.Size = UDim2.new(1, 0, 0, 44)
+headerBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
+headerBtn.BackgroundTransparency = 0.88
+headerBtn.BorderSizePixel = 0
+headerBtn.Text = titleText .. " ▸"
+headerBtn.Font = Fonts[CurrentFontName]
+headerBtn.TextSize = 14
+headerBtn.TextColor3 = Theme.Text
+headerBtn.ZIndex = 41
+Instance.new("UICorner", headerBtn).CornerRadius = UDim.new(0, 14)
+local st = Instance.new("UIStroke", headerBtn)
+st.Thickness = 1
+st.Color = Theme.Accent
+st.Transparency = 0.80
+local container = Instance.new("Frame", parent)
+container.BackgroundTransparency = 1
+container.ClipsDescendants = true
+container.Size = UDim2.new(1, 0, 0, 0)
+container.ZIndex = 41
+local list = Instance.new("UIListLayout", container)
+list.Padding = UDim.new(0, UI_ITEM_PADDING)
+list.SortOrder = Enum.SortOrder.LayoutOrder
+list.HorizontalAlignment = Enum.HorizontalAlignment.Center
+local open = false
+local function refreshSize(animated)
+local h = list.AbsoluteContentSize.Y + 6
+local target = open
+and UDim2.new(1, 0, 0, h)
+or UDim2.new(1, 0, 0, 0)
+if animated then tween(container, TMed, {Size = target}) else container.Size = target end
+end
+list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+if open then refreshSize(false) end
+end)
+headerBtn.MouseButton1Click:Connect(function()
+if shouldIgnoreClick() then return end
+open = not open
+playOptionSound()
+headerBtn.Text = titleText .. (open and " ▾" or " ▸")
+refreshSize(true)
+end)
+return headerBtn, container, list
+end
 --==================== APPLE CLEANING SCREEN ====================
 local function showCleaningScreen(duration)
 local gui = Instance.new("ScreenGui")
@@ -1674,11 +1709,13 @@ local SetKeyBtn = Instance.new("TextButton", KeyRow)
 SetKeyBtn.AutoButtonColor = false
 SetKeyBtn.Size = UDim2.new(0, 110, 0, 34)
 SetKeyBtn.Position = UDim2.new(1, -110, 0.5, -17)
-SetKeyBtn.BackgroundColor3 = Color3.fromRGB(160,60,60)
-SetKeyBtn.Text = "ESTABLECER"
+SetKeyBtn.BackgroundColor3 = Theme.Glass
+SetKeyBtn.BackgroundTransparency = 0.78
+SetKeyBtn.BorderSizePixel = 0
 SetKeyBtn.Font = Fonts[CurrentFontName]
 SetKeyBtn.TextSize = 13
 SetKeyBtn.TextColor3 = Theme.Text
+SetKeyBtn.Text = "ESTABLECER"
 SetKeyBtn.ZIndex = 41
 Instance.new("UICorner", SetKeyBtn).CornerRadius = UDim.new(0, 10)
 local hideKey = Enum.KeyCode.H
@@ -1867,7 +1904,7 @@ local MONEY_WASH_CPS = 10
 local function getValidDryers()
     local folder = workspace:FindFirstChild("MoneyDryers")
     if not folder then return {} end
-  
+   
     local valid = {}
     for _, dryer in ipairs(folder:GetChildren()) do
         local promptPart = dryer:FindFirstChild("WashingPromptPart")
@@ -1885,10 +1922,10 @@ local function getValidDryers()
 end
 local function findBestDupePair(dryers)
     if #dryers < 2 then return dryers[1], nil end
-  
+   
     local best1, best2 = nil, nil
     local minDist = math.huge
-  
+   
     for i = 1, #dryers-1 do
         for j = i+1, #dryers do
             local dist = (dryers[i].pos - dryers[j].pos).Magnitude
@@ -1899,7 +1936,7 @@ local function findBestDupePair(dryers)
             end
         end
     end
-  
+   
     return best1, best2
 end
 --==================== MISC: SNOWMANS (ONE SHOT) ====================
@@ -2051,7 +2088,7 @@ end
 end
 task.wait(0.35)
 end
-  
+   
 restoreSnowmanPrompts()
 snowCollectRunning = false
 Notify("✅ Recolección finalizada ("..collected.." / "..#valid..")", true)
@@ -2287,7 +2324,7 @@ return
 end
 startCollectSnowmans()
 end)
--- Dinero (DESACTIVACIÓN - SOLO INFO)
+-- Dinero (DESACTIVADO - SOLO INFO)
 -- Dinero (LIMPIEZA TOTAL REAL)
 -- Dinero (LIMPIEZA TOTAL REAL)
 -- Dinero (LIMPIEZA TOTAL REAL)
