@@ -526,6 +526,44 @@ WStroke.Thickness = 1.5
 WStroke.Transparency = 0.45
 
 
+--==================== HEADER ====================
+local Header = Instance.new("Frame", Window)
+Header.Size = UDim2.new(1, 0, 0, 56)
+Header.BackgroundColor3 = Theme.Header
+Header.BackgroundTransparency = 0.25
+Header.BorderSizePixel = 0
+Header.Active = true
+Header.Selectable = true
+Header.ZIndex = 20
+Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 22)
+
+local Title = Instance.new("TextLabel", Header)
+Title.BackgroundTransparency = 1
+Title.Position = UDim2.new(0, 78, 0, 0)
+Title.Size = UDim2.new(1, -160, 1, 0)
+Title.Font = Fonts[CurrentFontName]
+Title.TextSize = 18
+Title.TextColor3 = Theme.Text
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Text = "Who We Are😈"
+Title.ZIndex = 21
+
+local function makeDot(color, x)
+	local b = Instance.new("TextButton", Header)
+	b.Text = ""
+	b.AutoButtonColor = false
+	b.Size = UDim2.new(0, 14, 0, 14)
+	b.Position = UDim2.new(0, x, 0.5, -7)
+	b.BackgroundColor3 = color
+	b.BorderSizePixel = 0
+	b.ZIndex = 22
+	Instance.new("UICorner", b).CornerRadius = UDim.new(1, 0)
+	return b
+end
+
+local BtnClose = makeDot(Color3.fromRGB(255, 95, 90), 16)
+local BtnMin   = makeDot(Color3.fromRGB(255, 200, 80), 40)
+
 --==================== DRAG WINDOW (FIXED - WORKS ON PC & MOBILE) ====================
 local DraggingUI = false
 local dragInput = nil
@@ -568,44 +606,6 @@ end)
 shouldIgnoreClick = function()
     return DraggingUI
 end
-
---==================== HEADER ====================
-local Header = Instance.new("Frame", Window)
-Header.Size = UDim2.new(1, 0, 0, 56)
-Header.BackgroundColor3 = Theme.Header
-Header.BackgroundTransparency = 0.25
-Header.BorderSizePixel = 0
-Header.Active = true
-Header.Selectable = true
-Header.ZIndex = 20
-Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 22)
-
-local Title = Instance.new("TextLabel", Header)
-Title.BackgroundTransparency = 1
-Title.Position = UDim2.new(0, 78, 0, 0)
-Title.Size = UDim2.new(1, -160, 1, 0)
-Title.Font = Fonts[CurrentFontName]
-Title.TextSize = 18
-Title.TextColor3 = Theme.Text
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Text = "Who We Are😈"
-Title.ZIndex = 21
-
-local function makeDot(color, x)
-	local b = Instance.new("TextButton", Header)
-	b.Text = ""
-	b.AutoButtonColor = false
-	b.Size = UDim2.new(0, 14, 0, 14)
-	b.Position = UDim2.new(0, x, 0.5, -7)
-	b.BackgroundColor3 = color
-	b.BorderSizePixel = 0
-	b.ZIndex = 22
-	Instance.new("UICorner", b).CornerRadius = UDim.new(1, 0)
-	return b
-end
-
-local BtnClose = makeDot(Color3.fromRGB(255, 95, 90), 16)
-local BtnMin   = makeDot(Color3.fromRGB(255, 200, 80), 40)
 
 
 --==================== SNOW LAYER ====================
@@ -1154,10 +1154,10 @@ local function setTabActive(which)
 		tween(st, TFast, {Transparency = active and 0.40 or 0.80})
 	end
 	style(Tabs.Auto, Tabs.AutoStroke, which==PageAutoKey)
-style(Tabs.Visual, Tabs.VisualStroke, which==PageVisualKey)
-style(Tabs.Guns, Tabs.GunsStroke, which==PageGunsKey)
-style(Tabs.Settings, Tabs.SettingsStroke, which==PageSettingsKey)
-style(Tabs.Misc, Tabs.MiscStroke, which==PageMiscKey)
+	style(Tabs.Visual, Tabs.VisualStroke, which==PageVisualKey)
+	style(Tabs.Guns, Tabs.GunsStroke, which==PageGunsKey)
+	style(Tabs.Settings, Tabs.SettingsStroke, which==PageSettingsKey)
+	style(Tabs.Misc, Tabs.MiscStroke, which==PageMiscKey)
 
 
 end
@@ -2850,10 +2850,25 @@ do
 	BarBack.InputBegan:Connect(function(i)
 	if i.UserInputType == Enum.UserInputType.MouseButton1 then
 		dragging = true
+		SliderDragging = true
+		Drag.pending = false
 		setFromX(i.Position.X)
 	end
 end)
 
+UserInputService.InputEnded:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+		SliderDragging = false
+	end
+end)
+
+
+	UserInputService.InputEnded:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = false
+		end
+	end)
 
 	UserInputService.InputChanged:Connect(function(i)
 		if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
@@ -2997,6 +3012,8 @@ local serverHopBtn = makeAppleAction(
     "🔁 serverHop",
     6,
     function()
+        Drag.active = false
+        Drag.pending = false
         
         Notify("🔁 Buscando servidor nuevo...", true)
         AddLog("🔁 Server Hop iniciado")
@@ -3052,6 +3069,8 @@ local rejoinBtn = makeAppleAction(
     "🔄 Rejoin Server",
     7, -- debajo de serverHop
     function()
+        Drag.active = false
+        Drag.pending = false
 
         Notify("🔄 Reuniéndose al mismo server...", true)
         AddLog("🔄 Rejoin Server ejecutado")
@@ -3073,6 +3092,8 @@ local rejoinWithScriptBtn = makeAppleAction(
     "🔁 Rejoin with Script",
     8, -- debajo de Rejoin Server
     function()
+        Drag.active = false
+        Drag.pending = false
 
         Notify("🔁 Rejoin + auto script...", true)
         AddLog("🔁 Rejoin with Script iniciado")
@@ -3102,6 +3123,7 @@ rejoinWithScriptBtn:SetAttribute("NoDrag", true)
 
 
 --==================== MINIMIZE / CLOSE ====================
+local minimized = false
 local originalSize = Window.Size
 
 BtnMin.MouseButton1Click:Connect(function()
@@ -3126,34 +3148,27 @@ BtnMin.MouseButton1Click:Connect(function()
 end)
 
 BtnClose.MouseButton1Click:Connect(function()
-	playOptionSound()
-	blurOut()
-
-	getgenv().GlassmasUI_Running = false
-
-	if FlyEnabled then stopFly() end
-	clearESP()
-	disableESP()
-
-	tween(WStroke, TFast, {Transparency = 1})
-	tween(Window, TSlow, {
-		BackgroundTransparency = 1,
-		Size = UDim2.new(0, 520, 0, 0)
-	})
-
-	task.delay(0.42, function()
-		if UI then UI:Destroy() end
-	end)
+    blurOut()
+    if shouldIgnoreClick() then return end
+    playOptionSound()
+    getgenv().GlassmasUI_Running = false
+    
+    -- 🔥 Apagar Fly si estaba activo
+    if FlyEnabled then stopFly() end
+    
+    -- 🔥 BORRAR TODO EL ESP
+    clearESP()
+    disableESP()  -- apaga flags también
+    
+    tween(WStroke, TFast, {Transparency = 1})
+    tween(Window, TSlow, {BackgroundTransparency = 1, Size = UDim2.new(0, 520, 0, 0)})
+    task.delay(0.42, function()
+        if UI then UI:Destroy() end
+    end)
 end)
-
 
 --==================== FINAL ====================
 AddLog("🧪 Sistema de logs iniciado correctamente")
 Notify("Made By SPK 💎", true)
 blurIn()
 print("[GlassmasUI] Loaded • Fixed • Tabs • Settings • Misc • Visual Logs")
-task.delay(2, function()
-	print("UI alive:", UI.Parent ~= nil)
-	print("Window Active:", Window.Active)
-	print("Content Active:", Content.Active)
-end)
