@@ -2,6 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
+--fixes v7
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -281,10 +282,10 @@ end
 local TFast = TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local TMed = TweenInfo.new(0.26, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
 local TSlow = TweenInfo.new(0.38, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-local function tween(obj, info, props)
-local t = TweenService:Create(obj, info, props)
-t:Play()
-return t
+local success, t = pcall(TweenService.Create, TweenService, obj, info, props)
+if success and t then
+    t:Play()
+    return t
 end
 --==================== UI COMPONENTS ====================
 makeAppleToggle = function(parent, label, order, onChanged)
