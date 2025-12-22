@@ -2801,93 +2801,85 @@ attachTooltip(
 )
 
 do
-	local SliderFrame = Instance.new("Frame", FlyContainer)
-	SliderFrame.Size = UDim2.new(1, 0, 0, UI_ITEM_HEIGHT + 12)
-	SliderFrame.BackgroundTransparency = 1
+    local SliderFrame = Instance.new("Frame", FlyContainer)
+    SliderFrame.Size = UDim2.new(1, 0, 0, UI_ITEM_HEIGHT + 12)
+    SliderFrame.BackgroundTransparency = 1
 
-	local Title = Instance.new("TextLabel", SliderFrame)
-	Title.BackgroundTransparency = 1
-	Title.Size = UDim2.new(1, 0, 0, 22)
-	Title.Font = Fonts[CurrentFontName]
-	Title.TextSize = 14
-	Title.TextColor3 = Theme.Text
-	Title.TextXAlignment = Enum.TextXAlignment.Left
-	Title.Text = "⚡ Velocidad de vuelo"
+    local Title = Instance.new("TextLabel", SliderFrame)
+    Title.BackgroundTransparency = 1
+    Title.Size = UDim2.new(1, 0, 0, 22)
+    Title.Font = Fonts[CurrentFontName]
+    Title.TextSize = 14
+    Title.TextColor3 = Theme.Text
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+    Title.Text = "⚡ Velocidad de vuelo"
 
-	local BarBack = Instance.new("Frame", SliderFrame)
-	BarBack.Position = UDim2.new(0, 0, 0, 32)
-	BarBack.Size = UDim2.new(1, 0, 0, 10)
-	BarBack.BackgroundColor3 = Color3.fromRGB(0,0,0)
-	BarBack.BackgroundTransparency = 0.65
-	BarBack.BorderSizePixel = 0
-	Instance.new("UICorner", BarBack).CornerRadius = UDim.new(1,0)
+    local BarBack = Instance.new("Frame", SliderFrame)
+    BarBack.Position = UDim2.new(0, 0, 0, 32)
+    BarBack.Size = UDim2.new(1, 0, 0, 10)
+    BarBack.BackgroundColor3 = Color3.fromRGB(0,0,0)
+    BarBack.BackgroundTransparency = 0.65
+    BarBack.BorderSizePixel = 0
+    Instance.new("UICorner", BarBack).CornerRadius = UDim.new(1,0)
 
-	local BarFill = Instance.new("Frame", BarBack)
-	BarFill.BackgroundColor3 = Theme.Accent
-	BarFill.BorderSizePixel = 0
-	Instance.new("UICorner", BarFill).CornerRadius = UDim.new(1,0)
+    local BarFill = Instance.new("Frame", BarBack)
+    BarFill.BackgroundColor3 = Theme.Accent
+    BarFill.BorderSizePixel = 0
+    Instance.new("UICorner", BarFill).CornerRadius = UDim.new(1,0)
 
-	local Knob = Instance.new("Frame", BarBack)
-	Knob.Size = UDim2.new(0,18,0,18)
-	Knob.BackgroundColor3 = Color3.fromRGB(235,235,235)
-	Knob.BorderSizePixel = 0
-	Knob.ZIndex = 42
-	Instance.new("UICorner", Knob).CornerRadius = UDim.new(1,0)
+    local Knob = Instance.new("Frame", BarBack)
+    Knob.Size = UDim2.new(0,18,0,18)
+    Knob.BackgroundColor3 = Color3.fromRGB(235,235,235)
+    Knob.BorderSizePixel = 0
+    Knob.ZIndex = 42
+    Instance.new("UICorner", Knob).CornerRadius = UDim.new(1,0)
 
-	-- 🔒 esto evita que el slider mueva el UI
-	SliderFrame:SetAttribute("NoDrag", true)
-	BarBack:SetAttribute("NoDrag", true)
-	BarFill:SetAttribute("NoDrag", true)
-	Knob:SetAttribute("NoDrag", true)
+    -- 🔒 esto evita que el slider mueva el UI
+    SliderFrame:SetAttribute("NoDrag", true)
+    BarBack:SetAttribute("NoDrag", true)
+    BarFill:SetAttribute("NoDrag", true)
+    Knob:SetAttribute("NoDrag", true)
 
-	local dragging = false
+    local dragging = false
 
-	local function setFromX(x)
-		local pct = math.clamp(
-			(x - BarBack.AbsolutePosition.X) / BarBack.AbsoluteSize.X,
-			0, 1
-		)
+    local function setFromX(x)
+        local pct = math.clamp(
+            (x - BarBack.AbsolutePosition.X) / BarBack.AbsoluteSize.X,
+            0, 1
+        )
 
-		FlySpeed = math.floor(Fly_MIN + (Fly_MAX - Fly_MIN) * pct)
-		BarFill.Size = UDim2.new(pct, 0, 1, 0)
-		Knob.Position = UDim2.new(pct, -9, 0.5, -9)
-	end
+        FlySpeed = math.floor(Fly_MIN + (Fly_MAX - Fly_MIN) * pct)
+        BarFill.Size = UDim2.new(pct, 0, 1, 0)
+        Knob.Position = UDim2.new(pct, -9, 0.5, -9)
+    end
 
-	BarBack.InputBegan:Connect(function(i)
-	if i.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		SliderDragging = true
-		Drag.pending = false
-		setFromX(i.Position.X)
-	end
-end)
+    BarBack.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            setFromX(input.Position.X)
 
-UserInputService.InputEnded:Connect(function(i)
-	if i.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = false
-		SliderDragging = false
-	end
-end)
+            local conn
+            conn = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                    conn:Disconnect()
+                end
+            end)
+        end
+    end)
 
+    UserInputService.InputChanged:Connect(function(i)
+        if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
+            setFromX(i.Position.X)
+        end
+    end)
 
-	UserInputService.InputEnded:Connect(function(i)
-		if i.UserInputType == Enum.UserInputType.MouseButton1 then
-			dragging = false
-		end
-	end)
-
-	UserInputService.InputChanged:Connect(function(i)
-		if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
-			setFromX(i.Position.X)
-		end
-	end)
-
-	-- valor inicial
-	task.defer(function()
-		local pct = (FlySpeed - Fly_MIN) / (Fly_MAX - Fly_MIN)
-		BarFill.Size = UDim2.new(pct, 0, 1, 0)
-		Knob.Position = UDim2.new(pct, -9, 0.5, -9)
-	end)
+    -- valor inicial
+    task.defer(function()
+        local pct = (FlySpeed - Fly_MIN) / (Fly_MAX - Fly_MIN)
+        BarFill.Size = UDim2.new(pct, 0, 1, 0)
+        Knob.Position = UDim2.new(pct, -9, 0.5, -9)
+    end)
 end
 
 
