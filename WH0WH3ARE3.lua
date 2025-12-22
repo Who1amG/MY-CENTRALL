@@ -1,7 +1,7 @@
 -- 🦈 Glassmas UI • Principal (Apple Glass Christmas) • Single Script 
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
---v1.5
+--v1.4
 
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -564,73 +564,51 @@ end
 local BtnClose = makeDot(Color3.fromRGB(255, 95, 90), 16)
 local BtnMin   = makeDot(Color3.fromRGB(255, 200, 80), 40)
 
---==================== DRAG WINDOW (GLOBAL - ANYWHERE) ====================
-local Drag = {
-    active = false,
-    startPos = nil,
-    startInput = nil,
-}
+--==================== DRAG WINDOW (FIXED - WORKS ON PC & MOBILE) ====================
+local DraggingUI = false
+local dragInput = nil
+local dragStart = nil
+local startPos = nil
+-- 🔥 permitir drag desde cualquier parte del Window
+Window.Active = true
+Window.Selectable = true
 
-local function canDrag(obj)
-    while obj and obj ~= Window do
-        if obj:GetAttribute("NoDrag") then
-            return false
-        end
-        obj = obj.Parent
+
+local function updateDrag(input)
+    local delta = input.Position - dragStart
+    Window.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+Window.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        DraggingUI = true
+        dragStart = input.Position
+        startPos = Window.Position
+
+        local conn
+        conn = input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                DraggingUI = false
+                conn:Disconnect()
+            end
+        end)
     end
-    return true
-end
+end)
 
-local function beginDrag(input)
-    Drag.active = true
-    Drag.startInput = input.Position
-    Drag.startPos = Window.Position
-end
-
-local function endDrag()
-    Drag.active = false
-end
-
-UserInputService.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
-    if input.UserInputType ~= Enum.UserInputType.MouseButton1
-    and input.UserInputType ~= Enum.UserInputType.Touch then
-        return
+Window.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
     end
-
-    local target = input.Target
-    if not target or not target:IsDescendantOf(Window) then return end
-    if not canDrag(target) then return end
-
-    beginDrag(input)
-
-    local conn
-    conn = input.Changed:Connect(function()
-        if input.UserInputState == Enum.UserInputState.End then
-            endDrag()
-            conn:Disconnect()
-        end
-    end)
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-    if not Drag.active then return end
-    if input.UserInputType ~= Enum.UserInputType.MouseMovement
-    and input.UserInputType ~= Enum.UserInputType.Touch then
-        return
+    if input == dragInput and DraggingUI then
+        updateDrag(input)
     end
-
-    local delta = input.Position - Drag.startInput
-    Window.Position = UDim2.new(
-        Drag.startPos.X.Scale,
-        Drag.startPos.X.Offset + delta.X,
-        Drag.startPos.Y.Scale,
-        Drag.startPos.Y.Offset + delta.Y
-    )
 end)
 
 shouldIgnoreClick = function()
-    return Drag.active
+    return DraggingUI
 end
 
 
@@ -3172,23 +3150,20 @@ BtnMin.MouseButton1Click:Connect(function()
 end)
 
 BtnClose.MouseButton1Click:Connect(function()
-    Drag.active = false -- 🔥 CLAVE
     blurOut()
+    if shouldIgnoreClick() then return end
     playOptionSound()
-
     getgenv().GlassmasUI_Running = false
-
+    
+    -- 🔥 Apagar Fly si estaba activo
     if FlyEnabled then stopFly() end
-
+    
+    -- 🔥 BORRAR TODO EL ESP
     clearESP()
-    disableESP()
-
+    disableESP()  -- apaga flags también
+    
     tween(WStroke, TFast, {Transparency = 1})
-    tween(Window, TSlow, {
-        BackgroundTransparency = 1,
-        Size = UDim2.new(0, 520, 0, 0)
-    })
-
+    tween(Window, TSlow, {BackgroundTransparency = 1, Size = UDim2.new(0, 520, 0, 0)})
     task.delay(0.42, function()
         if UI then UI:Destroy() end
     end)
