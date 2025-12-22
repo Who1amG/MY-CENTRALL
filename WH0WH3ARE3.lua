@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v12
+--fixes v13
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -739,21 +739,6 @@ local Remote = RS:WaitForChild("Events"):WaitForChild("ServerEvent")
 Remote:FireServer("BuyItemTool", weapon.Name)
 end
 
-
-    list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        if open then refreshSize(false) end
-    end)
-
-    headerBtn.MouseButton1Click:Connect(function()
-        if shouldIgnoreClick() then return end
-        open = not open
-        playOptionSound()
-        headerBtn.Text = titleText .. (open and " ▾" or " ▸")
-        refreshSize(true)
-    end)
-
-    return headerBtn, container, list
-end
 
 local function makeDropdownHeaderDynamic(parent, titleText)
     local headerBtn = Instance.new("TextButton", parent)
@@ -2665,7 +2650,6 @@ rejoinWithScriptBtn:SetAttribute("NoDrag", true)
 
 
 --==================== MINIMIZE / CLOSE ====================
-local minimized = false
 local originalSize = Window.Size
 
 BtnMin.MouseButton1Click:Connect(function()
