@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.2
---fixes 90%
+--fixes 89%
 -- 91% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -960,14 +960,14 @@ TopRowLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 local GunsHeader, GunsContainer =
 	makeDropdownHeaderDynamic(TopRow, "🔫 Guns / Ammo")
 
-GunsHeader.Size = UDim2.new(0.6, 0, 0, 44)
+GunsContainer.Size = UDim2.new(0.6, 0, 0, 0)
 GunsHeader.LayoutOrder = 1
 
 -- 🔧 MISMO ANCHO QUE EL HEADER
 GunsContainer.Size = UDim2.new(0.6, 0, 0, 0)
 GunsContainer.LayoutOrder = 2
-GunsContainer.Parent = GunsScroll -- 🔴 MUY IMPORTANTE
-GunsContainer.Position = UDim2.new(0, 0, 0, 0) 
+--GunsContainer.Parent = GunsScroll NOSE OCUPAS LA PUEDES BORRAR
+--GunsContainer.Position = UDim2.new(0, 0, 0, 0) NOSE OCUPAS LA PUEDES BORRAR
 
 -- 🔫 LISTA DE ARMAS (AHORA SÍ)
 for _, weapon in ipairs(Weapons) do
