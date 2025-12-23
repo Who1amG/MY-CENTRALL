@@ -810,34 +810,58 @@ GunsList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     GunsScroll.CanvasSize = UDim2.new(0, 0, 0, GunsContainer.AbsoluteSize.Y + 20)  -- If needed for outer scroll
 end)
 
--- Your button size (from snippet)
-btn.Size = UDim2.new(1, -10, 0, 34)  -- Assuming 'btn' is from makeGunSelectButton; adjust if needed
-btn.TextSize = 13
+-- arma seleccionada
+local SelectedWeapon = nil
 
-local BuyGunBtn = makeAppleAction(
-    GunsRight,
-    "🛒 COMPRAR\nARMA",
-    1,
-    function()
-        if not SelectedWeapon then
-            Notify("❌ Selecciona un arma", false)
-            return
-        end
-        BuyWeaponAndAmmo(SelectedWeapon)
-        AddLog("🛒 Buy Gun + Ammo: "..SelectedWeapon.Name)
-    end
-)
-BuyGunBtn.Size = UDim2.new(1, -12, 0, 80)
-BuyGunBtn.TextSize = 15
-BuyGunBtn.Position = UDim2.new(0, 6, 0, 20)
-
--- Create gun buttons (your loop)
-for _, weapon in ipairs(Weapons) do
-    makeGunSelectButton(GunsLeft, weapon)
+-- botón arma (selección) - ADD THIS MISSING FUNCTION
+local function makeGunSelectButton(parent, weapon)
+local selected = false
+local btn = Instance.new("TextButton", parent)
+btn.AutoButtonColor = false
+btn.Size = UDim2.new(1, -10, 0, 34)
+btn.BackgroundColor3 = Color3.fromRGB(255,255,255)
+btn.BackgroundTransparency = 0.88
+btn.BorderSizePixel = 0
+btn.Text = "🔫 "..weapon.Name
+btn.Font = Fonts[CurrentFontName]
+btn.TextSize = 14
+btn.TextColor3 = Theme.Text
+btn.ZIndex = 41
+btn:SetAttribute("NoDrag", true)
+Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 14)
+local st = Instance.new("UIStroke", btn)
+st.Color = Theme.Accent
+st.Thickness = 1
+st.Transparency = 0.85
+local function render()
+tween(btn, TFast, {
+BackgroundTransparency = selected and 0.80 or 0.88
+})
+tween(st, TFast, {
+Transparency = selected and 0.35 or 0.85
+})
 end
-
-else
-    makeAppleAction(GunsLeft, "❌ No se detectaron armas", 1, function() end)
+render()
+btn.MouseButton1Click:Connect(function()
+if shouldIgnoreClick() then return end
+playOptionSound()
+-- deseleccionar todas
+for _,c in ipairs(parent:GetChildren()) do
+if c:IsA("TextButton") then
+c:SetAttribute("Selected", false)
+end
+end
+selected = true
+btn:SetAttribute("Selected", true)
+SelectedWeapon = weapon
+render()
+Notify("🔫 Seleccionada: "..weapon.Name, true)
+end)
+btn:GetAttributeChangedSignal("Selected"):Connect(function()
+selected = btn:GetAttribute("Selected") == true
+render()
+end)
+return btn
 end
 
 -- botón BUY (SIEMPRE AL FINAL)
@@ -859,6 +883,11 @@ BuyGunBtn.Size = UDim2.new(1, -12, 0, 80)
 BuyGunBtn.TextSize = 15
 BuyGunBtn.Position = UDim2.new(0, 6, 0, 20)
 BuyGunBtn:SetAttribute("NoDrag", true)
+
+-- Create gun buttons (your loop)
+for _, weapon in ipairs(Weapons) do
+    makeGunSelectButton(GunsLeft, weapon)
+end
 
 local PageSettings = newPageFrame()
 local PageMisc = Instance.new("ScrollingFrame", Content)
@@ -1900,7 +1929,7 @@ SetCameraOnceExact()
 local pA = PromptA.Parent.Position
 local pB = PromptB.Parent.Position
 local mid = (pA + pB) / 2
-hrp.CFrame = CFrame.new(mid, mid + (pA - pB).Unit)
+hrp.CFrame = CFrame.new(mid, mid + (pA + pB).Unit)
 local SPAM_ON = true
 local INTERVAL = 1 / 60
 local acc = 0
