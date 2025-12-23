@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.2
---fixes 84%
+--fixes 90%
 -- 91% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -895,7 +895,7 @@ local function makeGunSelectButton(parent, weapon)
 	local selected = false
 	local btn = Instance.new("TextButton", parent)
 	btn.AutoButtonColor = false
-	btn.Size = UDim2.new(1, -24, 0, 42)
+	btn.Size = UDim2.new(1, 0, 0, 42)
 	btn.BackgroundColor3 = Color3.fromRGB(255,255,255)
 	btn.BackgroundTransparency = 0.88
 	btn.BorderSizePixel = 0
@@ -963,8 +963,11 @@ local GunsHeader, GunsContainer =
 GunsHeader.Size = UDim2.new(0.6, 0, 0, 44)
 GunsHeader.LayoutOrder = 1
 
+-- 🔧 MISMO ANCHO QUE EL HEADER
+GunsContainer.Size = UDim2.new(0.6, 0, 0, 0)
 GunsContainer.LayoutOrder = 2
 GunsContainer.Parent = GunsScroll -- 🔴 MUY IMPORTANTE
+GunsContainer.Position = UDim2.new(0, 0, 0, 0) 
 
 -- 🔫 LISTA DE ARMAS (AHORA SÍ)
 for _, weapon in ipairs(Weapons) do
@@ -1020,7 +1023,7 @@ for _, weapon in ipairs(Weapons) do
 				BuyAmmoOnly(ammo)
 			end
 		)
-		btn.Size = UDim2.new(1, -24, 0, 42)
+		btn.Size = UDim2.new(1, 0, 0, 42)
 		btn.TextSize = 14
 		btn:SetAttribute("NoDrag", true)
 	end
