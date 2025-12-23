@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v10
+--fixes v9
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -773,12 +773,6 @@ list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 if open then refreshSize(false) end
 end)
 headerBtn.MouseButton1Click:Connect(function()
-task.defer(function()
-    GunsScroll.CanvasSize = UDim2.new(
-        0, 0,
-        0, GunsList.AbsoluteContentSize.Y + GunsContainer.AbsoluteSize.Y + 80
-    )
-end)
 
 if shouldIgnoreClick() then return end
 open = not open
@@ -890,10 +884,11 @@ end
 
 -- botón BUY (SIEMPRE AL FINAL)
 local BuyGunBtn = makeAppleAction(
-GunsScroll,
-"🛒 BUY ARMA SELECCIONADA",
-999,
-function()
+    GunsScroll,
+    "🛒 BUY ARMA SELECCIONADA",
+    1000,
+    function()
+
 if not SelectedWeapon then
 Notify("❌ Selecciona un arma primero", false)
 return
