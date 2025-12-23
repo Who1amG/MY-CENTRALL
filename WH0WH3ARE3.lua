@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v10
+--fixes v11
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -1910,8 +1910,15 @@ end
 acc += dt
 while acc >= INTERVAL do
 acc -= INTERVAL
-fireproximityprompt(PromptA)
-fireproximityprompt(PromptB)
+				
+if fireproximityprompt then
+    fireproximityprompt(PromptA)
+    fireproximityprompt(PromptB)
+else
+    PPS:TriggerPrompt(PromptA)
+    PPS:TriggerPrompt(PromptB)
+end
+
 end
 end)
 hum:ChangeState(Enum.HumanoidStateType.Jumping)
