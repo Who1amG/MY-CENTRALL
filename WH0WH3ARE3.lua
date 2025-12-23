@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v10
+--fixes v11
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -749,29 +749,42 @@ end
 
 --==================== GUNS PAGE ====================
 local PageGuns = newPageFrame()
--- Scroll vertical (como mochilas)
-local GunsScroll = Instance.new("ScrollingFrame", PageGuns)
-GunsScroll.BackgroundTransparency = 1
-GunsScroll.BorderSizePixel = 0
-GunsScroll.Size = UDim2.new(1, 0, 1, -6)
-GunsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-GunsScroll.ScrollBarThickness = 2
-GunsScroll.ScrollBarImageColor3 = Theme.Accent
-GunsScroll.ScrollBarImageTransparency = 0
-GunsScroll.Active = true
-GunsScroll.ZIndex = 30
-GunsScroll:SetAttribute("NoDrag", true)
--- Layout vertical
-local GunsList = Instance.new("UIListLayout", GunsScroll)
-GunsList.Padding = UDim.new(0, UI_ITEM_PADDING)
+
+-- CONTENEDOR PRINCIPAL
+local GunsContainer = Instance.new("Frame", PageGuns)
+GunsContainer.Size = UDim2.new(1, 0, 1, 0)
+GunsContainer.BackgroundTransparency = 1
+
+-- IZQUIERDA: LISTA DE ARMAS
+local GunsLeft = Instance.new("ScrollingFrame", GunsContainer)
+GunsLeft.Size = UDim2.new(0.65, -6, 1, -6)
+GunsLeft.Position = UDim2.new(0, 0, 0, 0)
+GunsLeft.BackgroundTransparency = 1
+GunsLeft.BorderSizePixel = 0
+GunsLeft.ScrollBarThickness = 2
+GunsLeft.ScrollBarImageColor3 = Theme.Accent
+GunsLeft.Active = true
+GunsLeft.CanvasSize = UDim2.new(0,0,0,0)
+GunsLeft:SetAttribute("NoDrag", true)
+
+local GunsList = Instance.new("UIListLayout", GunsLeft)
+GunsList.Padding = UDim.new(0, 6)
 GunsList.SortOrder = Enum.SortOrder.LayoutOrder
-GunsList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+GunsList.HorizontalAlignment = Enum.HorizontalAlignment.Left
+
 GunsList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-GunsScroll.CanvasSize = UDim2.new(
-0, 0,
-0, GunsList.AbsoluteContentSize.Y + 80
-)
+    GunsLeft.CanvasSize = UDim2.new(
+        0, 0,
+        0, GunsList.AbsoluteContentSize.Y + 20
+    )
 end)
+
+-- DERECHA: PANEL DE COMPRA
+local GunsRight = Instance.new("Frame", GunsContainer)
+GunsRight.Size = UDim2.new(0.35, -6, 1, -6)
+GunsRight.Position = UDim2.new(0.65, 6, 0, 0)
+GunsRight.BackgroundTransparency = 1
+
 -- arma seleccionada
 local SelectedWeapon = nil
 -- botón arma (selección)
@@ -779,7 +792,8 @@ local function makeGunSelectButton(parent, weapon)
 local selected = false
 local btn = Instance.new("TextButton", parent)
 btn.AutoButtonColor = false
-btn.Size = UDim2.new(1, -24, 0, 42)
+btn.Size = UDim2.new(1, -10, 0, 34)
+btn.TextSize = 13
 btn.BackgroundColor3 = Color3.fromRGB(255,255,255)
 btn.BackgroundTransparency = 0.88
 btn.BorderSizePixel = 0
@@ -827,34 +841,31 @@ end
 -- crear lista de armas
 if Weapons then
 for _, weapon in ipairs(Weapons) do
-makeGunSelectButton(GunsScroll, weapon)
+makeGunSelectButton(GunsLeft, weapon)
 end
 else
 makeAppleAction(GunsScroll, "❌ No se detectaron armas", 1, function() end)
 end
 -- botón BUY (SIEMPRE AL FINAL)
 local BuyGunBtn = makeAppleAction(
-GunsScroll,
-"🛒 BUY ARMA SELECCIONADA",
-999,
-function()
-if not SelectedWeapon then
-Notify("❌ Selecciona un arma primero", false)
-return
-end
-Notify("🛒 Comprando: "..SelectedWeapon.Name, true)
-AddLog("🛒 Buy Gun: "..SelectedWeapon.Name)
--- TU FUNCIÓN REAL
-if BuyWeaponAndAmmo then
-BuyWeaponAndAmmo(SelectedWeapon)
-else
-Notify("❌ BuyWeaponAndAmmo no existe", false)
-end
-end
+    GunsRight,
+    "🛒 COMPRAR\nARMA",
+    1,
+    function()
+        if not SelectedWeapon then
+            Notify("❌ Selecciona un arma", false)
+            return
+        end
+        BuyWeaponAndAmmo(SelectedWeapon)
+        AddLog("🛒 Buy Gun + Ammo: "..SelectedWeapon.Name)
+    end
 )
-BuyGunBtn.Size = UDim2.new(1, -24, 0, 44)
-BuyGunBtn.TextSize = 14
+
+BuyGunBtn.Size = UDim2.new(1, -12, 0, 80)
+BuyGunBtn.TextSize = 15
+BuyGunBtn.Position = UDim2.new(0, 6, 0, 20)
 BuyGunBtn:SetAttribute("NoDrag", true)
+
 local PageSettings = newPageFrame()
 local PageMisc = Instance.new("ScrollingFrame", Content)
 PageMisc.BackgroundTransparency = 1
