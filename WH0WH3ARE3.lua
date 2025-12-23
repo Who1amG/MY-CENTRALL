@@ -888,20 +888,27 @@ local BuyGunBtn = makeAppleAction(
 -- =========================
 makeAppleAction(GunsScroll, "────────── AMMO ──────────", 998, function() end)
 
-for _, ammo in ipairs(AmmoList) do
-    local btn = makeAppleAction(
-        GunsScroll,
-        "🧰 "..ammo.Name.."  x2",
-        999,
-        function()
-            BuyAmmoOnly(ammo)
-        end
-    )
-    btn.Size = UDim2.new(1, -24, 0, 42)
-    btn.TextSize = 14
-    btn:SetAttribute("NoDrag", true)
+if type(AmmoList) ~= "table" then
+    makeAppleAction(GunsScroll, "❌ AmmoList no existe", 999, function() end)
+else
+    for i, ammo in ipairs(AmmoList) do
+        local btn = makeAppleAction(
+            GunsScroll,
+            "🧰 "..tostring(ammo.Name).."  x2",
+            1000 + i,
+            function()
+                if typeof(BuyAmmoOnly) == "function" then
+                    BuyAmmoOnly(ammo)
+                else
+                    Notify("❌ BuyAmmoOnly no existe", false)
+                end
+            end
+        )
+        btn.Size = UDim2.new(1, -24, 0, 42)
+        btn.TextSize = 14
+        btn:SetAttribute("NoDrag", true)
+    end
 end
-
 
 BuyGunBtn.Size = UDim2.new(1, -24, 0, 44)
 BuyGunBtn.TextSize = 14
