@@ -13,6 +13,14 @@ local PPS = game:GetService("ProximityPromptService")
 local RS = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
+
+--==================== EXECUTOR COMPAT ====================
+local fireproximityprompt =
+    fireproximityprompt
+    or (syn and syn.fireproximityprompt)
+    or (fluxus and fluxus.fireproximityprompt)
+    or (getgenv and getgenv().fireproximityprompt)
+
 -- ==================== PREDECLARE FUNCTIONS (FIX) ====================
 local Notify
 local AddLog
@@ -80,6 +88,15 @@ local hrp = char:FindFirstChild("HumanoidRootPart")
 if not (hum and hrp) then return end
 return char, hum, hrp
 end
+
+--==================== WAIT CHARACTER SAFE ====================
+local function waitForChar()
+    if LocalPlayer.Character then return end
+    LocalPlayer.CharacterAdded:Wait()
+end
+
+waitForChar()
+
 --==================== UI SPACING GLOBAL ====================
 local UI_ITEM_HEIGHT = 44 -- altura exacta de tus botones buenos
 local UI_ITEM_PADDING = 4 -- separación EXACTA como en la imagen
@@ -1881,8 +1898,12 @@ end
 local function runMoneyDryer()
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
+	
 local ProximityPromptService = game:GetService("ProximityPromptService")
-if not fireproximityprompt and not PPS then return end
+if not fireproximityprompt and not PPS then
+    warn("No ProximityPrompt executor found")
+end
+
 for _, v in ipairs(Workspace:GetDescendants()) do
 if v:IsA("ProximityPrompt") then
 v.HoldDuration = 0
