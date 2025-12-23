@@ -2636,9 +2636,8 @@ BtnClose.MouseButton1Click:Connect(function()
     
     tween(WStroke, TFast, {Transparency = 1})
     tween(Window, TSlow, {BackgroundTransparency = 1, Size = UDim2.new(0, 520, 0, 0)})
-    task.delay(0.42, function()3
-        if UI then UI:Destroy() end
-    end)
+  task.delay(0.42, function()
+    if UI then UI:Destroy() end
 end)
 
 --==================== FINAL ====================
