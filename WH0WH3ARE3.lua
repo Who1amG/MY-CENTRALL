@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v00001
+--fixes v00002
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -365,6 +365,59 @@ makeAppleToggle = function(parent, label, order, onChanged)
 		Get = function() return state end,
 		Button = b,
 	}
+end
+
+--==================== DROPDOWN HEADER ====================
+local function makeDropdownHeaderDynamic(parent, titleText)
+	local headerBtn = Instance.new("TextButton", parent)
+	headerBtn.AutoButtonColor = false
+	headerBtn.Size = UDim2.new(1, 0, 0, 44)
+	headerBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
+	headerBtn.BackgroundTransparency = 0.88
+	headerBtn.BorderSizePixel = 0
+	headerBtn.Text = titleText .. " ▸"
+	headerBtn.Font = Fonts[CurrentFontName]
+	headerBtn.TextSize = 14
+	headerBtn.TextColor3 = Theme.Text
+	headerBtn.ZIndex = 41
+	Instance.new("UICorner", headerBtn).CornerRadius = UDim.new(0, 14)
+
+	local st = Instance.new("UIStroke", headerBtn)
+	st.Thickness = 1
+	st.Color = Theme.Accent
+	st.Transparency = 0.80
+
+	local container = Instance.new("Frame", parent)
+	container.BackgroundTransparency = 1
+	container.ClipsDescendants = true
+	container.Size = UDim2.new(1, 0, 0, 0)
+	container.ZIndex = 41
+
+	local list = Instance.new("UIListLayout", container)
+	list.Padding = UDim.new(0, UI_ITEM_PADDING)
+	list.SortOrder = Enum.SortOrder.LayoutOrder
+	list.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+	local open = false
+	local function refreshSize(animated)
+		local h = list.AbsoluteContentSize.Y + 6
+		local target = open and UDim2.new(1, 0, 0, h) or UDim2.new(1, 0, 0, 0)
+		if animated then tween(container, TMed, {Size = target}) else container.Size = target end
+	end
+
+	list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+		if open then refreshSize(false) end
+	end)
+
+	headerBtn.MouseButton1Click:Connect(function()
+		if shouldIgnoreClick() then return end
+		open = not open
+		playOptionSound()
+		headerBtn.Text = titleText .. (open and " ▾" or " ▸")
+		refreshSize(true)
+	end)
+
+	return headerBtn, container, list
 end
 
 makeAppleAction = function(parent, text, order, onClick)
@@ -1159,59 +1212,6 @@ Tabs.Visual.MouseButton1Click:Connect(function() switchPage(PageVisual, PageVisu
 Tabs.Guns.MouseButton1Click:Connect(function() switchPage(PageGuns, PageGunsKey) end)
 Tabs.Misc.MouseButton1Click:Connect(function() switchPage(PageMisc, PageMiscKey) end)
 Tabs.Settings.MouseButton1Click:Connect(function() switchPage(PageSettings, PageSettingsKey) end)
-
---==================== DROPDOWN HEADER ====================
-local function makeDropdownHeaderDynamic(parent, titleText)
-	local headerBtn = Instance.new("TextButton", parent)
-	headerBtn.AutoButtonColor = false
-	headerBtn.Size = UDim2.new(1, 0, 0, 44)
-	headerBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
-	headerBtn.BackgroundTransparency = 0.88
-	headerBtn.BorderSizePixel = 0
-	headerBtn.Text = titleText .. " ▸"
-	headerBtn.Font = Fonts[CurrentFontName]
-	headerBtn.TextSize = 14
-	headerBtn.TextColor3 = Theme.Text
-	headerBtn.ZIndex = 41
-	Instance.new("UICorner", headerBtn).CornerRadius = UDim.new(0, 14)
-
-	local st = Instance.new("UIStroke", headerBtn)
-	st.Thickness = 1
-	st.Color = Theme.Accent
-	st.Transparency = 0.80
-
-	local container = Instance.new("Frame", parent)
-	container.BackgroundTransparency = 1
-	container.ClipsDescendants = true
-	container.Size = UDim2.new(1, 0, 0, 0)
-	container.ZIndex = 41
-
-	local list = Instance.new("UIListLayout", container)
-	list.Padding = UDim.new(0, UI_ITEM_PADDING)
-	list.SortOrder = Enum.SortOrder.LayoutOrder
-	list.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
-	local open = false
-	local function refreshSize(animated)
-		local h = list.AbsoluteContentSize.Y + 6
-		local target = open and UDim2.new(1, 0, 0, h) or UDim2.new(1, 0, 0, 0)
-		if animated then tween(container, TMed, {Size = target}) else container.Size = target end
-	end
-
-	list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-		if open then refreshSize(false) end
-	end)
-
-	headerBtn.MouseButton1Click:Connect(function()
-		if shouldIgnoreClick() then return end
-		open = not open
-		playOptionSound()
-		headerBtn.Text = titleText .. (open and " ▾" or " ▸")
-		refreshSize(true)
-	end)
-
-	return headerBtn, container, list
-end
 
 --==================== APPLE CLEANING SCREEN ====================
 local function showCleaningScreen(duration)
