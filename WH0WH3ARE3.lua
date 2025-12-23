@@ -1,9 +1,9 @@
 -- 🦈 Glassmas UI • Principal (Apple Glass Christmas) • Single Script
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
---v2.1
---fixes 80%
--- 90% working
+--v2.2
+--fixes 81%
+-- 91% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -955,34 +955,32 @@ for _, weapon in ipairs(Weapons) do
 	makeGunSelectButton(GunsContainer, weapon)
 end
 
--- 🛒 BUY ARMA
--- 🧱 FILA ARMAS + COMPRAR
-local GunRow = Instance.new("Frame", GunsContainer)
-GunRow.Size = UDim2.new(1, -24, 0, 42)
-GunRow.BackgroundTransparency = 1
-GunRow.LayoutOrder = 996
-GunRow:SetAttribute("NoDrag", true)
+-- 🧱 FILA SUPERIOR: GUNS / AMMO + COMPRAR
+local TopRow = Instance.new("Frame", GunsScroll)
+TopRow.Size = UDim2.new(1, -24, 0, 44)
+TopRow.BackgroundTransparency = 1
+TopRow.LayoutOrder = 1
+TopRow:SetAttribute("NoDrag", true)
 
-local GunRowLayout = Instance.new("UIListLayout", GunRow)
-GunRowLayout.FillDirection = Enum.FillDirection.Horizontal
-GunRowLayout.Padding = UDim.new(0, 8)
-GunRowLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
-GunRowLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+local TopRowLayout = Instance.new("UIListLayout", TopRow)
+TopRowLayout.FillDirection = Enum.FillDirection.Horizontal
+TopRowLayout.Padding = UDim.new(0, 10)
+TopRowLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+TopRowLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 
--- 🔫 TEXTO ARMAS
-local GunLabel = Instance.new("TextLabel", GunRow)
-GunLabel.Size = UDim2.new(0.55, 0, 1, 0)
-GunLabel.BackgroundTransparency = 1
-GunLabel.Font = Fonts[CurrentFontName]
-GunLabel.TextSize = 14
-GunLabel.TextColor3 = Theme.Text
-GunLabel.TextXAlignment = Enum.TextXAlignment.Left
-GunLabel.Text = "🔫 ARMAS"
-GunLabel.ZIndex = 41
+-- 🔽 BOTÓN GUNS / AMMO (CHICO)
+local GunsHeader, GunsContainer =
+	makeDropdownHeaderDynamic(TopRow, "🔫 Guns / Ammo")
 
--- 🛒 BOTÓN COMPRAR (DERECHA)
-local BuyGunBtn = Instance.new("TextButton", GunRow)
-BuyGunBtn.Size = UDim2.new(0.45, 0, 1, 0)
+GunsHeader.Size = UDim2.new(0.6, 0, 0, 44)
+GunsHeader.LayoutOrder = 1
+
+GunsContainer.LayoutOrder = 2
+GunsContainer.Parent = GunsScroll -- 🔴 MUY IMPORTANTE
+
+-- 🛒 BOTÓN COMPRAR (FUERA DEL DROPDOWN)
+local BuyGunBtn = Instance.new("TextButton", TopRow)
+BuyGunBtn.Size = UDim2.new(0.4, 0, 0, 44)
 BuyGunBtn.AutoButtonColor = false
 BuyGunBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
 BuyGunBtn.BackgroundTransparency = 0.88
@@ -990,7 +988,7 @@ BuyGunBtn.BorderSizePixel = 0
 BuyGunBtn.Font = Fonts[CurrentFontName]
 BuyGunBtn.TextSize = 14
 BuyGunBtn.TextColor3 = Theme.Text
-BuyGunBtn.Text = "🛒 COMPRAR"
+BuyGunBtn.Text = "🛒 COMPRAR ARMA"
 BuyGunBtn.ZIndex = 41
 BuyGunBtn:SetAttribute("NoDrag", true)
 Instance.new("UICorner", BuyGunBtn).CornerRadius = UDim.new(0, 14)
@@ -1011,7 +1009,6 @@ BuyGunBtn.MouseButton1Click:Connect(function()
 	AddLog("🛒 Buy Gun: "..SelectedWeapon.Name)
 	BuyWeaponAndAmmo(SelectedWeapon)
 end)
-
 
 -- ───── AMMO ─────
 makeAppleAction(GunsContainer, "────────── AMMO ──────────", 998, function() end)
