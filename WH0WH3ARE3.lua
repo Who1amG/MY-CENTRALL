@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v12
+--fixes v11
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -861,8 +861,9 @@ for _, weapon in ipairs(Weapons) do
 makeGunSelectButton(GunsLeft, weapon)
 end
 else
-makeAppleAction(GunsScroll, "❌ No se detectaron armas", 1, function() end)
+    makeAppleAction(GunsLeft, "❌ No se detectaron armas", 1, function() end)
 end
+
 -- botón BUY (SIEMPRE AL FINAL)
 local BuyGunBtn = makeAppleAction(
     GunsRight,
