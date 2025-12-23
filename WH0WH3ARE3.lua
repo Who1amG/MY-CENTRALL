@@ -773,6 +773,13 @@ list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 if open then refreshSize(false) end
 end)
 headerBtn.MouseButton1Click:Connect(function()
+task.defer(function()
+    GunsScroll.CanvasSize = UDim2.new(
+        0, 0,
+        0, GunsList.AbsoluteContentSize.Y + GunsContainer.AbsoluteSize.Y + 80
+    )
+end)
+
 if shouldIgnoreClick() then return end
 open = not open
 playOptionSound()
@@ -861,7 +868,8 @@ return btn
 end
 
 -- ✅ DROPDOWN: ARMAS (como Mochilas)
-local GunsHeader, GunsContainer = makeDropdownHeaderDynamic(GunsScroll, "🔫 ARMAS")
+local GunsHeader, GunsContainer, GunsInnerList =
+    makeDropdownHeaderDynamic(GunsScroll, "🔫 ARMAS")
 GunsHeader.LayoutOrder = 1
 GunsContainer.LayoutOrder = 2
 
@@ -869,6 +877,7 @@ GunsContainer.LayoutOrder = 2
 if Weapons and #Weapons > 0 then
 	for i, weapon in ipairs(Weapons) do
 		local btn = makeGunSelectButton(GunsContainer, weapon)
+btn.LayoutOrder = i
 		btn.Size = UDim2.new(1, 0, 0, 30)
 		btn.TextSize = 13
 		btn.Text = "• " .. weapon.Name
