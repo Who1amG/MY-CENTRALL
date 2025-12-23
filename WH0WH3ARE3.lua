@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v9
+--fixes v10
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -2164,7 +2164,7 @@ local function washMoney(dupeMode)
     forcePrompt(mainDryer)
     if dupeDryer then forcePrompt(dupeDryer) end
     -- Clicks iniciales 100% paralelos
-    task.spawn(function()
+   task.spawn(function()
     pcall(function()
         if fireproximityprompt then
             fireproximityprompt(mainDryer.prompt)
@@ -2173,6 +2173,7 @@ local function washMoney(dupeMode)
         end
     end)
 end)
+
 if dupeDryer then
     task.spawn(function()
         pcall(function()
