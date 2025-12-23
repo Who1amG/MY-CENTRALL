@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v11
+--fixes v12
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -765,14 +765,25 @@ local function BuyWeaponAndAmmo(weapon)
 end
 
 --==================== GUNS PAGE ====================
-local PageGuns = newPageFrame()
+local PageGuns = newPageFrame()  -- Keep only this one; creates the base frame in Content
 
--- CONTENEDOR PRINCIPAL
-local GunsContainer = Instance.new("Frame", PageGuns)
+-- Make the whole page scrollable (vertical, like backpacks)
+local GunsScroll = Instance.new("ScrollingFrame", PageGuns)
+GunsScroll.Size = UDim2.new(1, 0, 1, 0)
+GunsScroll.BackgroundTransparency = 1
+GunsScroll.BorderSizePixel = 0
+GunsScroll.ScrollBarThickness = 4
+GunsScroll.ScrollBarImageColor3 = Theme.Accent
+GunsScroll.Active = true
+GunsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)  -- Auto-size later
+GunsScroll:SetAttribute("NoDrag", true)
+
+-- CONTENEDOR (now inside the scroll frame)
+local GunsContainer = Instance.new("Frame", GunsScroll)  -- Parent to GunsScroll, not PageGuns
 GunsContainer.Size = UDim2.new(1, 0, 1, 0)
 GunsContainer.BackgroundTransparency = 1
 
--- IZQUIERDA: LISTA DE ARMAS
+-- IZQUIERDA: ARMAS (inside container)
 local GunsLeft = Instance.new("ScrollingFrame", GunsContainer)
 GunsLeft.Size = UDim2.new(0.65, -6, 1, -6)
 GunsLeft.Position = UDim2.new(0, 0, 0, 0)
@@ -782,84 +793,49 @@ GunsLeft.ScrollBarThickness = 2
 GunsLeft.ScrollBarImageColor3 = Theme.Accent
 GunsLeft.Active = true
 GunsLeft.CanvasSize = UDim2.new(0,0,0,0)
-GunsLeft:SetAttribute("NoDrag", true)
 
-local GunsList = Instance.new("UIListLayout", GunsLeft)
-GunsList.Padding = UDim.new(0, 6)
-GunsList.SortOrder = Enum.SortOrder.LayoutOrder
-GunsList.HorizontalAlignment = Enum.HorizontalAlignment.Left
-
-GunsList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    GunsLeft.CanvasSize = UDim2.new(
-        0, 0,
-        0, GunsList.AbsoluteContentSize.Y + 20
-    )
-end)
-
--- DERECHA: PANEL DE COMPRA
+-- DERECHA: COMPRA (inside container)
 local GunsRight = Instance.new("Frame", GunsContainer)
 GunsRight.Size = UDim2.new(0.35, -6, 1, -6)
 GunsRight.Position = UDim2.new(0.65, 6, 0, 0)
 GunsRight.BackgroundTransparency = 1
 
--- arma seleccionada
-local SelectedWeapon = nil
--- botón arma (selección)
-local function makeGunSelectButton(parent, weapon)
-local selected = false
-local btn = Instance.new("TextButton", parent)
-btn.AutoButtonColor = false
-btn.Size = UDim2.new(1, -10, 0, 34)
+local GunsList = Instance.new("UIListLayout", GunsLeft)
+GunsList.Padding = UDim.new(0, 6)
+GunsList.HorizontalAlignment = Enum.HorizontalAlignment.Left
+
+-- Auto-size the scroll canvas based on content
+GunsList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    GunsLeft.CanvasSize = UDim2.new(0, 0, 0, GunsList.AbsoluteContentSize.Y + 20)
+    GunsScroll.CanvasSize = UDim2.new(0, 0, 0, GunsContainer.AbsoluteSize.Y + 20)  -- If needed for outer scroll
+end)
+
+-- Your button size (from snippet)
+btn.Size = UDim2.new(1, -10, 0, 34)  -- Assuming 'btn' is from makeGunSelectButton; adjust if needed
 btn.TextSize = 13
-btn.BackgroundColor3 = Color3.fromRGB(255,255,255)
-btn.BackgroundTransparency = 0.88
-btn.BorderSizePixel = 0
-btn.Text = "🔫 "..weapon.Name
-btn.Font = Fonts[CurrentFontName]
-btn.TextSize = 14
-btn.TextColor3 = Theme.Text
-btn.ZIndex = 41
-btn:SetAttribute("NoDrag", true)
-Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 14)
-local st = Instance.new("UIStroke", btn)
-st.Color = Theme.Accent
-st.Thickness = 1
-st.Transparency = 0.85
-local function render()
-tween(btn, TFast, {
-BackgroundTransparency = selected and 0.80 or 0.88
-})
-tween(st, TFast, {
-Transparency = selected and 0.35 or 0.85
-})
-end
-render()
-btn.MouseButton1Click:Connect(function()
-if shouldIgnoreClick() then return end
-playOptionSound()
--- deseleccionar todas
-for _,c in ipairs(parent:GetChildren()) do
-if c:IsA("TextButton") then
-c:SetAttribute("Selected", false)
-end
-end
-selected = true
-btn:SetAttribute("Selected", true)
-SelectedWeapon = weapon
-render()
-Notify("🔫 Seleccionada: "..weapon.Name, true)
-end)
-btn:GetAttributeChangedSignal("Selected"):Connect(function()
-selected = btn:GetAttribute("Selected") == true
-render()
-end)
-return btn
-end
--- crear lista de armas
-if Weapons then
+
+local BuyGunBtn = makeAppleAction(
+    GunsRight,
+    "🛒 COMPRAR\nARMA",
+    1,
+    function()
+        if not SelectedWeapon then
+            Notify("❌ Selecciona un arma", false)
+            return
+        end
+        BuyWeaponAndAmmo(SelectedWeapon)
+        AddLog("🛒 Buy Gun + Ammo: "..SelectedWeapon.Name)
+    end
+)
+BuyGunBtn.Size = UDim2.new(1, -12, 0, 80)
+BuyGunBtn.TextSize = 15
+BuyGunBtn.Position = UDim2.new(0, 6, 0, 20)
+
+-- Create gun buttons (your loop)
 for _, weapon in ipairs(Weapons) do
-makeGunSelectButton(GunsLeft, weapon)
+    makeGunSelectButton(GunsLeft, weapon)
 end
+
 else
     makeAppleAction(GunsLeft, "❌ No se detectaron armas", 1, function() end)
 end
