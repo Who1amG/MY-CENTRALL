@@ -678,7 +678,6 @@ PageVisual:SetAttribute("NoDrag", true)
 PageVisual.BorderSizePixel = 0
 PageVisual.ScrollBarImageTransparency = 0
 local Weapons = {
-
 -- 🔫 RIFLES
 {Name="AR556 GreenTip", Ammo="5.56"},
 {Name="308ARP", Ammo="5.56"},
@@ -731,18 +730,20 @@ local Weapons = {
 {Name="G23Gen4 Extended", Ammo="Extended"},
 }
 
--- =========================
--- 🧠 COMPRA REAL
--- =========================
 local function BuyWeaponAndAmmo(weapon)
+    local RS = game:GetService("ReplicatedStorage")
+    local Remote = RS:WaitForChild("Events"):WaitForChild("ServerEvent")
+
     -- comprar arma
     Remote:FireServer("BuyItemTool", weapon.Name)
     task.wait(0.15)
 
-    -- comprar ammo 4 veces
-    for i = 1, 2 do
-        Remote:FireServer("BuyItemTool", weapon.Ammo)
-        task.wait(0.1)
+    -- comprar balas (x2 recomendado)
+    if weapon.Ammo then
+        for i = 1, 2 do
+            Remote:FireServer("BuyItemTool", weapon.Ammo)
+            task.wait(0.1)
+        end
     end
 end
 
