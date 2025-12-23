@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.2
---fixes 89%
+--fixes 90%
 -- 91% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -2507,52 +2507,38 @@ local function buySingleBackpack(backpackName)
 					local key = backpackName:lower():gsub("backpack","")
 					if key == "" then key = backpackName:lower() end
 
-				if a:find(key) or (backpackName == "BackpackLV" and a:find("lv")) then
-found = true
-local part = obj.Parent
-if part and part:IsA("BasePart") then
-tpStanding(part, 2.2)
-task.wait(0.25)
-pcall(function() obj.HoldDuration = 0 end)
-local ok = false
-if fireproximityprompt then
-ok = pcall(function() fireproximityprompt(obj) end)
-else
-ok = pcall(function() PPS:TriggerPrompt(obj) end)
+					if a:find(key) or (backpackName == "BackpackLV" and a:find("lv")) then
+						found = true
+						local part = obj.Parent
+						if part and part:IsA("BasePart") then
+							tpStanding(part, 2.2)
+							task.wait(0.25)
+							pcall(function() obj.HoldDuration = 0 end)
+
+							if fireproximityprompt then
+								pcall(function() fireproximityprompt(obj) end)
+							else
+								pcall(function() PPS:TriggerPrompt(obj) end)
+							end
+
+							task.wait(0.8)
+							tpBack(originalCFrame)
+							Notify("📨 Compra enviada: "..backpackName, true)
+							AddLog("📨 Solicitud enviada: "..backpackName)
+							return
+						end
+					end
+				end
+			end
+		end
+	end
+
+	if not found then
+		Notify("❌ No se encontró la siguiente: "..backpackName, false)
+		AddLog("❌ No se encontró prompt: "..backpackName)
+	end
 end
-task.wait(0.8)
-tpBack(originalCFrame)
-if ok then
-Notify("📨 Compra enviada: "..backpackName, true)
-AddLog("📨 Solicitud enviada: "..backpackName)
---[[
-task.spawn(function()
-    local success = waitForBackpackChange(3)
-    if success then
-        Notify("✅ Compra confirmada: "..backpackName, true)
-        AddLog("✅ Compra confirmada: "..backpackName)
-    else
-        Notify("⚠️ Compra no confirmada (posible fallo)", false)
-        AddLog("⚠️ Compra no confirmada: "..backpackName)
-    end
-end)
-]]
-else
-Notify("❌ Prompt falló: "..backpackName, false)
-AddLog("❌ Prompt falló: "..backpackName)
-end
-return
-end
-end
-end
-end
-end
-end
-if not found then
-Notify("❌ No se encontró la siguiente: "..backpackName, false)
-AddLog("❌ No se encontró prompt: "..backpackName)
-end
-end
+
 local BackpackHeader, BackpackContainer = makeDropdownHeaderDynamic(MiscRight, "🎒 Mochilas")
 BackpackHeader.LayoutOrder = 4
 BackpackContainer.LayoutOrder = 5
