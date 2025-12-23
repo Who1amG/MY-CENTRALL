@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.2
---fixes 90%
+--fixes 89%
 -- 91% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -923,7 +923,7 @@ local function makeGunSelectButton(parent, weapon)
 		playOptionSound()
 
 		for _,c in ipairs(parent:GetChildren()) do
-			if c:IsA("TextButton") then
+			if c:IsA("TextButton") and c.Text:sub(1,2) == "🔫" then
 				c:SetAttribute("Selected", false)
 			end
 		end
@@ -986,6 +986,7 @@ GunsContainer.ZIndex = 41
 local GunsListLayout = Instance.new("UIListLayout", GunsContainer)
 GunsListLayout.Padding = UDim.new(0, UI_ITEM_PADDING)
 GunsListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+GunsListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
 local open = false
 local function refreshGuns(animated)
