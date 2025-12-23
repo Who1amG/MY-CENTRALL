@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.2
---fixes 89%
+--fixes 90%
 -- 91% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -956,18 +956,63 @@ TopRowLayout.Padding = UDim.new(0, 10)
 TopRowLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
 TopRowLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 
--- 🔽 BOTÓN GUNS / AMMO (CHICO)
-local GunsHeader, GunsContainer =
-	makeDropdownHeaderDynamic(TopRow, "🔫 Guns / Ammo")
+-- 🔽 BOTÓN GUNS / AMMO (EN TOPROW)
+local GunsHeader = Instance.new("TextButton", TopRow)
+GunsHeader.AutoButtonColor = false
+GunsHeader.Size = UDim2.new(0.6, 0, 0, 44)
+GunsHeader.BackgroundColor3 = Color3.fromRGB(255,255,255)
+GunsHeader.BackgroundTransparency = 0.88
+GunsHeader.BorderSizePixel = 0
+GunsHeader.Text = "🔫 Guns / Ammo ▸"
+GunsHeader.Font = Fonts[CurrentFontName]
+GunsHeader.TextSize = 14
+GunsHeader.TextColor3 = Theme.Text
+GunsHeader.ZIndex = 41
+Instance.new("UICorner", GunsHeader).CornerRadius = UDim.new(0, 14)
 
-GunsContainer.Size = UDim2.new(0.6, 0, 0, 0)
-GunsHeader.LayoutOrder = 1
+local st = Instance.new("UIStroke", GunsHeader)
+st.Color = Theme.Accent
+st.Thickness = 1
+st.Transparency = 0.8
 
--- 🔧 MISMO ANCHO QUE EL HEADER
+-- 📦 CONTENEDOR REAL (FUERA DEL TOPROW)
+local GunsContainer = Instance.new("Frame", GunsScroll)
+GunsContainer.BackgroundTransparency = 1
+GunsContainer.ClipsDescendants = true
 GunsContainer.Size = UDim2.new(0.6, 0, 0, 0)
 GunsContainer.LayoutOrder = 2
---GunsContainer.Parent = GunsScroll NOSE OCUPAS LA PUEDES BORRAR
---GunsContainer.Position = UDim2.new(0, 0, 0, 0) NOSE OCUPAS LA PUEDES BORRAR
+GunsContainer.ZIndex = 41
+
+local GunsListLayout = Instance.new("UIListLayout", GunsContainer)
+GunsListLayout.Padding = UDim.new(0, UI_ITEM_PADDING)
+GunsListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+local open = false
+local function refreshGuns(animated)
+	local h = GunsListLayout.AbsoluteContentSize.Y + 6
+	local target = open and UDim2.new(0.6, 0, 0, h) or UDim2.new(0.6, 0, 0, 0)
+	if animated then
+		tween(GunsContainer, TMed, {Size = target})
+	else
+		GunsContainer.Size = target
+	end
+end
+
+GunsListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	if open then refreshGuns(false) end
+end)
+
+GunsHeader.MouseButton1Click:Connect(function()
+	if shouldIgnoreClick() then return end
+	open = not open
+	playOptionSound()
+	GunsHeader.Text = "🔫 Guns / Ammo " .. (open and "▾" or "▸")
+	refreshGuns(true)
+end)
+
+GunsHeader.LayoutOrder = 1
+GunsContainer.LayoutOrder = 2
+GunsContainer.Size = UDim2.new(0.6, 0, 0, 0)
 
 -- 🔫 LISTA DE ARMAS (AHORA SÍ)
 for _, weapon in ipairs(Weapons) do
