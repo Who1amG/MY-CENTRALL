@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v10
+--fixes v9
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -265,6 +265,19 @@ end
 local function playOptionSound()
 pcall(function() SoundService:PlayLocalSound(S_Click) end)
 end
+
+--==================== TWEENS ====================
+local TFast = TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local TMed = TweenInfo.new(0.26, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+local TSlow = TweenInfo.new(0.38, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+local function tween(obj, info, props)
+    local success, t = pcall(TweenService.Create, TweenService, obj, info, props)
+    if success and t then
+        t:Play()
+        return t
+    end
+end
+
 --==================== FAKE BLUR BACKDROP (SOLO UI) ====================
 local Backdrop = Instance.new("Frame", UI)
 Backdrop.Name = "Backdrop"
@@ -278,17 +291,6 @@ tween(Backdrop, TSlow, {BackgroundTransparency = 0.55})
 end
 local function blurOut()
 tween(Backdrop, TSlow, {BackgroundTransparency = 1})
-end
---==================== TWEENS ====================
-local TFast = TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-local TMed = TweenInfo.new(0.26, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-local TSlow = TweenInfo.new(0.38, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-local function tween(obj, info, props)
-    local success, t = pcall(TweenService.Create, TweenService, obj, info, props)
-    if success and t then
-        t:Play()
-        return t
-    end
 end
 --==================== UI COMPONENTS ====================
 makeAppleToggle = function(parent, label, order, onChanged)
