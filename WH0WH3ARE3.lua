@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v10
+--fixes v11
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -731,6 +731,19 @@ local Weapons = {
 {Name="G23Gen4 Extended", Ammo="Extended"},
 }
 
+-- =========================
+-- 🧰 AMMO LIST (SEPARADO)
+-- =========================
+local AmmoList = {
+    {Name = "5.56"},
+    {Name = "7.62x39mm"},
+    {Name = "9mm"},
+    {Name = "Extended"},
+    {Name = "Slugs"},
+    {Name = "Bullets"},
+}
+
+
 local function BuyWeaponAndAmmo(weapon)
     local RS = game:GetService("ReplicatedStorage")
     local Remote = RS:WaitForChild("Events"):WaitForChild("ServerEvent")
@@ -745,6 +758,23 @@ local function BuyWeaponAndAmmo(weapon)
         task.wait(0.1)
     end
 end
+
+-- =========================
+-- 🧰 BUY AMMO ONLY (x2)
+-- =========================
+local function BuyAmmoOnly(ammo)
+    local RS = game:GetService("ReplicatedStorage")
+    local Remote = RS:WaitForChild("Events"):WaitForChild("ServerEvent")
+
+    for i = 1, 2 do
+        Remote:FireServer("BuyItemTool", ammo.Name)
+        task.wait(0.1)
+    end
+
+    Notify("🧰 Ammo comprada: "..ammo.Name.." x2", true)
+    AddLog("🧰 Buy Ammo: "..ammo.Name.." x2")
+end
+
 
 --==================== GUNS PAGE ====================
 local PageGuns = newPageFrame()
@@ -833,24 +863,45 @@ makeAppleAction(GunsScroll, "❌ No se detectaron armas", 1, function() end)
 end
 -- botón BUY (SIEMPRE AL FINAL)
 local BuyGunBtn = makeAppleAction(
-GunsScroll,
-"🛒 BUY ARMA SELECCIONADA",
-999,
-function()
-if not SelectedWeapon then
-Notify("❌ Selecciona un arma primero", false)
-return
-end
-Notify("🛒 Comprando: "..SelectedWeapon.Name, true)
-AddLog("🛒 Buy Gun: "..SelectedWeapon.Name)
--- TU FUNCIÓN REAL
-if BuyWeaponAndAmmo then
-BuyWeaponAndAmmo(SelectedWeapon)
-else
-Notify("❌ BuyWeaponAndAmmo no existe", false)
-end
-end
+    GunsScroll,
+    "🛒 BUY ARMA SELECCIONADA",
+    999,
+    function()
+        if not SelectedWeapon then
+            Notify("❌ Selecciona un arma primero", false)
+            return
+        end
+        Notify("🛒 Comprando: "..SelectedWeapon.Name, true)
+        AddLog("🛒 Buy Gun: "..SelectedWeapon.Name)
+
+        if BuyWeaponAndAmmo then
+            BuyWeaponAndAmmo(SelectedWeapon)
+        else
+            Notify("❌ BuyWeaponAndAmmo no existe", false)
+        end
+    end
 )
+
+-- =========================
+-- 🧰 AMMO (AL FINAL)
+-- =========================
+makeAppleAction(GunsScroll, "────────── AMMO ──────────", 998, function() end)
+
+for _, ammo in ipairs(AmmoList) do
+    local btn = makeAppleAction(
+        GunsScroll,
+        "🧰 "..ammo.Name.."  x2",
+        999,
+        function()
+            BuyAmmoOnly(ammo)
+        end
+    )
+    btn.Size = UDim2.new(1, -24, 0, 42)
+    btn.TextSize = 14
+    btn:SetAttribute("NoDrag", true)
+end
+
+
 BuyGunBtn.Size = UDim2.new(1, -24, 0, 44)
 BuyGunBtn.TextSize = 14
 BuyGunBtn:SetAttribute("NoDrag", true)
