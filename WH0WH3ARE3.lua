@@ -4,6 +4,7 @@
 --v2.2
 --fixes 90%
 -- 91% working
+print("START")
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -619,7 +620,7 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
-shouldIgnoreClick = function()
+local function shouldIgnoreClick()
 	return DraggingUI
 end
 
@@ -2717,3 +2718,6 @@ AddLog("🧪 Sistema de logs iniciado correctamente")
 Notify("Made By SPK 💎", true)
 blurIn()
 print("[GlassmasUI] Loaded • Fixed • Tabs • Settings • Misc • Visual Logs")
+
+print("END")
+
