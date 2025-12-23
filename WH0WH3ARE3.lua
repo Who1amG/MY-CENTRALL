@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v12
+--fixes v000
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -241,11 +241,6 @@ do
 	end
 end
 
---==================== UI ROOT ====================
-local UI = Instance.new("ScreenGui")
-UI.Name = "GlassmasUI"
-UI.ResetOnSpawn = false
-UI.Parent = PlayerGui
 
 getgenv().GlassmasUI_Shutdown = function()
 	getgenv().GlassmasUI_Running = false
