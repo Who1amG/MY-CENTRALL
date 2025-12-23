@@ -2,9 +2,8 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.2
---fixes 90%
+--fixes 84%
 -- 91% working
-print("START")
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -620,7 +619,7 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
-local function shouldIgnoreClick()
+shouldIgnoreClick = function()
 	return DraggingUI
 end
 
@@ -896,7 +895,7 @@ local function makeGunSelectButton(parent, weapon)
 	local selected = false
 	local btn = Instance.new("TextButton", parent)
 	btn.AutoButtonColor = false
-	btn.Size = UDim2.new(1, 0, 0, 42)
+	btn.Size = UDim2.new(1, -24, 0, 42)
 	btn.BackgroundColor3 = Color3.fromRGB(255,255,255)
 	btn.BackgroundTransparency = 0.88
 	btn.BorderSizePixel = 0
@@ -924,7 +923,7 @@ local function makeGunSelectButton(parent, weapon)
 		playOptionSound()
 
 		for _,c in ipairs(parent:GetChildren()) do
-			if c:IsA("TextButton") and c.Text:sub(1,2) == "🔫" then
+			if c:IsA("TextButton") then
 				c:SetAttribute("Selected", false)
 			end
 		end
@@ -957,64 +956,15 @@ TopRowLayout.Padding = UDim.new(0, 10)
 TopRowLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
 TopRowLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 
--- 🔽 BOTÓN GUNS / AMMO (EN TOPROW)
-local GunsHeader = Instance.new("TextButton", TopRow)
-GunsHeader.AutoButtonColor = false
+-- 🔽 BOTÓN GUNS / AMMO (CHICO)
+local GunsHeader, GunsContainer =
+	makeDropdownHeaderDynamic(TopRow, "🔫 Guns / Ammo")
+
 GunsHeader.Size = UDim2.new(0.6, 0, 0, 44)
-GunsHeader.BackgroundColor3 = Color3.fromRGB(255,255,255)
-GunsHeader.BackgroundTransparency = 0.88
-GunsHeader.BorderSizePixel = 0
-GunsHeader.Text = "🔫 Guns / Ammo ▸"
-GunsHeader.Font = Fonts[CurrentFontName]
-GunsHeader.TextSize = 14
-GunsHeader.TextColor3 = Theme.Text
-GunsHeader.ZIndex = 41
-Instance.new("UICorner", GunsHeader).CornerRadius = UDim.new(0, 14)
-
-local st = Instance.new("UIStroke", GunsHeader)
-st.Color = Theme.Accent
-st.Thickness = 1
-st.Transparency = 0.8
-
--- 📦 CONTENEDOR REAL (FUERA DEL TOPROW)
-local GunsContainer = Instance.new("Frame", GunsScroll)
-GunsContainer.BackgroundTransparency = 1
-GunsContainer.ClipsDescendants = true
-GunsContainer.Size = UDim2.new(0.6, 0, 0, 0)
-GunsContainer.LayoutOrder = 2
-GunsContainer.ZIndex = 41
-
-local GunsListLayout = Instance.new("UIListLayout", GunsContainer)
-GunsListLayout.Padding = UDim.new(0, UI_ITEM_PADDING)
-GunsListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-GunsListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
-local open = false
-local function refreshGuns(animated)
-	local h = GunsListLayout.AbsoluteContentSize.Y + 6
-	local target = open and UDim2.new(0.6, 0, 0, h) or UDim2.new(0.6, 0, 0, 0)
-	if animated then
-		tween(GunsContainer, TMed, {Size = target})
-	else
-		GunsContainer.Size = target
-	end
-end
-
-GunsListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-	if open then refreshGuns(false) end
-end)
-
-GunsHeader.MouseButton1Click:Connect(function()
-	if shouldIgnoreClick() then return end
-	open = not open
-	playOptionSound()
-	GunsHeader.Text = "🔫 Guns / Ammo " .. (open and "▾" or "▸")
-	refreshGuns(true)
-end)
-
 GunsHeader.LayoutOrder = 1
+
 GunsContainer.LayoutOrder = 2
-GunsContainer.Size = UDim2.new(0.6, 0, 0, 0)
+GunsContainer.Parent = GunsScroll -- 🔴 MUY IMPORTANTE
 
 -- 🔫 LISTA DE ARMAS (AHORA SÍ)
 for _, weapon in ipairs(Weapons) do
@@ -1070,7 +1020,7 @@ for _, weapon in ipairs(Weapons) do
 				BuyAmmoOnly(ammo)
 			end
 		)
-		btn.Size = UDim2.new(1, 0, 0, 42)
+		btn.Size = UDim2.new(1, -24, 0, 42)
 		btn.TextSize = 14
 		btn:SetAttribute("NoDrag", true)
 	end
@@ -2508,38 +2458,52 @@ local function buySingleBackpack(backpackName)
 					local key = backpackName:lower():gsub("backpack","")
 					if key == "" then key = backpackName:lower() end
 
-					if a:find(key) or (backpackName == "BackpackLV" and a:find("lv")) then
-						found = true
-						local part = obj.Parent
-						if part and part:IsA("BasePart") then
-							tpStanding(part, 2.2)
-							task.wait(0.25)
-							pcall(function() obj.HoldDuration = 0 end)
-
-							if fireproximityprompt then
-								pcall(function() fireproximityprompt(obj) end)
-							else
-								pcall(function() PPS:TriggerPrompt(obj) end)
-							end
-
-							task.wait(0.8)
-							tpBack(originalCFrame)
-							Notify("📨 Compra enviada: "..backpackName, true)
-							AddLog("📨 Solicitud enviada: "..backpackName)
-							return
-						end
-					end
-				end
-			end
-		end
-	end
-
-	if not found then
-		Notify("❌ No se encontró la siguiente: "..backpackName, false)
-		AddLog("❌ No se encontró prompt: "..backpackName)
-	end
+				if a:find(key) or (backpackName == "BackpackLV" and a:find("lv")) then
+found = true
+local part = obj.Parent
+if part and part:IsA("BasePart") then
+tpStanding(part, 2.2)
+task.wait(0.25)
+pcall(function() obj.HoldDuration = 0 end)
+local ok = false
+if fireproximityprompt then
+ok = pcall(function() fireproximityprompt(obj) end)
+else
+ok = pcall(function() PPS:TriggerPrompt(obj) end)
 end
-
+task.wait(0.8)
+tpBack(originalCFrame)
+if ok then
+Notify("📨 Compra enviada: "..backpackName, true)
+AddLog("📨 Solicitud enviada: "..backpackName)
+--[[
+task.spawn(function()
+    local success = waitForBackpackChange(3)
+    if success then
+        Notify("✅ Compra confirmada: "..backpackName, true)
+        AddLog("✅ Compra confirmada: "..backpackName)
+    else
+        Notify("⚠️ Compra no confirmada (posible fallo)", false)
+        AddLog("⚠️ Compra no confirmada: "..backpackName)
+    end
+end)
+]]
+else
+Notify("❌ Prompt falló: "..backpackName, false)
+AddLog("❌ Prompt falló: "..backpackName)
+end
+return
+end
+end
+end
+end
+end
+end
+if not found then
+Notify("❌ No se encontró la siguiente: "..backpackName, false)
+AddLog("❌ No se encontró prompt: "..backpackName)
+end
+end
 local BackpackHeader, BackpackContainer = makeDropdownHeaderDynamic(MiscRight, "🎒 Mochilas")
 BackpackHeader.LayoutOrder = 4
 BackpackContainer.LayoutOrder = 5
@@ -2718,6 +2682,3 @@ AddLog("🧪 Sistema de logs iniciado correctamente")
 Notify("Made By SPK 💎", true)
 blurIn()
 print("[GlassmasUI] Loaded • Fixed • Tabs • Settings • Misc • Visual Logs")
-
-print("END")
-
