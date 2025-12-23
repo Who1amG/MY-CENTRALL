@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v0000
+--fixes v00001
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -836,6 +836,13 @@ GunsList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 	GunsScroll.CanvasSize = UDim2.new(0, 0, 0, GunsList.AbsoluteContentSize.Y + 80)
 end)
 
+-- 🔽 DROPDOWN GUNS / AMMO
+local GunsHeader, GunsContainer =
+	makeDropdownHeaderDynamic(GunsScroll, "🔫 Guns / Ammo")
+
+GunsHeader.LayoutOrder = 1
+GunsContainer.LayoutOrder = 2
+
 local SelectedWeapon = nil
 
 local function makeGunSelectButton(parent, weapon)
@@ -868,11 +875,13 @@ local function makeGunSelectButton(parent, weapon)
 	btn.MouseButton1Click:Connect(function()
 		if shouldIgnoreClick() then return end
 		playOptionSound()
+
 		for _,c in ipairs(parent:GetChildren()) do
 			if c:IsA("TextButton") then
 				c:SetAttribute("Selected", false)
 			end
 		end
+
 		selected = true
 		btn:SetAttribute("Selected", true)
 		SelectedWeapon = weapon
@@ -888,16 +897,14 @@ local function makeGunSelectButton(parent, weapon)
 	return btn
 end
 
-if Weapons then
-	for _, weapon in ipairs(Weapons) do
-		makeGunSelectButton(GunsScroll, weapon)
-	end
-else
-	makeAppleAction(GunsScroll, "❌ No se detectaron armas", 1, function() end)
+-- 🔫 LISTA DE ARMAS
+for _, weapon in ipairs(Weapons) do
+	makeGunSelectButton(GunsContainer, weapon)
 end
 
+-- 🛒 BUY ARMA
 local BuyGunBtn = makeAppleAction(
-	GunsScroll,
+	GunsContainer,
 	"🛒 BUY ARMA SELECCIONADA",
 	997,
 	function()
@@ -907,26 +914,24 @@ local BuyGunBtn = makeAppleAction(
 		end
 		Notify("🛒 Comprando: "..SelectedWeapon.Name, true)
 		AddLog("🛒 Buy Gun: "..SelectedWeapon.Name)
-		if BuyWeaponAndAmmo then
-			BuyWeaponAndAmmo(SelectedWeapon)
-		else
-			Notify("❌ BuyWeaponAndAmmo no existe", false)
-		end
+		BuyWeaponAndAmmo(SelectedWeapon)
 	end
 )
 BuyGunBtn.Size = UDim2.new(1, -24, 0, 44)
 BuyGunBtn.TextSize = 14
 BuyGunBtn:SetAttribute("NoDrag", true)
 
-makeAppleAction(GunsScroll, "────────── AMMO ──────────", 998, function() end)
+-- ───── AMMO ─────
+makeAppleAction(GunsContainer, "────────── AMMO ──────────", 998, function() end)
 
 local addedAmmo = {}
 for _, weapon in ipairs(Weapons) do
 	local ammo = weapon.Ammo
 	if ammo and not addedAmmo[ammo] then
 		addedAmmo[ammo] = true
+
 		local btn = makeAppleAction(
-			GunsScroll,
+			GunsContainer,
 			"🧰 "..ammo.."  x2",
 			999,
 			function()
@@ -938,6 +943,7 @@ for _, weapon in ipairs(Weapons) do
 		btn:SetAttribute("NoDrag", true)
 	end
 end
+
 
 local PageSettings = newPageFrame()
 
