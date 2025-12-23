@@ -677,233 +677,176 @@ PageVisual.Active = true
 PageVisual:SetAttribute("NoDrag", true)
 PageVisual.BorderSizePixel = 0
 PageVisual.ScrollBarImageTransparency = 0
---==================== GUNS PAGE (FIXED - 2025) ====================
-
--- Lista de armas (tu misma lista)
 local Weapons = {
-    -- 🔫 RIFLES
-    {Name="AR556 GreenTip", Ammo="5.56"},
-    {Name="308ARP", Ammo="5.56"},
-    {Name="Vepr 12 Defender", Ammo="Slugs"},
-    {Name="Tan Arp", Ammo="5.56"},
-    {Name="556Rifle", Ammo="5.56"},
-    {Name="SIGMCX", Ammo="5.56"},
-    {Name="AK74", Ammo="7.62x39mm"},
-    {Name="Kriss Alpine Gen II", Ammo="Extended"},
-    {Name="M16A2", Ammo="5.56"},
-    {Name="BlackMiniDrac", Ammo="7.62x39mm"},
-    {Name="GFR AR10", Ammo="5.56"},
-    {Name="ZPAP 762", Ammo="7.62x39mm"},
-    {Name="SLIMEBALL762", Ammo="5.56"},
-    {Name="AR-223", Ammo="5.56"},
-    {Name="Colt 723", Ammo="5.56"},
-    {Name="223Mini", Ammo="5.56"},
-    {Name="BCM4", Ammo="5.56"},
-    {Name="PLR-16", Ammo="5.56"},
-    -- 🔫 PISTOLAS
-    {Name="Hellcat XD", Ammo="Extended"},
-    {Name="G24 Competition", Ammo="Extended"},
-    {Name="PSA ROCK 5.7", Ammo="9mm"},
-    {Name="G41 MOS Kriss", Ammo="Extended"},
-    {Name="Ruger LCP", Ammo="9mm"},
-    {Name="G27 Extended", Ammo="Extended"},
-    {Name="Glock 36", Ammo="9mm"},
-    {Name="SS MR920P", Ammo="9mm"},
-    {Name="P80 Extended", Ammo="Extended"},
-    {Name="G48 PerformanceTrigger", Ammo="9mm"},
-    {Name="Engraved Colt .38 Super", Ammo="Extended"},
-    {Name="Canik MC9 Prime", Ammo="Extended"},
-    {Name="38. Smith&Wesson", Ammo="Bullets"},
-    {Name="G43X", Ammo="Extended"},
-    {Name="G22 Compensated", Ammo="Extended"},
-    {Name="FNXBeam", Ammo="Extended"},
-    {Name="S&W M2.0 Clearmag", Ammo="9mm"},
-    {Name="Matchmaster 1911", Ammo="9mm"},
-    {Name="Springfield Echelon", Ammo="9mm"},
-    {Name="Springfield Hellcat", Ammo="9mm"},
-    {Name="G19XPSAGrip", Ammo="Extended"},
-    {Name="Glock-17", Ammo="9mm"},
-    {Name="G40VectMag", Ammo="Extended"},
-    {Name="Python", Ammo="Bullets"},
-    {Name="G31C", Ammo="9mm"},
-    {Name="Glock19x Extended", Ammo="Extended"},
-    {Name="G26", Ammo="9mm"},
-    {Name="G17Gen5Vect", Ammo="Extended"},
-    {Name="G23Gen4 Extended", Ammo="Extended"},
+{Name="AR556 GreenTip"},
+{Name="308ARP"},
+{Name="Vepr 12 Defender"},
+{Name="Tan Arp"},
+{Name="556Rifle"},
+{Name="SIGMCX"},
+{Name="AK74"},
+{Name="Kriss Alpine Gen II"},
+{Name="M16A2"},
+{Name="BlackMiniDrac"},
+{Name="GFR AR10"},
+{Name="ZPAP 762"},
+{Name="SLIMEBALL762"},
+{Name="AR-223"},
+{Name="Colt 723"},
+{Name="223Mini"},
+{Name="BCM4"},
+{Name="PLR-16"},
+{Name="Hellcat XD"},
+{Name="G24 Competition"},
+{Name="PSA ROCK 5.7"},
+{Name="G41 MOS Kriss"},
+{Name="Ruger LCP"},
+{Name="G27 Extended"},
+{Name="Glock 36"},
+{Name="SS MR920P"},
+{Name="P80 Extended"},
+{Name="G48 PerformanceTrigger"},
+{Name="Engraved Colt .38 Super"},
+{Name="Canik MC9 Prime"},
+{Name="38. Smith&Wesson"},
+{Name="G43X"},
+{Name="G22 Compensated"},
+{Name="FNXBeam"},
+{Name="S&W M2.0 Clearmag"},
+{Name="Matchmaster 1911"},
+{Name="Springfield Echelon"},
+{Name="Springfield Hellcat"},
+{Name="G19XPSAGrip"},
+{Name="Glock-17"},
+{Name="G40VectMag"},
+{Name="Python"},
+{Name="G31C"},
+{Name="Glock19x Extended"},
+{Name="G26"},
+{Name="G17Gen5Vect"},
+{Name="G23Gen4 Extended"},
 }
-
--- Función de compra (tu misma función)
 local function BuyWeaponAndAmmo(weapon)
-    local RS = game:GetService("ReplicatedStorage")
-    local Remote = RS:WaitForChild("Events"):WaitForChild("ServerEvent")
-    
-    -- comprar arma
-    Remote:FireServer("BuyItemTool", weapon.Name)
-    task.wait(0.15)
-    
-    -- comprar balas (x2)
-    if weapon.Ammo then
-        for i = 1, 2 do
-            Remote:FireServer("BuyItemTool", weapon.Ammo)
-            task.wait(0.1)
-        end
-    end
+local RS = game:GetService("ReplicatedStorage")
+local Remote = RS:WaitForChild("Events"):WaitForChild("ServerEvent")
+Remote:FireServer("BuyItemTool", weapon.Name)
 end
+--==================== GUNS PAGE (REDISEÑADA) ====================
+local PageGuns = newPageFrame()
 
--- ✅ ARREGLO: Estructura correcta (sin scroll anidado)
-local PageGuns = newPageFrame()  -- base frame
-
--- CONTENEDOR PRINCIPAL (sin scroll)
+-- Contenedor principal para dividir Izquierda (Lista) y Derecha (Acción)
 local GunsContainer = Instance.new("Frame", PageGuns)
 GunsContainer.Size = UDim2.new(1, 0, 1, 0)
 GunsContainer.BackgroundTransparency = 1
 
--- IZQUIERDA: Lista de armas (CON SCROLL)
-local GunsLeft = Instance.new("ScrollingFrame", GunsContainer)
-GunsLeft.Size = UDim2.new(0.65, -6, 1, 0)
-GunsLeft.Position = UDim2.new(0, 0, 0, 0)
-GunsLeft.BackgroundTransparency = 1
-GunsLeft.BorderSizePixel = 0
-GunsLeft.ScrollBarThickness = 4
-GunsLeft.ScrollBarImageColor3 = Theme.Accent
-GunsLeft.Active = true
-GunsLeft.CanvasSize = UDim2.new(0, 0, 0, 0)
-GunsLeft.ZIndex = 30
-GunsLeft:SetAttribute("NoDrag", true)
+-- 1. LISTA DE ARMAS (HACIA LA IZQUIERDA)
+local GunsScroll = Instance.new("ScrollingFrame", GunsContainer)
+GunsScroll.BackgroundTransparency = 0.95
+GunsScroll.BackgroundColor3 = Color3.fromRGB(0,0,0)
+GunsScroll.BorderSizePixel = 0
+GunsScroll.Size = UDim2.new(0.65, -10, 1, -10) -- Ocupa el 65% del ancho
+GunsScroll.Position = UDim2.new(0, 0, 0, 0)
+GunsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+GunsScroll.ScrollBarThickness = 2
+GunsScroll.ScrollBarImageColor3 = Theme.Accent
+GunsScroll.Active = true
+GunsScroll:SetAttribute("NoDrag", true)
+Instance.new("UICorner", GunsScroll).CornerRadius = UDim.new(0, 12)
 
-local GunsList = Instance.new("UIListLayout", GunsLeft)
-GunsList.Padding = UDim.new(0, 6)
+local GunsList = Instance.new("UIListLayout", GunsScroll)
+GunsList.Padding = UDim.new(0, 4) -- Espaciado pequeño entre botones
 GunsList.SortOrder = Enum.SortOrder.LayoutOrder
-GunsList.HorizontalAlignment = Enum.HorizontalAlignment.Left
+GunsList.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
--- Auto-resize canvas
 GunsList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    GunsLeft.CanvasSize = UDim2.new(0, 0, 0, GunsList.AbsoluteContentSize.Y + 12)
+    GunsScroll.CanvasSize = UDim2.new(0, 0, 0, GunsList.AbsoluteContentSize.Y + 10)
 end)
 
--- DERECHA: Botón de compra (SIN SCROLL)
-local GunsRight = Instance.new("Frame", GunsContainer)
-GunsRight.Size = UDim2.new(0.35, -6, 1, 0)
-GunsRight.Position = UDim2.new(0.65, 6, 0, 0)
-GunsRight.BackgroundTransparency = 1
+-- 2. PANEL DE COMPRA (HACIA LA DERECHA)
+local BuyPanel = Instance.new("Frame", GunsContainer)
+BuyPanel.Size = UDim2.new(0.35, 0, 1, -10) -- Ocupa el 35% restante
+BuyPanel.Position = UDim2.new(0.65, 5, 0, 0)
+BuyPanel.BackgroundTransparency = 1
 
--- Variable para arma seleccionada
+-- Botón BUY (Más pequeño y a la derecha)
 local SelectedWeapon = nil
+local BuyGunBtn = Instance.new("TextButton", BuyPanel)
+BuyGunBtn.Size = UDim2.new(1, 0, 0, 50) -- Botón grande de compra
+BuyGunBtn.Position = UDim2.new(0, 0, 0, 0)
+BuyGunBtn.BackgroundColor3 = Theme.Accent -- Color llamativo
+BuyGunBtn.AutoButtonColor = true
+BuyGunBtn.Text = "🛒 BUY"
+BuyGunBtn.Font = Fonts[CurrentFontName]
+BuyGunBtn.TextSize = 16
+BuyGunBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", BuyGunBtn).CornerRadius = UDim.new(0, 12)
 
--- ✅ Función para crear botón de arma (selección)
+local WeaponNameLabel = Instance.new("TextLabel", BuyPanel)
+WeaponNameLabel.Size = UDim2.new(1, 0, 0, 40)
+WeaponNameLabel.Position = UDim2.new(0, 0, 0, 55)
+WeaponNameLabel.BackgroundTransparency = 1
+WeaponNameLabel.Text = "None Selected"
+WeaponNameLabel.Font = Fonts[CurrentFontName]
+WeaponNameLabel.TextSize = 12
+WeaponNameLabel.TextColor3 = Theme.Muted
+WeaponNameLabel.TextWrapped = true
+
+-- Función para crear botones de armas más pequeños
 local function makeGunSelectButton(parent, weapon)
-    local selected = false
-    
     local btn = Instance.new("TextButton", parent)
-    btn.AutoButtonColor = false
-    btn.Size = UDim2.new(1, -10, 0, 36)
-    btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    btn.BackgroundTransparency = 0.88
+    btn.Size = UDim2.new(1, -10, 0, 32) -- ALTURA REDUCIDA (Más chicos)
+    btn.BackgroundColor3 = Color3.fromRGB(255,255,255)
+    btn.BackgroundTransparency = 0.92
     btn.BorderSizePixel = 0
-    btn.Text = "🔫 " .. weapon.Name
+    btn.Text = weapon.Name
     btn.Font = Fonts[CurrentFontName]
     btn.TextSize = 13
     btn.TextColor3 = Theme.Text
-    btn.TextXAlignment = Enum.TextXAlignment.Left
-    btn.ZIndex = 41
-    btn:SetAttribute("NoDrag", true)
-    
-    -- padding interno para el texto
-    local padding = Instance.new("UIPadding", btn)
-    padding.PaddingLeft = UDim.new(0, 12)
-    
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 12)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
     
     local st = Instance.new("UIStroke", btn)
     st.Color = Theme.Accent
     st.Thickness = 1
-    st.Transparency = 0.85
-    
-    local function render()
-        tween(btn, TFast, {
-            BackgroundTransparency = selected and 0.80 or 0.88
-        })
-        tween(st, TFast, {
-            Transparency = selected and 0.35 or 0.85
-        })
-    end
-    
-    render()
-    
+    st.Transparency = 0.9
+
     btn.MouseButton1Click:Connect(function()
-        if shouldIgnoreClick() then return end
         playOptionSound()
-        
-        -- deseleccionar todas las armas
-        for _, c in ipairs(parent:GetChildren()) do
-            if c:IsA("TextButton") and c ~= btn then
-                c:SetAttribute("Selected", false)
-            end
-        end
-        
-        selected = true
-        btn:SetAttribute("Selected", true)
         SelectedWeapon = weapon
-        render()
-        
-        Notify("🔫 Seleccionada: " .. weapon.Name, true)
+        WeaponNameLabel.Text = "Selected:\n" .. weapon.Name
+        -- Efecto visual rápido
+        tween(st, TFast, {Transparency = 0.2})
+        task.delay(0.2, function() tween(st, TFast, {Transparency = 0.8}) end)
     end)
-    
-    btn:GetAttributeChangedSignal("Selected"):Connect(function()
-        selected = btn:GetAttribute("Selected") == true
-        render()
-    end)
-    
     return btn
 end
 
--- ✅ Crear todos los botones de armas
+-- Llenar la lista
 for _, weapon in ipairs(Weapons) do
-    makeGunSelectButton(GunsLeft, weapon)
+    makeGunSelectButton(GunsScroll, weapon)
 end
 
--- ✅ Botón de COMPRA (lado derecho)
-local BuyGunBtn = makeAppleAction(
-    GunsRight,
-    "🛒 COMPRAR\nARMA + BALAS",
-    1,
-    function()
-        if not SelectedWeapon then
-            Notify("❌ Selecciona un arma primero", false)
-            return
-        end
-        
-        Notify("🛒 Comprando " .. SelectedWeapon.Name .. "...", true)
-        AddLog("🛒 Compra: " .. SelectedWeapon.Name .. " + " .. (SelectedWeapon.Ammo or "N/A"))
-        
-        BuyWeaponAndAmmo(SelectedWeapon)
-        
-        task.delay(0.5, function()
-            Notify("✅ Compra enviada", true)
-        end)
+-- Conectar el botón de compra
+BuyGunBtn.MouseButton1Click:Connect(function()
+    if not SelectedWeapon then
+        Notify("❌ Selecciona un arma", false)
+        return
     end
+    BuyWeaponAndAmmo(SelectedWeapon)
+    Notify("🛒 Comprado: " .. SelectedWeapon.Name, true)
+end)
+
+AddLog("🛒 Buy Gun: "..SelectedWeapon.Name)
+-- TU FUNCIÓN REAL
+if BuyWeaponAndAmmo then
+BuyWeaponAndAmmo(SelectedWeapon)
+else
+Notify("❌ BuyWeaponAndAmmo no existe", false)
+end
+end
 )
-
-BuyGunBtn.Size = UDim2.new(1, -12, 0, 80)
+BuyGunBtn.Size = UDim2.new(1, -24, 0, 44)
 BuyGunBtn.TextSize = 14
-BuyGunBtn.Position = UDim2.new(0, 6, 0, 20)
 BuyGunBtn:SetAttribute("NoDrag", true)
-
--- ✅ Info adicional (opcional)
-local InfoLabel = Instance.new("TextLabel", GunsRight)
-InfoLabel.BackgroundTransparency = 1
-InfoLabel.Size = UDim2.new(1, -12, 0, 60)
-InfoLabel.Position = UDim2.new(0, 6, 0, 110)
-InfoLabel.Font = Fonts[CurrentFontName]
-InfoLabel.TextSize = 12
-InfoLabel.TextColor3 = Theme.Muted
-InfoLabel.TextWrapped = true
-InfoLabel.TextXAlignment = Enum.TextXAlignment.Left
-InfoLabel.TextYAlignment = Enum.TextYAlignment.Top
-InfoLabel.Text = "ℹ️ Selecciona un arma de la lista y presiona COMPRAR.\n\nSe comprará el arma + munición automáticamente."
-InfoLabel.ZIndex = 41
-
-print("[GUNS PAGE] ✅ Cargado correctamente")
 local PageSettings = newPageFrame()
 local PageMisc = Instance.new("ScrollingFrame", Content)
 PageMisc.BackgroundTransparency = 1
