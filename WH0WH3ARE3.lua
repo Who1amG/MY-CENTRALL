@@ -2,8 +2,8 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v00002
--- 70% working
+--fixes 80%
+-- 90% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -956,23 +956,62 @@ for _, weapon in ipairs(Weapons) do
 end
 
 -- 🛒 BUY ARMA
-local BuyGunBtn = makeAppleAction(
-	GunsContainer,
-	"🛒 BUY ARMA SELECCIONADA",
-	997,
-	function()
-		if not SelectedWeapon then
-			Notify("❌ Selecciona un arma primero", false)
-			return
-		end
-		Notify("🛒 Comprando: "..SelectedWeapon.Name, true)
-		AddLog("🛒 Buy Gun: "..SelectedWeapon.Name)
-		BuyWeaponAndAmmo(SelectedWeapon)
-	end
-)
-BuyGunBtn.Size = UDim2.new(1, -24, 0, 44)
+-- 🧱 FILA ARMAS + COMPRAR
+local GunRow = Instance.new("Frame", GunsContainer)
+GunRow.Size = UDim2.new(1, -24, 0, 42)
+GunRow.BackgroundTransparency = 1
+GunRow.LayoutOrder = 996
+GunRow:SetAttribute("NoDrag", true)
+
+local GunRowLayout = Instance.new("UIListLayout", GunRow)
+GunRowLayout.FillDirection = Enum.FillDirection.Horizontal
+GunRowLayout.Padding = UDim.new(0, 8)
+GunRowLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+GunRowLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+-- 🔫 TEXTO ARMAS
+local GunLabel = Instance.new("TextLabel", GunRow)
+GunLabel.Size = UDim2.new(0.55, 0, 1, 0)
+GunLabel.BackgroundTransparency = 1
+GunLabel.Font = Fonts[CurrentFontName]
+GunLabel.TextSize = 14
+GunLabel.TextColor3 = Theme.Text
+GunLabel.TextXAlignment = Enum.TextXAlignment.Left
+GunLabel.Text = "🔫 ARMAS"
+GunLabel.ZIndex = 41
+
+-- 🛒 BOTÓN COMPRAR (DERECHA)
+local BuyGunBtn = Instance.new("TextButton", GunRow)
+BuyGunBtn.Size = UDim2.new(0.45, 0, 1, 0)
+BuyGunBtn.AutoButtonColor = false
+BuyGunBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
+BuyGunBtn.BackgroundTransparency = 0.88
+BuyGunBtn.BorderSizePixel = 0
+BuyGunBtn.Font = Fonts[CurrentFontName]
 BuyGunBtn.TextSize = 14
+BuyGunBtn.TextColor3 = Theme.Text
+BuyGunBtn.Text = "🛒 COMPRAR"
+BuyGunBtn.ZIndex = 41
 BuyGunBtn:SetAttribute("NoDrag", true)
+Instance.new("UICorner", BuyGunBtn).CornerRadius = UDim.new(0, 14)
+
+local st = Instance.new("UIStroke", BuyGunBtn)
+st.Color = Theme.Accent
+st.Thickness = 1
+st.Transparency = 0.7
+
+BuyGunBtn.MouseButton1Click:Connect(function()
+	if shouldIgnoreClick() then return end
+	if not SelectedWeapon then
+		Notify("❌ Selecciona un arma primero", false)
+		return
+	end
+	playOptionSound()
+	Notify("🛒 Comprando: "..SelectedWeapon.Name, true)
+	AddLog("🛒 Buy Gun: "..SelectedWeapon.Name)
+	BuyWeaponAndAmmo(SelectedWeapon)
+end)
+
 
 -- ───── AMMO ─────
 makeAppleAction(GunsContainer, "────────── AMMO ──────────", 998, function() end)
