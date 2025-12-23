@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.2
---fixes 81%
+--fixes 82%
 -- 91% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -888,13 +888,6 @@ GunsList.HorizontalAlignment = Enum.HorizontalAlignment.Center
 GunsList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 	GunsScroll.CanvasSize = UDim2.new(0, 0, 0, GunsList.AbsoluteContentSize.Y + 80)
 end)
-
--- 🔽 DROPDOWN GUNS / AMMO
-local GunsHeader, GunsContainer =
-	makeDropdownHeaderDynamic(GunsScroll, "🔫 Guns / Ammo")
-
-GunsHeader.LayoutOrder = 1
-GunsContainer.LayoutOrder = 2
 
 local SelectedWeapon = nil
 
