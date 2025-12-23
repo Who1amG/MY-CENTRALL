@@ -731,110 +731,102 @@ local RS = game:GetService("ReplicatedStorage")
 local Remote = RS:WaitForChild("Events"):WaitForChild("ServerEvent")
 Remote:FireServer("BuyItemTool", weapon.Name)
 end
---==================== GUNS PAGE (REDISEÑADA) ====================
+--==================== GUNS PAGE ====================
 local PageGuns = newPageFrame()
-
--- Contenedor principal para dividir Izquierda (Lista) y Derecha (Acción)
-local GunsContainer = Instance.new("Frame", PageGuns)
-GunsContainer.Size = UDim2.new(1, 0, 1, 0)
-GunsContainer.BackgroundTransparency = 1
-
--- 1. LISTA DE ARMAS (HACIA LA IZQUIERDA)
-local GunsScroll = Instance.new("ScrollingFrame", GunsContainer)
-GunsScroll.BackgroundTransparency = 0.95
-GunsScroll.BackgroundColor3 = Color3.fromRGB(0,0,0)
+-- Scroll vertical (como mochilas)
+local GunsScroll = Instance.new("ScrollingFrame", PageGuns)
+GunsScroll.BackgroundTransparency = 1
 GunsScroll.BorderSizePixel = 0
-GunsScroll.Size = UDim2.new(0.65, -10, 1, -10) -- Ocupa el 65% del ancho
-GunsScroll.Position = UDim2.new(0, 0, 0, 0)
+GunsScroll.Size = UDim2.new(1, 0, 1, -6)
 GunsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 GunsScroll.ScrollBarThickness = 2
 GunsScroll.ScrollBarImageColor3 = Theme.Accent
+GunsScroll.ScrollBarImageTransparency = 0
 GunsScroll.Active = true
+GunsScroll.ZIndex = 30
 GunsScroll:SetAttribute("NoDrag", true)
-Instance.new("UICorner", GunsScroll).CornerRadius = UDim.new(0, 12)
-
+-- Layout vertical
 local GunsList = Instance.new("UIListLayout", GunsScroll)
-GunsList.Padding = UDim.new(0, 4) -- Espaciado pequeño entre botones
+GunsList.Padding = UDim.new(0, UI_ITEM_PADDING)
 GunsList.SortOrder = Enum.SortOrder.LayoutOrder
 GunsList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
 GunsList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    GunsScroll.CanvasSize = UDim2.new(0, 0, 0, GunsList.AbsoluteContentSize.Y + 10)
+GunsScroll.CanvasSize = UDim2.new(
+0, 0,
+0, GunsList.AbsoluteContentSize.Y + 80
+)
 end)
-
--- 2. PANEL DE COMPRA (HACIA LA DERECHA)
-local BuyPanel = Instance.new("Frame", GunsContainer)
-BuyPanel.Size = UDim2.new(0.35, 0, 1, -10) -- Ocupa el 35% restante
-BuyPanel.Position = UDim2.new(0.65, 5, 0, 0)
-BuyPanel.BackgroundTransparency = 1
-
--- Botón BUY (Más pequeño y a la derecha)
+-- arma seleccionada
 local SelectedWeapon = nil
-local BuyGunBtn = Instance.new("TextButton", BuyPanel)
-BuyGunBtn.Size = UDim2.new(1, 0, 0, 50) -- Botón grande de compra
-BuyGunBtn.Position = UDim2.new(0, 0, 0, 0)
-BuyGunBtn.BackgroundColor3 = Theme.Accent -- Color llamativo
-BuyGunBtn.AutoButtonColor = true
-BuyGunBtn.Text = "🛒 BUY"
-BuyGunBtn.Font = Fonts[CurrentFontName]
-BuyGunBtn.TextSize = 16
-BuyGunBtn.TextColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", BuyGunBtn).CornerRadius = UDim.new(0, 12)
-
-local WeaponNameLabel = Instance.new("TextLabel", BuyPanel)
-WeaponNameLabel.Size = UDim2.new(1, 0, 0, 40)
-WeaponNameLabel.Position = UDim2.new(0, 0, 0, 55)
-WeaponNameLabel.BackgroundTransparency = 1
-WeaponNameLabel.Text = "None Selected"
-WeaponNameLabel.Font = Fonts[CurrentFontName]
-WeaponNameLabel.TextSize = 12
-WeaponNameLabel.TextColor3 = Theme.Muted
-WeaponNameLabel.TextWrapped = true
-
--- Función para crear botones de armas más pequeños
+-- botón arma (selección)
 local function makeGunSelectButton(parent, weapon)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(1, -10, 0, 32) -- ALTURA REDUCIDA (Más chicos)
-    btn.BackgroundColor3 = Color3.fromRGB(255,255,255)
-    btn.BackgroundTransparency = 0.92
-    btn.BorderSizePixel = 0
-    btn.Text = weapon.Name
-    btn.Font = Fonts[CurrentFontName]
-    btn.TextSize = 13
-    btn.TextColor3 = Theme.Text
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-    
-    local st = Instance.new("UIStroke", btn)
-    st.Color = Theme.Accent
-    st.Thickness = 1
-    st.Transparency = 0.9
-
-    btn.MouseButton1Click:Connect(function()
-        playOptionSound()
-        SelectedWeapon = weapon
-        WeaponNameLabel.Text = "Selected:\n" .. weapon.Name
-        -- Efecto visual rápido
-        tween(st, TFast, {Transparency = 0.2})
-        task.delay(0.2, function() tween(st, TFast, {Transparency = 0.8}) end)
-    end)
-    return btn
+local selected = false
+local btn = Instance.new("TextButton", parent)
+btn.AutoButtonColor = false
+btn.Size = UDim2.new(1, -24, 0, 42)
+btn.BackgroundColor3 = Color3.fromRGB(255,255,255)
+btn.BackgroundTransparency = 0.88
+btn.BorderSizePixel = 0
+btn.Text = "🔫 "..weapon.Name
+btn.Font = Fonts[CurrentFontName]
+btn.TextSize = 14
+btn.TextColor3 = Theme.Text
+btn.ZIndex = 41
+btn:SetAttribute("NoDrag", true)
+Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 14)
+local st = Instance.new("UIStroke", btn)
+st.Color = Theme.Accent
+st.Thickness = 1
+st.Transparency = 0.85
+local function render()
+tween(btn, TFast, {
+BackgroundTransparency = selected and 0.80 or 0.88
+})
+tween(st, TFast, {
+Transparency = selected and 0.35 or 0.85
+})
 end
-
--- Llenar la lista
-for _, weapon in ipairs(Weapons) do
-    makeGunSelectButton(GunsScroll, weapon)
+render()
+btn.MouseButton1Click:Connect(function()
+if shouldIgnoreClick() then return end
+playOptionSound()
+-- deseleccionar todas
+for _,c in ipairs(parent:GetChildren()) do
+if c:IsA("TextButton") then
+c:SetAttribute("Selected", false)
 end
-
--- Conectar el botón de compra
-BuyGunBtn.MouseButton1Click:Connect(function()
-    if not SelectedWeapon then
-        Notify("❌ Selecciona un arma", false)
-        return
-    end
-    BuyWeaponAndAmmo(SelectedWeapon)
-    Notify("🛒 Comprado: " .. SelectedWeapon.Name, true)
+end
+selected = true
+btn:SetAttribute("Selected", true)
+SelectedWeapon = weapon
+render()
+Notify("🔫 Seleccionada: "..weapon.Name, true)
 end)
-
+btn:GetAttributeChangedSignal("Selected"):Connect(function()
+selected = btn:GetAttribute("Selected") == true
+render()
+end)
+return btn
+end
+-- crear lista de armas
+if Weapons then
+for _, weapon in ipairs(Weapons) do
+makeGunSelectButton(GunsScroll, weapon)
+end
+else
+makeAppleAction(GunsScroll, "❌ No se detectaron armas", 1, function() end)
+end
+-- botón BUY (SIEMPRE AL FINAL)
+local BuyGunBtn = makeAppleAction(
+GunsScroll,
+"🛒 BUY ARMA SELECCIONADA",
+999,
+function()
+if not SelectedWeapon then
+Notify("❌ Selecciona un arma primero", false)
+return
+end
+Notify("🛒 Comprando: "..SelectedWeapon.Name, true)
 AddLog("🛒 Buy Gun: "..SelectedWeapon.Name)
 -- TU FUNCIÓN REAL
 if BuyWeaponAndAmmo then
