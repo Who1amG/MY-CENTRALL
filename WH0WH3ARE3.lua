@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.2
---fixes 83%
+--fixes 90%
 -- 91% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -2554,7 +2554,7 @@ local serverHopBtn = makeAppleAction(
     end
 )
 
-serverHopBtn.Size = UDim2.new(1, 0, 0, 44)
+serverHopBtn.Size = UDim2.new(1, 0, 0, 34)
 serverHopBtn.TextSize = 14
 serverHopBtn:SetAttribute("NoDrag", true)
 
@@ -2575,7 +2575,7 @@ local rejoinBtn = makeAppleAction(
     end
 )
 
-rejoinBtn.Size = UDim2.new(1, 0, 0, 44)
+rejoinBtn.Size = UDim2.new(1, 0, 0, 34)
 rejoinBtn.TextSize = 14
 rejoinBtn:SetAttribute("NoDrag", true)
 
@@ -2606,7 +2606,7 @@ end
     end
 )
 
-rejoinWithScriptBtn.Size = UDim2.new(1, 0, 0, 44)
+rejoinWithScriptBtn.Size = UDim2.new(1, 0, 0, 34)
 rejoinWithScriptBtn.TextSize = 14
 rejoinWithScriptBtn:SetAttribute("NoDrag", true)
 
