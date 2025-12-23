@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.2
---fixes 82%
+--fixes 84%
 -- 91% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -943,11 +943,6 @@ local function makeGunSelectButton(parent, weapon)
 	return btn
 end
 
--- 🔫 LISTA DE ARMAS
-for _, weapon in ipairs(Weapons) do
-	makeGunSelectButton(GunsContainer, weapon)
-end
-
 -- 🧱 FILA SUPERIOR: GUNS / AMMO + COMPRAR
 local TopRow = Instance.new("Frame", GunsScroll)
 TopRow.Size = UDim2.new(1, -24, 0, 44)
@@ -970,6 +965,11 @@ GunsHeader.LayoutOrder = 1
 
 GunsContainer.LayoutOrder = 2
 GunsContainer.Parent = GunsScroll -- 🔴 MUY IMPORTANTE
+
+-- 🔫 LISTA DE ARMAS (AHORA SÍ)
+for _, weapon in ipairs(Weapons) do
+	makeGunSelectButton(GunsContainer, weapon)
+end
 
 -- 🛒 BOTÓN COMPRAR (FUERA DEL DROPDOWN)
 local BuyGunBtn = Instance.new("TextButton", TopRow)
