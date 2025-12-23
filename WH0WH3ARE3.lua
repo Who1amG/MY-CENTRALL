@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v10
+--fixes v11
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -746,6 +746,18 @@ local function BuyWeaponAndAmmo(weapon)
     end
 end
 
+local function BuyAmmoOnly(ammoName)
+    local Remote = RS:WaitForChild("Events"):WaitForChild("ServerEvent")
+
+    for i = 1, 2 do
+        Remote:FireServer("BuyItemTool", ammoName)
+        task.wait(0.1)
+    end
+
+    Notify("🧰 Ammo comprada: "..ammoName.." x2", true)
+    AddLog("🧰 Ammo Buy: "..ammoName.." x2")
+end
+
 --==================== GUNS PAGE ====================
 local PageGuns = newPageFrame()
 -- Scroll vertical (como mochilas)
@@ -854,6 +866,43 @@ end
 BuyGunBtn.Size = UDim2.new(1, -24, 0, 44)
 BuyGunBtn.TextSize = 14
 BuyGunBtn:SetAttribute("NoDrag", true)
+
+-- =========================
+-- 🧰 AMMO (SEPARADOR)
+-- =========================
+makeAppleAction(
+    GunsScroll,
+    "────────── AMMO ──────────",
+    998,
+    function() end
+)
+
+-- =========================
+-- 🧰 AMMO BUTTONS (AUTO)
+-- =========================
+local addedAmmo = {}
+
+for _, weapon in ipairs(Weapons) do
+    local ammo = weapon.Ammo
+    if ammo and not addedAmmo[ammo] then
+        addedAmmo[ammo] = true
+
+        local btn = makeAppleAction(
+            GunsScroll,
+            "🧰 "..ammo.."  x2",
+            999,
+            function()
+                BuyAmmoOnly(ammo)
+            end
+        )
+
+        btn.Size = UDim2.new(1, -24, 0, 42)
+        btn.TextSize = 14
+        btn:SetAttribute("NoDrag", true)
+    end
+end
+
+
 local PageSettings = newPageFrame()
 local PageMisc = Instance.new("ScrollingFrame", Content)
 PageMisc.BackgroundTransparency = 1
