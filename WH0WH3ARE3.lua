@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v11
+--fixes v10
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -871,10 +871,11 @@ local BuyGunBtn = makeAppleAction(
             Notify("❌ Selecciona un arma primero", false)
             return
         end
+
         Notify("🛒 Comprando: "..SelectedWeapon.Name, true)
         AddLog("🛒 Buy Gun: "..SelectedWeapon.Name)
 
-        if BuyWeaponAndAmmo then
+        if typeof(BuyWeaponAndAmmo) == "function" then
             BuyWeaponAndAmmo(SelectedWeapon)
         else
             Notify("❌ BuyWeaponAndAmmo no existe", false)
