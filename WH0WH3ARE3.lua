@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.2
---fixes 84%
+--fixes 83%
 -- 91% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -297,22 +297,6 @@ local function tween(obj, info, props)
 		t:Play()
 		return t
 	end
-end
-
---==================== FAKE BLUR BACKDROP (SOLO UI) ====================
-local Backdrop = Instance.new("Frame", UI)
-Backdrop.Name = "Backdrop"
-Backdrop.Size = UDim2.new(1, 0, 1, 0)
-Backdrop.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-Backdrop.BackgroundTransparency = 1
-Backdrop.ZIndex = 1
-Backdrop.Visible = true
-
-local function blurIn()
-	tween(Backdrop, TSlow, {BackgroundTransparency = 0.55})
-end
-local function blurOut()
-	tween(Backdrop, TSlow, {BackgroundTransparency = 1})
 end
 
 --==================== UI COMPONENTS ====================
@@ -2259,7 +2243,6 @@ UserInputService.InputBegan:Connect(function(input, gpe)
 	if input.KeyCode == hideKey then
 		uiVisible = not uiVisible
 		Window.Visible = uiVisible
-		if uiVisible then blurIn() else blurOut() end
 		Notify(uiVisible and "🎄 UI mostrada" or "🎄 UI ocultada", uiVisible)
 		return
 	end
@@ -2680,5 +2663,4 @@ end) -- ⬅️ ESTE end) ES EL QUE TE FALTABA
 --==================== FINAL ====================
 AddLog("🧪 Sistema de logs iniciado correctamente")
 Notify("Made By SPK 💎", true)
-blurIn()
 print("[GlassmasUI] Loaded • Fixed • Tabs • Settings • Misc • Visual Logs")
