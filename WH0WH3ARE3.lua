@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v14
+--fixes v10
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -125,7 +125,7 @@ end
 end
 -- movimiento
 FlyConn = RunService.Heartbeat:Connect(function()
-if not FlyRunning then return end
+if not FlyEnabled then return end
 local cam = workspace.CurrentCamera
 local dir =
 (cam.CFrame.LookVector * (FlyMove.F - FlyMove.B)) +
@@ -140,7 +140,7 @@ end)
 Notify("🕊️ Fly ACTIVADO", true)
 end
 local function stopFly()
-if not FlyRunning then return end
+if not FlyEnabled then return end
 FlyEnabled = false
 FlyRunning = false
 -- limpiar movimiento
@@ -244,6 +244,7 @@ end)
    
     -- Borrar ESP
     clearESP()
+    disableESP()
    
     pcall(function()
         if UI then UI:Destroy() end
@@ -516,11 +517,9 @@ UserInputService.InputChanged:Connect(function(input)
         updateDrag(input)
     end
 end)
-
 shouldIgnoreClick = function()
-    return DraggingUI == true
+    return DraggingUI
 end
-
 --==================== SNOW LAYER ====================
 local SnowLayer = Instance.new("Frame", Window)
 SnowLayer.Name = "SnowLayer"
@@ -1400,11 +1399,9 @@ local function updatePlayerItemsESP(player)
         gui.Adornee = leftFoot
     end
 end
-
-for userId,_ in pairs(ESP.Items) do
-    destroyItemsESP(userId)
-end
-
+disableESP = function()
+    ESPEnabled = false
+    -- borrar SOLO Player ESP
     for userId, gui in pairs(ESP.Players) do
         if gui then
             destroyPlayerESP(userId)
@@ -1848,6 +1845,7 @@ fontToggles[name] = tog
 end
 fontToggles[CurrentFontName].Set(true)
 -- ==================== CAMERA SETUP (EXACT) ====================
+local Camera = workspace.CurrentCamera
 local BASE_CAMERA_CFRAME = CFrame.new(
 -720.347595, 48.588726, 261.107269,
 -0.999807477, -0.00462738099, -0.0190718602,
@@ -2311,7 +2309,7 @@ end
 return
 end
     -- Movimiento solo si Fly activo
-    if not FlyRunning then return end
+    if not FlyEnabled then return end
     if input.KeyCode == Enum.KeyCode.W then FlyMove.F = 1 end
     if input.KeyCode == Enum.KeyCode.S then FlyMove.B = 1 end
     if input.KeyCode == Enum.KeyCode.A then FlyMove.L = 1 end
@@ -2321,7 +2319,7 @@ end
 end)
 UserInputService.InputEnded:Connect(function(input, gpe)
     if gpe then return end
-    if not FlyRunning then return end
+    if not FlyEnabled then return end
     if input.KeyCode == Enum.KeyCode.W then FlyMove.F = 0 end
     if input.KeyCode == Enum.KeyCode.S then FlyMove.B = 0 end
     if input.KeyCode == Enum.KeyCode.A then FlyMove.L = 0 end
