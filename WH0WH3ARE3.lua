@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v000
+--fixes v0000
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -28,6 +28,10 @@ local minimized = false
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local UI = Instance.new("ScreenGui")
+UI.Name = "GlassmasUI"
+UI.ResetOnSpawn = false
+UI.Parent = PlayerGui
 
 --==================== THEME & FONTS ====================
 local Styles = {
@@ -2592,7 +2596,6 @@ rejoinWithScriptBtn:SetAttribute("NoDrag", true)
 
 
 --==================== MINIMIZE / CLOSE ====================
-local minimized = false
 local originalSize = Window.Size
 
 BtnMin.MouseButton1Click:Connect(function()
@@ -2621,19 +2624,23 @@ BtnClose.MouseButton1Click:Connect(function()
     pcall(blurOut)
     playOptionSound()
     getgenv().GlassmasUI_Running = false
-    
-    -- 🔥 Apagar Fly si estaba activo
+
     if FlyEnabled then stopFly() end
-    
-    -- 🔥 BORRAR TODO EL ESP
+
     clearESP()
-    disableESP()  -- apaga flags también
-    
+    disableESP()
+
     tween(WStroke, TFast, {Transparency = 1})
-    tween(Window, TSlow, {BackgroundTransparency = 1, Size = UDim2.new(0, 520, 0, 0)})
-  task.delay(0.42, function()
-    if UI then UI:Destroy() end
-end)
+    tween(Window, TSlow, {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 520, 0, 0)
+    })
+
+    task.delay(0.42, function()
+        if UI then UI:Destroy() end
+    end)
+end) -- ⬅️ ESTE end) ES EL QUE TE FALTABA
+
 
 --==================== FINAL ====================
 AddLog("🧪 Sistema de logs iniciado correctamente")
