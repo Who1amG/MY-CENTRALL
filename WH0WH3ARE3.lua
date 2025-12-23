@@ -2,7 +2,7 @@
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v11
+--fixes v14
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -125,7 +125,7 @@ end
 end
 -- movimiento
 FlyConn = RunService.Heartbeat:Connect(function()
-if not FlyEnabled then return end
+if not FlyRunning then return end
 local cam = workspace.CurrentCamera
 local dir =
 (cam.CFrame.LookVector * (FlyMove.F - FlyMove.B)) +
@@ -140,7 +140,7 @@ end)
 Notify("🕊️ Fly ACTIVADO", true)
 end
 local function stopFly()
-if not FlyEnabled then return end
+if not FlyRunning then return end
 FlyEnabled = false
 FlyRunning = false
 -- limpiar movimiento
@@ -244,7 +244,6 @@ end)
    
     -- Borrar ESP
     clearESP()
-    disableESP()
    
     pcall(function()
         if UI then UI:Destroy() end
@@ -517,9 +516,11 @@ UserInputService.InputChanged:Connect(function(input)
         updateDrag(input)
     end
 end)
+
 shouldIgnoreClick = function()
-    return DraggingUI
+    return DraggingUI == true
 end
+
 --==================== SNOW LAYER ====================
 local SnowLayer = Instance.new("Frame", Window)
 SnowLayer.Name = "SnowLayer"
@@ -731,19 +732,6 @@ local Weapons = {
 {Name="G23Gen4 Extended", Ammo="Extended"},
 }
 
--- =========================
--- 🧰 AMMO LIST (SEPARADO)
--- =========================
-local AmmoList = {
-    {Name = "5.56"},
-    {Name = "7.62x39mm"},
-    {Name = "9mm"},
-    {Name = "Extended"},
-    {Name = "Slugs"},
-    {Name = "Bullets"},
-}
-
-
 local function BuyWeaponAndAmmo(weapon)
     local RS = game:GetService("ReplicatedStorage")
     local Remote = RS:WaitForChild("Events"):WaitForChild("ServerEvent")
@@ -758,23 +746,6 @@ local function BuyWeaponAndAmmo(weapon)
         task.wait(0.1)
     end
 end
-
--- =========================
--- 🧰 BUY AMMO ONLY (x2)
--- =========================
-local function BuyAmmoOnly(ammo)
-    local RS = game:GetService("ReplicatedStorage")
-    local Remote = RS:WaitForChild("Events"):WaitForChild("ServerEvent")
-
-    for i = 1, 2 do
-        Remote:FireServer("BuyItemTool", ammo.Name)
-        task.wait(0.1)
-    end
-
-    Notify("🧰 Ammo comprada: "..ammo.Name.." x2", true)
-    AddLog("🧰 Buy Ammo: "..ammo.Name.." x2")
-end
-
 
 --==================== GUNS PAGE ====================
 local PageGuns = newPageFrame()
@@ -863,53 +834,24 @@ makeAppleAction(GunsScroll, "❌ No se detectaron armas", 1, function() end)
 end
 -- botón BUY (SIEMPRE AL FINAL)
 local BuyGunBtn = makeAppleAction(
-    GunsScroll,
-    "🛒 BUY ARMA SELECCIONADA",
-    999,
-    function()
-        if not SelectedWeapon then
-            Notify("❌ Selecciona un arma primero", false)
-            return
-        end
-
-        Notify("🛒 Comprando: "..SelectedWeapon.Name, true)
-        AddLog("🛒 Buy Gun: "..SelectedWeapon.Name)
-
-        if typeof(BuyWeaponAndAmmo) == "function" then
-            BuyWeaponAndAmmo(SelectedWeapon)
-        else
-            Notify("❌ BuyWeaponAndAmmo no existe", false)
-        end
-    end
-)
-
--- =========================
--- 🧰 AMMO (AL FINAL)
--- =========================
-makeAppleAction(GunsScroll, "────────── AMMO ──────────", 998, function() end)
-
-if type(AmmoList) ~= "table" then
-    makeAppleAction(GunsScroll, "❌ AmmoList no existe", 999, function() end)
-else
-    for i, ammo in ipairs(AmmoList) do
-        local btn = makeAppleAction(
-            GunsScroll,
-            "🧰 "..tostring(ammo.Name).."  x2",
-            1000 + i,
-            function()
-                if typeof(BuyAmmoOnly) == "function" then
-                    BuyAmmoOnly(ammo)
-                else
-                    Notify("❌ BuyAmmoOnly no existe", false)
-                end
-            end
-        )
-        btn.Size = UDim2.new(1, -24, 0, 42)
-        btn.TextSize = 14
-        btn:SetAttribute("NoDrag", true)
-    end
+GunsScroll,
+"🛒 BUY ARMA SELECCIONADA",
+999,
+function()
+if not SelectedWeapon then
+Notify("❌ Selecciona un arma primero", false)
+return
 end
-
+Notify("🛒 Comprando: "..SelectedWeapon.Name, true)
+AddLog("🛒 Buy Gun: "..SelectedWeapon.Name)
+-- TU FUNCIÓN REAL
+if BuyWeaponAndAmmo then
+BuyWeaponAndAmmo(SelectedWeapon)
+else
+Notify("❌ BuyWeaponAndAmmo no existe", false)
+end
+end
+)
 BuyGunBtn.Size = UDim2.new(1, -24, 0, 44)
 BuyGunBtn.TextSize = 14
 BuyGunBtn:SetAttribute("NoDrag", true)
@@ -1458,9 +1400,11 @@ local function updatePlayerItemsESP(player)
         gui.Adornee = leftFoot
     end
 end
-disableESP = function()
-    ESPEnabled = false
-    -- borrar SOLO Player ESP
+
+for userId,_ in pairs(ESP.Items) do
+    destroyItemsESP(userId)
+end
+
     for userId, gui in pairs(ESP.Players) do
         if gui then
             destroyPlayerESP(userId)
@@ -1904,7 +1848,6 @@ fontToggles[name] = tog
 end
 fontToggles[CurrentFontName].Set(true)
 -- ==================== CAMERA SETUP (EXACT) ====================
-local Camera = workspace.CurrentCamera
 local BASE_CAMERA_CFRAME = CFrame.new(
 -720.347595, 48.588726, 261.107269,
 -0.999807477, -0.00462738099, -0.0190718602,
@@ -2368,7 +2311,7 @@ end
 return
 end
     -- Movimiento solo si Fly activo
-    if not FlyEnabled then return end
+    if not FlyRunning then return end
     if input.KeyCode == Enum.KeyCode.W then FlyMove.F = 1 end
     if input.KeyCode == Enum.KeyCode.S then FlyMove.B = 1 end
     if input.KeyCode == Enum.KeyCode.A then FlyMove.L = 1 end
@@ -2378,7 +2321,7 @@ end
 end)
 UserInputService.InputEnded:Connect(function(input, gpe)
     if gpe then return end
-    if not FlyEnabled then return end
+    if not FlyRunning then return end
     if input.KeyCode == Enum.KeyCode.W then FlyMove.F = 0 end
     if input.KeyCode == Enum.KeyCode.S then FlyMove.B = 0 end
     if input.KeyCode == Enum.KeyCode.A then FlyMove.L = 0 end
