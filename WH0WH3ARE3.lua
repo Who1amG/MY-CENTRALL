@@ -1,10 +1,8 @@
-print("fireproximityprompt =", fireproximityprompt)
-
 -- 🦈 Glassmas UI • Principal (Apple Glass Christmas) • Single Script
 -- ✅ FIXED • NO "Label" VACÍO • UI COMPLETA • XENO READY
 -- Made for Sp4rk 💎
 --v2.1
---fixes v11
+--fixes v9
 -- 70% working
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -267,19 +265,6 @@ end
 local function playOptionSound()
 pcall(function() SoundService:PlayLocalSound(S_Click) end)
 end
-
---==================== TWEENS ====================
-local TFast = TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-local TMed = TweenInfo.new(0.26, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-local TSlow = TweenInfo.new(0.38, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-local function tween(obj, info, props)
-    local success, t = pcall(TweenService.Create, TweenService, obj, info, props)
-    if success and t then
-        t:Play()
-        return t
-    end
-end
-
 --==================== FAKE BLUR BACKDROP (SOLO UI) ====================
 local Backdrop = Instance.new("Frame", UI)
 Backdrop.Name = "Backdrop"
@@ -293,6 +278,17 @@ tween(Backdrop, TSlow, {BackgroundTransparency = 0.55})
 end
 local function blurOut()
 tween(Backdrop, TSlow, {BackgroundTransparency = 1})
+end
+--==================== TWEENS ====================
+local TFast = TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local TMed = TweenInfo.new(0.26, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+local TSlow = TweenInfo.new(0.38, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+local function tween(obj, info, props)
+    local success, t = pcall(TweenService.Create, TweenService, obj, info, props)
+    if success and t then
+        t:Play()
+        return t
+    end
 end
 --==================== UI COMPONENTS ====================
 makeAppleToggle = function(parent, label, order, onChanged)
@@ -730,61 +726,11 @@ local Weapons = {
 {Name="G17Gen5Vect"},
 {Name="G23Gen4 Extended"},
 }
-
 local function BuyWeaponAndAmmo(weapon)
 local RS = game:GetService("ReplicatedStorage")
 local Remote = RS:WaitForChild("Events"):WaitForChild("ServerEvent")
 Remote:FireServer("BuyItemTool", weapon.Name)
 end
-
-local function makeDropdownHeaderDynamic(parent, titleText)
-local headerBtn = Instance.new("TextButton", parent)
-headerBtn.AutoButtonColor = false
-headerBtn.Size = UDim2.new(1, 0, 0, 44)
-headerBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
-headerBtn.BackgroundTransparency = 0.88
-headerBtn.BorderSizePixel = 0
-headerBtn.Text = titleText .. " ▸"
-headerBtn.Font = Fonts[CurrentFontName]
-headerBtn.TextSize = 14
-headerBtn.TextColor3 = Theme.Text
-headerBtn.ZIndex = 41
-Instance.new("UICorner", headerBtn).CornerRadius = UDim.new(0, 14)
-local st = Instance.new("UIStroke", headerBtn)
-st.Thickness = 1
-st.Color = Theme.Accent
-st.Transparency = 0.80
-local container = Instance.new("Frame", parent)
-container.BackgroundTransparency = 1
-container.ClipsDescendants = true
-container.Size = UDim2.new(1, 0, 0, 0)
-container.ZIndex = 41
-local list = Instance.new("UIListLayout", container)
-list.Padding = UDim.new(0, UI_ITEM_PADDING)
-list.SortOrder = Enum.SortOrder.LayoutOrder
-list.HorizontalAlignment = Enum.HorizontalAlignment.Center
-local open = false
-local function refreshSize(animated)
-local h = list.AbsoluteContentSize.Y + 6
-local target = open
-and UDim2.new(1, 0, 0, h)
-or UDim2.new(1, 0, 0, 0)
-if animated then tween(container, TMed, {Size = target}) else container.Size = target end
-end
-list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-if open then refreshSize(false) end
-end)
-headerBtn.MouseButton1Click:Connect(function()
-
-if shouldIgnoreClick() then return end
-open = not open
-playOptionSound()
-headerBtn.Text = titleText .. (open and " ▾" or " ▸")
-refreshSize(true)
-end)
-return headerBtn, container, list
-end
-
 --==================== GUNS PAGE ====================
 local PageGuns = newPageFrame()
 -- Scroll vertical (como mochilas)
@@ -862,35 +808,20 @@ render()
 end)
 return btn
 end
-
--- ✅ DROPDOWN: ARMAS (como Mochilas)
-local GunsHeader, GunsContainer, GunsInnerList =
-    makeDropdownHeaderDynamic(GunsScroll, "🔫 ARMAS")
-GunsHeader.LayoutOrder = 1
-GunsContainer.LayoutOrder = 2
-
--- crear lista dentro del dropdown
-if Weapons and #Weapons > 0 then
-	for i, weapon in ipairs(Weapons) do
-		local btn = makeGunSelectButton(GunsContainer, weapon)
-btn.LayoutOrder = i
-		btn.Size = UDim2.new(1, 0, 0, 30)
-		btn.TextSize = 13
-		btn.Text = "• " .. weapon.Name
-	end
-else
-	local msg = makeAppleAction(GunsContainer, "• (No se detectaron armas)", 1, function() end)
-	msg.Size = UDim2.new(1, 0, 0, 30)
-	msg.TextSize = 13
+-- crear lista de armas
+if Weapons then
+for _, weapon in ipairs(Weapons) do
+makeGunSelectButton(GunsScroll, weapon)
 end
-
+else
+makeAppleAction(GunsScroll, "❌ No se detectaron armas", 1, function() end)
+end
 -- botón BUY (SIEMPRE AL FINAL)
 local BuyGunBtn = makeAppleAction(
-    GunsScroll,
-    "🛒 BUY ARMA SELECCIONADA",
-    1000,
-    function()
-
+GunsScroll,
+"🛒 BUY ARMA SELECCIONADA",
+999,
+function()
 if not SelectedWeapon then
 Notify("❌ Selecciona un arma primero", false)
 return
@@ -1123,7 +1054,52 @@ end)
 Tabs.Settings.MouseButton1Click:Connect(function()
 switchPage(PageSettings, PageSettingsKey)
 end)
-
+local function makeDropdownHeaderDynamic(parent, titleText)
+local headerBtn = Instance.new("TextButton", parent)
+headerBtn.AutoButtonColor = false
+headerBtn.Size = UDim2.new(1, 0, 0, 44)
+headerBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
+headerBtn.BackgroundTransparency = 0.88
+headerBtn.BorderSizePixel = 0
+headerBtn.Text = titleText .. " ▸"
+headerBtn.Font = Fonts[CurrentFontName]
+headerBtn.TextSize = 14
+headerBtn.TextColor3 = Theme.Text
+headerBtn.ZIndex = 41
+Instance.new("UICorner", headerBtn).CornerRadius = UDim.new(0, 14)
+local st = Instance.new("UIStroke", headerBtn)
+st.Thickness = 1
+st.Color = Theme.Accent
+st.Transparency = 0.80
+local container = Instance.new("Frame", parent)
+container.BackgroundTransparency = 1
+container.ClipsDescendants = true
+container.Size = UDim2.new(1, 0, 0, 0)
+container.ZIndex = 41
+local list = Instance.new("UIListLayout", container)
+list.Padding = UDim.new(0, UI_ITEM_PADDING)
+list.SortOrder = Enum.SortOrder.LayoutOrder
+list.HorizontalAlignment = Enum.HorizontalAlignment.Center
+local open = false
+local function refreshSize(animated)
+local h = list.AbsoluteContentSize.Y + 6
+local target = open
+and UDim2.new(1, 0, 0, h)
+or UDim2.new(1, 0, 0, 0)
+if animated then tween(container, TMed, {Size = target}) else container.Size = target end
+end
+list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+if open then refreshSize(false) end
+end)
+headerBtn.MouseButton1Click:Connect(function()
+if shouldIgnoreClick() then return end
+open = not open
+playOptionSound()
+headerBtn.Text = titleText .. (open and " ▾" or " ▸")
+refreshSize(true)
+end)
+return headerBtn, container, list
+end
 --==================== APPLE CLEANING SCREEN ====================
 local function showCleaningScreen(duration)
 local gui = Instance.new("ScreenGui")
@@ -1912,15 +1888,8 @@ end
 acc += dt
 while acc >= INTERVAL do
 acc -= INTERVAL
-				
-if fireproximityprompt then
-    fireproximityprompt(PromptA)
-    fireproximityprompt(PromptB)
-else
-    PPS:TriggerPrompt(PromptA)
-    PPS:TriggerPrompt(PromptB)
-end
-
+fireproximityprompt(PromptA)
+fireproximityprompt(PromptB)
 end
 end)
 hum:ChangeState(Enum.HumanoidStateType.Jumping)
@@ -2173,7 +2142,7 @@ local function washMoney(dupeMode)
     forcePrompt(mainDryer)
     if dupeDryer then forcePrompt(dupeDryer) end
     -- Clicks iniciales 100% paralelos
-   task.spawn(function()
+    task.spawn(function()
     pcall(function()
         if fireproximityprompt then
             fireproximityprompt(mainDryer.prompt)
@@ -2182,7 +2151,6 @@ local function washMoney(dupeMode)
         end
     end)
 end)
-
 if dupeDryer then
     task.spawn(function()
         pcall(function()
