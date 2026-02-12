@@ -734,8 +734,16 @@ task.spawn(function()
             
             if T_PLR then
                 SEL_PLR = T_PLR
-                NOTIFY("System", "Target Found! Starting in 3s...", 5)
-                task.wait(3)
+                NOTIFY("System", "Target Found! Waiting for Intro (8s)...", 5)
+                
+                -- [ SMART WAIT: MainScreen ]
+                local M_SCR = LPLR.PlayerGui:FindFirstChild("MainScreen")
+                if not M_SCR then
+                    NOTIFY("System", "Waiting for Game UI...", 3)
+                    M_SCR = LPLR.PlayerGui:WaitForChild("MainScreen", 10)
+                end
+                
+                task.wait(8) -- User requested 8s for Intro
                 START_DUPE(true)
             else
                 NOTIFY("Auto Dupe", "Target not found! Stopping.", 10)
