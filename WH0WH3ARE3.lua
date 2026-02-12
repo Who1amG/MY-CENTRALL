@@ -5,6 +5,7 @@
     Tabs: Redesigned (Top Pills)
     Controls: Resize, Minimize, Close (Traffic Lights)
 ]]
+--oiwrjokwfj
 
 -- [ SVC ]
 local PLRS = game:GetService("Players")
