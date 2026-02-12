@@ -1,31 +1,46 @@
 
--- [[ POTASSIUM FIX V3 - EXTREME SAFE MODE ]] --
+print("[DEBUG] 1. Script Starting...")
+
+-- [[ POTASSIUM FIX V4 - DEBUG MODE ]] --
 local function safe_env()
+    print("[DEBUG] 2. Setting up environment...")
     getgenv = getgenv or function() return _G end
     
     if not task then
-        getgenv().task = {
-            wait = wait,
-            spawn = spawn,
-            delay = delay,
-            defer = function(f) coroutine.resume(coroutine.create(f)) end
-        }
+        print("[DEBUG] 3. Polyfilling task...")
+        local g = getgenv()
+        if g then
+            g.task = {
+                wait = wait or function() end,
+                spawn = spawn or function(f) coroutine.resume(coroutine.create(f)) end,
+                delay = delay or function() end,
+                defer = function(f) coroutine.resume(coroutine.create(f)) end
+            }
+        end
     end
 end
 pcall(safe_env)
 
+print("[DEBUG] 4. Task check...")
 local task = _G.task or task or {wait=wait, spawn=spawn, delay=delay}
-local Players = game:GetService("Players")
 
--- Espera pasiva (sin eventos complejos)
+print("[DEBUG] 5. Waiting for game...")
 if not game:IsLoaded() then
-    repeat task.wait(0.1) until game:IsLoaded()
+    -- Busy wait safe fallback
+    if task and task.wait then
+        repeat task.wait(0.1) until game:IsLoaded()
+    else
+        repeat wait(0.1) until game:IsLoaded()
+    end
 end
 
+print("[DEBUG] 6. Getting LocalPlayer...")
+local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 if not LocalPlayer then
-    repeat task.wait(0.1) LocalPlayer = Players.LocalPlayer until LocalPlayer
+    repeat wait(0.1) LocalPlayer = Players.LocalPlayer until LocalPlayer
 end
+print("[DEBUG] 7. Header Complete.")
 -- [[ END FIX ]] --
 
 --==================== SERVICES ====================
