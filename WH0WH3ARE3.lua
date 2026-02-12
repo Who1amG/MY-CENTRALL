@@ -1,4 +1,3 @@
-
 print("[DEBUG] 1. Script Starting...")
 
 -- [[ POTASSIUM FIX V4 - DEBUG MODE ]] --
@@ -898,306 +897,144 @@ local PageGuns = newPageFrame()
 
 local GunsScroll = Instance.new("ScrollingFrame", PageGuns)
 GunsScroll.BackgroundTransparency = 1
-GunsScroll.BorderSizePixel = 0
 GunsScroll.Size = UDim2.new(1, 0, 1, -6)
 GunsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-GunsScroll.ScrollBarThickness = 2
+GunsScroll.ScrollBarThickness = 4
 GunsScroll.ScrollBarImageColor3 = Theme.Accent
-GunsScroll.ScrollBarImageTransparency = 0
 GunsScroll.Active = true
 GunsScroll.ZIndex = 30
 GunsScroll:SetAttribute("NoDrag", true)
+GunsScroll.BorderSizePixel = 0
+GunsScroll.ScrollBarImageTransparency = 0
 
 local GunsList = Instance.new("UIListLayout", GunsScroll)
 GunsList.Padding = UDim.new(0, UI_ITEM_PADDING)
 GunsList.SortOrder = Enum.SortOrder.LayoutOrder
 GunsList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-GunsList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-	GunsScroll.CanvasSize = UDim2.new(0, 0, 0, GunsList.AbsoluteContentSize.Y + 80)
-end)
 
-local SelectedWeapon = nil
-
-local function makeGunSelectButton(parent, weapon)
-	local selected = false
-	local btn = Instance.new("TextButton", parent)
-	btn.AutoButtonColor = false
-	btn.Size = UDim2.new(1, -24, 0, 42)
-	btn.BackgroundColor3 = Color3.fromRGB(255,255,255)
-	btn.BackgroundTransparency = 0.88
-	btn.BorderSizePixel = 0
-	btn.Text = "🔫 "..weapon.Name
-	btn.Font = Fonts[CurrentFontName]
-	btn.TextSize = 14
-	btn.TextColor3 = Theme.Text
-	btn.ZIndex = 41
-	btn:SetAttribute("NoDrag", true)
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 14)
-
-	local st = Instance.new("UIStroke", btn)
-	st.Color = Theme.Accent
-	st.Thickness = 1
-	st.Transparency = 0.85
-
-	local function render()
-		tween(btn, TFast, {BackgroundTransparency = selected and 0.80 or 0.88})
-		tween(st, TFast, {Transparency = selected and 0.35 or 0.85})
-	end
-	render()
-
-	btn.MouseButton1Click:Connect(function()
-		if shouldIgnoreClick() then return end
-		playOptionSound()
-
-		for _,c in ipairs(parent:GetChildren()) do
-			if c:IsA("TextButton") then
-				c:SetAttribute("Selected", false)
-			end
-		end
-
-		selected = true
-		btn:SetAttribute("Selected", true)
-		SelectedWeapon = weapon
-		render()
-		Notify("🔫 Seleccionada: "..weapon.Name, true)
-	end)
-
-	btn:GetAttributeChangedSignal("Selected"):Connect(function()
-		selected = btn:GetAttribute("Selected") == true
-		render()
-	end)
-
-	return btn
+local function updateGunsCanvas()
+	GunsScroll.CanvasSize = UDim2.new(0, 0, 0, GunsList.AbsoluteContentSize.Y + 20)
 end
+GunsList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateGunsCanvas)
+task.defer(updateGunsCanvas)
 
--- 🧱 FILA SUPERIOR: GUNS / AMMO + COMPRAR
-local TopRow = Instance.new("Frame", GunsScroll)
-TopRow.Size = UDim2.new(1, -24, 0, 44)
-TopRow.BackgroundTransparency = 1
-TopRow.LayoutOrder = 1
-TopRow:SetAttribute("NoDrag", true)
-
-local TopRowLayout = Instance.new("UIListLayout", TopRow)
-TopRowLayout.FillDirection = Enum.FillDirection.Horizontal
-TopRowLayout.Padding = UDim.new(0, 10)
-TopRowLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
-TopRowLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-
--- 🔽 BOTÓN GUNS / AMMO (CHICO)
-local GunsHeader, GunsContainer =
-	makeDropdownHeaderDynamic(TopRow, "🔫 Guns / Ammo")
-
-GunsHeader.Size = UDim2.new(0.6, 0, 0, 44)
+-- 1. HEADER ARMAS
+local GunsHeader, GunsContainer = makeDropdownHeaderDynamic(GunsScroll, "🔫 Armas Disponibles")
 GunsHeader.LayoutOrder = 1
-
 GunsContainer.LayoutOrder = 2
-GunsContainer.Parent = GunsScroll -- 🔴 MUY IMPORTANTE
 
--- 🔫 LISTA DE ARMAS (AHORA SÍ)
-for _, weapon in ipairs(Weapons) do
-	makeGunSelectButton(GunsContainer, weapon)
+for i, weapon in ipairs(Weapons) do
+	local btn = makeAppleAction(GunsContainer, "• "..weapon.Name, i, function()
+		BuyWeaponAndAmmo(weapon)
+		Notify("🔫 Comprando: "..weapon.Name, true)
+		AddLog("🔫 Buy: "..weapon.Name)
+	end)
+	btn.Size = UDim2.new(1, 0, 0, 30)
+	btn.TextSize = 13
 end
 
--- 🛒 BOTÓN COMPRAR (FUERA DEL DROPDOWN)
-local BuyGunBtn = Instance.new("TextButton", TopRow)
-BuyGunBtn.Size = UDim2.new(0.4, 0, 0, 44)
-BuyGunBtn.AutoButtonColor = false
-BuyGunBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
-BuyGunBtn.BackgroundTransparency = 0.88
-BuyGunBtn.BorderSizePixel = 0
-BuyGunBtn.Font = Fonts[CurrentFontName]
-BuyGunBtn.TextSize = 14
-BuyGunBtn.TextColor3 = Theme.Text
-BuyGunBtn.Text = "🛒 COMPRAR ARMA"
-BuyGunBtn.ZIndex = 41
-BuyGunBtn:SetAttribute("NoDrag", true)
-Instance.new("UICorner", BuyGunBtn).CornerRadius = UDim.new(0, 14)
+-- 2. HEADER MUNICIÓN
+local AmmoHeader, AmmoContainer = makeDropdownHeaderDynamic(GunsScroll, "📦 Munición (Solo Ammo)")
+AmmoHeader.LayoutOrder = 3
+AmmoContainer.LayoutOrder = 4
 
-local st = Instance.new("UIStroke", BuyGunBtn)
-st.Color = Theme.Accent
-st.Thickness = 1
-st.Transparency = 0.7
-
-BuyGunBtn.MouseButton1Click:Connect(function()
-	if shouldIgnoreClick() then return end
-	if not SelectedWeapon then
-		Notify("❌ Selecciona un arma primero", false)
-		return
-	end
-	playOptionSound()
-	Notify("🛒 Comprando: "..SelectedWeapon.Name, true)
-	AddLog("🛒 Buy Gun: "..SelectedWeapon.Name)
-	BuyWeaponAndAmmo(SelectedWeapon)
-end)
-
--- ───── AMMO ─────
-makeAppleAction(GunsContainer, "────────── AMMO ──────────", 998, function() end)
-
-local addedAmmo = {}
-for _, weapon in ipairs(Weapons) do
-	local ammo = weapon.Ammo
-	if ammo and not addedAmmo[ammo] then
-		addedAmmo[ammo] = true
-
-		local btn = makeAppleAction(
-			GunsContainer,
-			"🧰 "..ammo.."  x2",
-			999,
-			function()
-				BuyAmmoOnly(ammo)
-			end
-		)
-		btn.Size = UDim2.new(1, -24, 0, 42)
-		btn.TextSize = 14
-		btn:SetAttribute("NoDrag", true)
-	end
+local AmmoTypes = {
+	"5.56", "7.62x39mm", "9mm", "Extended", "Slugs", "Bullets"
+}
+for i, ammo in ipairs(AmmoTypes) do
+	local btn = makeAppleAction(AmmoContainer, "• "..ammo, i, function()
+		BuyAmmoOnly(ammo)
+	end)
+	btn.Size = UDim2.new(1, 0, 0, 30)
+	btn.TextSize = 13
 end
 
-
+local PageMisc = newPageFrame()
 local PageSettings = newPageFrame()
 
-local PageMisc = Instance.new("ScrollingFrame", Content)
-PageMisc.BackgroundTransparency = 1
-PageMisc.Size = UDim2.new(1, 0, 1, -6)
-PageMisc.CanvasSize = UDim2.new(0, 0, 0, 0)
-PageMisc.ScrollBarThickness = 4
-PageMisc.ScrollBarImageColor3 = Theme.Accent
-PageMisc.Visible = false
-PageMisc.ZIndex = 30
-PageMisc.Active = true
-PageMisc:SetAttribute("NoDrag", true)
-PageMisc.BorderSizePixel = 0
-PageMisc.ScrollBarImageTransparency = 0
-
---==================== VISUAL CONTENT ====================
-local VisualContent = Instance.new("Frame", PageVisual)
-VisualContent.BackgroundTransparency = 1
-VisualContent.Size = UDim2.new(1, 0, 1, 0)
-
-local VisualLeft = Instance.new("Frame", VisualContent)
-VisualLeft.BackgroundTransparency = 1
-VisualLeft.Size = UDim2.new(0.5, -6, 1, 0)
-VisualLeft.Position = UDim2.new(0, 0, 0, 0)
-VisualLeft.ClipsDescendants = true
-
-local VisualRight = Instance.new("Frame", VisualContent)
-VisualRight.BackgroundTransparency = 1
-VisualRight.Size = UDim2.new(0.5, -6, 1, 0)
-VisualRight.Position = UDim2.new(0.5, 6, 0, 0)
-
-local VisualLeftList = Instance.new("UIListLayout", VisualLeft)
-VisualLeftList.Padding = UDim.new(0, UI_ITEM_PADDING)
-VisualLeftList.SortOrder = Enum.SortOrder.LayoutOrder
-
-local VisualRightList = Instance.new("UIListLayout", VisualRight)
-VisualRightList.Padding = UDim.new(0, UI_ITEM_PADDING)
-VisualRightList.SortOrder = Enum.SortOrder.LayoutOrder
-
-local function updateVisualCanvas()
-	local h = math.max(VisualLeftList.AbsoluteContentSize.Y, VisualRightList.AbsoluteContentSize.Y)
-	PageVisual.CanvasSize = UDim2.new(0, 0, 0, h + 20)
+--==================== LAYOUTS ====================
+local function makeLayout(parent)
+	local l = Instance.new("UIListLayout", parent)
+	l.Padding = UDim.new(0, UI_ITEM_PADDING)
+	l.SortOrder = Enum.SortOrder.LayoutOrder
+	l.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	return l
 end
-VisualLeftList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateVisualCanvas)
-VisualRightList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateVisualCanvas)
-task.defer(updateVisualCanvas)
+makeLayout(PageAuto)
+makeLayout(PageVisual)
+makeLayout(PageMisc)
+makeLayout(PageSettings)
 
---==================== MISC CONTENT ====================
-local MiscContent = Instance.new("Frame", PageMisc)
-MiscContent.BackgroundTransparency = 1
-MiscContent.Size = UDim2.new(1, 0, 1, 0)
+-- 2 Columnas para Visual y Misc
+local function createTwoColumns(parentPage)
+	local container = Instance.new("Frame", parentPage)
+	container.Size = UDim2.new(1, 0, 1, 0)
+	container.BackgroundTransparency = 1
+	container.ZIndex = 30
 
-local MiscLeft = Instance.new("Frame", MiscContent)
-MiscLeft.BackgroundTransparency = 1
-MiscLeft.Size = UDim2.new(0.5, -6, 1, 0)
-MiscLeft.Position = UDim2.new(0, 0, 0, 0)
-MiscLeft.ClipsDescendants = true
+	local left = Instance.new("ScrollingFrame", container)
+	left.BackgroundTransparency = 1
+	left.Size = UDim2.new(0.48, 0, 1, 0)
+	left.Position = UDim2.new(0, 0, 0, 0)
+	left.ScrollBarThickness = 2
+	left.CanvasSize = UDim2.new(0,0,0,0)
+	left.ZIndex = 30
+	left:SetAttribute("NoDrag", true)
 
-local MiscRight = Instance.new("Frame", MiscContent)
-MiscRight.BackgroundTransparency = 1
-MiscRight.Size = UDim2.new(0.5, -6, 1, 0)
-MiscRight.Position = UDim2.new(0.5, 6, 0, 0)
-MiscRight.ClipsDescendants = true
+	local right = Instance.new("ScrollingFrame", container)
+	right.BackgroundTransparency = 1
+	right.Size = UDim2.new(0.48, 0, 1, 0)
+	right.Position = UDim2.new(0.52, 0, 0, 0)
+	right.ScrollBarThickness = 2
+	right.CanvasSize = UDim2.new(0,0,0,0)
+	right.ZIndex = 30
+	right:SetAttribute("NoDrag", true)
 
-local MiscLeftList = Instance.new("UIListLayout", MiscLeft)
-MiscLeftList.Padding = UDim.new(0, UI_ITEM_PADDING)
-MiscLeftList.SortOrder = Enum.SortOrder.LayoutOrder
+	local l1 = makeLayout(left)
+	local l2 = makeLayout(right)
 
-local MiscRightList = Instance.new("UIListLayout", MiscRight)
-MiscRightList.Padding = UDim.new(0, UI_ITEM_PADDING)
-MiscRightList.SortOrder = Enum.SortOrder.LayoutOrder
+	l1:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+		left.CanvasSize = UDim2.new(0,0,0,l1.AbsoluteContentSize.Y + 20)
+	end)
+	l2:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+		right.CanvasSize = UDim2.new(0,0,0,l2.AbsoluteContentSize.Y + 20)
+	end)
 
-local function updateMiscCanvas()
-	local h = math.max(MiscLeftList.AbsoluteContentSize.Y, MiscRightList.AbsoluteContentSize.Y)
-	PageMisc.CanvasSize = UDim2.new(0, 0, 0, h + 80)
+	return left, right
 end
-MiscLeftList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateMiscCanvas)
-MiscRightList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateMiscCanvas)
-task.defer(updateMiscCanvas)
 
---==================== LOG PANEL (VISUAL) ====================
-local LogsContainer = Instance.new("Frame", VisualLeft)
-LogsContainer.Name = "LogsContainer"
-LogsContainer.Size = UDim2.new(1, 0, 0, 170)
-LogsContainer.BackgroundColor3 = getLogsGlassColor(Theme.Glass)
-LogsContainer.BackgroundTransparency = 0.78
-LogsContainer.BorderSizePixel = 0
-LogsContainer.ZIndex = 35
-LogsContainer.LayoutOrder = 0
-LogsContainer.ClipsDescendants = true
-LogsContainer:SetAttribute("NoDrag", true)
-Instance.new("UICorner", LogsContainer).CornerRadius = UDim.new(0, 16)
+local VisualLeft, VisualRight = createTwoColumns(PageVisual)
+local MiscLeft, MiscRight = createTwoColumns(PageMisc)
 
-local LogsStroke = Instance.new("UIStroke", LogsContainer)
-LogsStroke.Color = Theme.Accent
-LogsStroke.Transparency = 0.6
-LogsStroke.Thickness = 1
+--==================== LOGS UI ====================
+local LogsHeader, LogsContainer = makeDropdownHeaderDynamic(VisualRight, "📜 Visual Logs")
+LogsHeader.LayoutOrder = 10
+LogsContainer.LayoutOrder = 11
 
-local LogsTitle = Instance.new("TextLabel", LogsContainer)
-LogsTitle.BackgroundTransparency = 1
-LogsTitle.Size = UDim2.new(1, -12, 0, 24)
-LogsTitle.Position = UDim2.new(0, 6, 0, 6)
-LogsTitle.Font = Fonts[CurrentFontName]
-LogsTitle.TextSize = 14
-LogsTitle.TextColor3 = Theme.Text
-LogsTitle.TextXAlignment = Enum.TextXAlignment.Left
-LogsTitle.Text = "📜 Logs"
-LogsTitle.ZIndex = 36
-LogsTitle:SetAttribute("NoDrag", true)
+LogsUI_List = Instance.new("UIListLayout", LogsContainer)
+LogsUI_List.SortOrder = Enum.SortOrder.LayoutOrder
+LogsUI_List.Padding = UDim.new(0, 2)
+LogsUI_List.HorizontalAlignment = Enum.HorizontalAlignment.Left
 
-local LogsList = Instance.new("ScrollingFrame", LogsContainer)
-LogsList.BackgroundTransparency = 1
-LogsList.Position = UDim2.new(0, 6, 0, 36)
-LogsList.Size = UDim2.new(1, -12, 1, -48)
-LogsList.CanvasSize = UDim2.new(0, 0, 0, 0)
-LogsList.ScrollBarThickness = 4
-LogsList.ScrollBarImageColor3 = Theme.Accent
-LogsList.ZIndex = 36
-LogsList.Active = true
-LogsList:SetAttribute("NoDrag", true)
+LogsUI_List:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	LogsContainer.Size = UDim2.new(1, 0, 0, LogsUI_List.AbsoluteContentSize.Y + 6)
+end)
 
-local LogsLayout = Instance.new("UIListLayout", LogsList)
-LogsLayout.Padding = UDim.new(0, 6)
-LogsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
-LogsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
-local function updateLogsCanvas()
-	LogsList.CanvasSize = UDim2.new(0, 0, 0, LogsLayout.AbsoluteContentSize.Y + 6)
-end
-LogsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateLogsCanvas)
-task.defer(updateLogsCanvas)
-
-LogsUI_List = LogsList
-
---==================== TAB SWITCH ====================
-local PageAutoKey, PageVisualKey, PageGunsKey, PageMiscKey, PageSettingsKey = "auto","visual","guns","misc","settings"
+--==================== TAB LOGIC ====================
 local CurrentPage = PageAuto
-PageAuto.Visible = true
+local PageAutoKey, PageVisualKey, PageGunsKey, PageMiscKey, PageSettingsKey = 1,2,3,4,5
 local switching = false
 
 local function setTabActive(which)
-	local function style(btn, st, active)
-		tween(btn, TFast, {BackgroundTransparency = active and 0.82 or 0.90})
-		tween(st, TFast, {Transparency = active and 0.40 or 0.80})
+	local function style(btn, stroke, active)
+		tween(btn, TFast, {
+			BackgroundTransparency = active and 0.85 or 0.95,
+			BackgroundColor3 = active and Theme.Accent or Color3.fromRGB(255,255,255)
+		})
+		tween(stroke, TFast, {
+			Transparency = active and 0.2 or 0.8,
+			Color = active and Theme.Accent or Color3.fromRGB(150,150,150)
+		})
 	end
 	style(Tabs.Auto, Tabs.AutoStroke, which==PageAutoKey)
 	style(Tabs.Visual, Tabs.VisualStroke, which==PageVisualKey)
@@ -1775,7 +1612,7 @@ _G.GlassmasUI_ESP_Clear = function()
 end
 _G.GlassmasUI_ESP_Stop = function()
 	disableESP()
-endESP.Running = false
+ESP.Running = false
 	clearESP()
 	for k, c in pairs(ESP.Conns) do
 		if typeof(c) == "RBXScriptConnection" then
@@ -1885,345 +1722,9 @@ SetKeyBtn.MouseButton1Click:Connect(function()
 		return
 	end
 	hideKey = Enum.KeyCode[txt]
-	KeyBox.Text = txt
-	Notify("✅ Tecla cambiada a: "..txt, true)
+	SetKeyBtn.Text = "✅ LISTO"
+	task.delay(1, function() SetKeyBtn.Text = "ESTABLECER" end)
 end)
-
-sectionTitle("🎨 Personalización")
-
-local function applyStyle(key)
-	local s = Styles[key]
-	if not s then return end
-	CurrentStyle = key
-	Theme.Glass = s.Glass
-	Theme.Header = s.Header
-	Theme.Accent = s.Accent
-	Theme.Muted = Theme.Glass:Lerp(Color3.new(1,1,1), 0.55)
-
-	tween(Window, TMed, {BackgroundColor3 = Theme.Glass})
-	tween(Header, TMed, {BackgroundColor3 = Theme.Header})
-	tween(WStroke, TMed, {Color = Theme.Accent})
-	tween(Tabs.AutoStroke, TMed, {Color = Theme.Accent})
-	tween(Tabs.VisualStroke, TMed, {Color = Theme.Accent})
-	tween(Tabs.GunsStroke, TMed, {Color = Theme.Accent})
-	tween(Tabs.SettingsStroke, TMed, {Color = Theme.Accent})
-	tween(Tabs.MiscStroke, TMed, {Color = Theme.Accent})
-	tween(SettingsScroll, TMed, {ScrollBarImageColor3 = Theme.Accent})
-	tween(PageVisual, TMed, {ScrollBarImageColor3 = Theme.Accent})
-	tween(PageMisc, TMed, {ScrollBarImageColor3 = Theme.Accent})
-	if LogsList then tween(LogsList, TMed, {ScrollBarImageColor3 = Theme.Accent}) end
-
-	tween(LogsStroke, TMed, {Color = Theme.Accent})
-	if LogsContainer then
-		tween(LogsContainer, TMed, {BackgroundColor3 = getLogsGlassColor(Theme.Glass), BackgroundTransparency = 0.78})
-	end
-
-	if LogsUI_List then
-		for _,c in ipairs(LogsUI_List:GetChildren()) do
-			if c:IsA("TextLabel") then c.TextColor3 = Theme.Muted end
-		end
-	end
-
-	if key == "Black" then
-		tween(Window, TMed, {BackgroundTransparency = 0.82})
-	elseif key == "BlackDark" then
-		tween(Window, TMed, {BackgroundTransparency = 0.90})
-	else
-		tween(Window, TMed, {BackgroundTransparency = 0.80})
-	end
-end
-
-local function applyFont(name)
-	local f = Fonts[name]
-	if not f then return end
-	CurrentFontName = name
-	for _,v in ipairs(UI:GetDescendants()) do
-		if v:IsA("TextLabel") or v:IsA("TextButton") or v:IsA("TextBox") then
-			v.Font = f
-		end
-	end
-	refreshESPFont()
-	redrawLogs()
-end
-
-local ThemeHeader, ThemeContainer = makeDropdownHeaderDynamic(SettingsScroll, "🎨 Mostrar UIS")
-ThemeHeader.LayoutOrder = 10
-ThemeContainer.LayoutOrder = 11
-
-local themeToggles = {}
-for key,_ in pairs(Styles) do
-	local tog = makeAppleToggle(ThemeContainer, "• Glass "..key, 0, function(on)
-		if not on then
-			if CurrentStyle == key then themeToggles[key].Set(true) end
-			return
-		end
-		for k,t in pairs(themeToggles) do
-			if k ~= key then t.Set(false) end
-		end
-		applyStyle(key)
-	end)
-	themeToggles[key] = tog
-end
-themeToggles[CurrentStyle].Set(true)
-
-local FontHeader, FontContainer = makeDropdownHeaderDynamic(SettingsScroll, "🔤 estilos de letra")
-FontHeader.LayoutOrder = 12
-FontContainer.LayoutOrder = 13
-
-local fontToggles = {}
-for name,_ in pairs(Fonts) do
-	local tog = makeAppleToggle(FontContainer, "• "..name, 0, function(on)
-		if not on then
-			if CurrentFontName == name then fontToggles[name].Set(true) end
-			return
-		end
-		for n,t in pairs(fontToggles) do
-			if n ~= name then t.Set(false) end
-		end
-		applyFont(name)
-	end)
-	fontToggles[name] = tog
-end
-fontToggles[CurrentFontName].Set(true)
-
--- ==================== CAMERA SETUP (EXACT) ====================
-local BASE_CAMERA_CFRAME = CFrame.new(
-	-720.347595, 48.588726, 261.107269,
-	-0.999807477, -0.00462738099, -0.0190718602,
-	 0.00142769329, 0.952079952, -0.305846155,
-	 0.0195732024, -0.305814475, -0.951889932
-)
-
-local function SetCameraOnceExact()
-	local cam = Camera
-	local oldType = cam.CameraType
-	local oldSubject = cam.CameraSubject
-	local oldFOV = cam.FieldOfView
-	cam.CameraType = Enum.CameraType.Scriptable
-	cam.CFrame = BASE_CAMERA_CFRAME
-	RunService.RenderStepped:Wait()
-	cam.CameraType = oldType
-	cam.CameraSubject = oldSubject
-	cam.FieldOfView = oldFOV
-end
-
---==================== MONEY DRYER INSTANT (A→B) ====================
-local function runMoneyDryer()
-	local Workspace = game:GetService("Workspace")
-	if not fireproximityprompt and not PPS then return end
-
-	for _, v in ipairs(Workspace:GetDescendants()) do
-		if v:IsA("ProximityPrompt") then
-			v.HoldDuration = 0
-			v.RequiresLineOfSight = false
-		end
-	end
-
-	local dryersFolder = Workspace:WaitForChild("MoneyDryers")
-	local dryers = dryersFolder:GetChildren()
-	if #dryers < 2 then return end
-
-	local PromptA = dryers[4]:WaitForChild("WashingPromptPart"):WaitForChild("ProximityPrompt")
-	local PromptB = dryers[5]:WaitForChild("WashingPromptPart"):WaitForChild("ProximityPrompt")
-
-	local _, hum, hrp = getCharParts()
-	if not (hum and hrp) then return end
-
-	SetCameraOnceExact()
-
-	local pA = PromptA.Parent.Position
-	local pB = PromptB.Parent.Position
-	local mid = (pA + pB) / 2
-	hrp.CFrame = CFrame.new(mid, mid + (pA - pB).Unit)
-
-	local SPAM_ON = true
-	local INTERVAL = 1 / 60
-	local acc = 0
-	local conn
-	conn = RunService.Heartbeat:Connect(function(dt)
-		if not SPAM_ON then
-			conn:Disconnect()
-			return
-		end
-		acc += dt
-		while acc >= INTERVAL do
-			acc -= INTERVAL
-			fireproximityprompt(PromptA)
-			fireproximityprompt(PromptB)
-		end
-	end)
-
-	hum:ChangeState(Enum.HumanoidStateType.Jumping)
-	task.delay(30, function()
-		SPAM_ON = false
-	end)
-end
-
--- ==================== MISC: SNOWMANS (ONE SHOT) ====================
-local snowCollectRunning = false
-local snowCollectThreadId = 0
-local TP_OFFSET = Vector3.new(0, 6, 0)
-
-local SnowmanPromptCache = {}
-
-local function cacheSnowmanPrompts()
-	SnowmanPromptCache = {}
-	local folder = workspace:FindFirstChild("Snowmans")
-	if not folder then return end
-	for _, obj in ipairs(folder:GetDescendants()) do
-		if obj:IsA("ProximityPrompt") then
-			SnowmanPromptCache[obj] = {
-				Enabled = obj.Enabled,
-				HoldDuration = obj.HoldDuration,
-				MaxActivationDistance = obj.MaxActivationDistance,
-				RequiresLineOfSight = obj.RequiresLineOfSight,
-			}
-		end
-	end
-end
-
-local function forceSnowmanPrompts()
-	local folder = workspace:FindFirstChild("Snowmans")
-	if not folder then return end
-	for _, obj in ipairs(folder:GetDescendants()) do
-		if obj:IsA("ProximityPrompt") then
-			pcall(function()
-				obj.Enabled = true
-				obj.HoldDuration = 0
-				obj.MaxActivationDistance = 999
-				obj.RequiresLineOfSight = false
-			end)
-		end
-	end
-end
-
-local function restoreSnowmanPrompts()
-	for prompt, data in pairs(SnowmanPromptCache) do
-		if prompt and prompt.Parent then
-			pcall(function()
-				prompt.Enabled = data.Enabled
-				prompt.HoldDuration = data.HoldDuration
-				prompt.MaxActivationDistance = data.MaxActivationDistance
-				prompt.RequiresLineOfSight = data.RequiresLineOfSight
-			end)
-		end
-	end
-	SnowmanPromptCache = {}
-end
-
-local function startCollectSnowmans()
-	if snowCollectRunning then return end
-	snowCollectRunning = true
-	snowCollectThreadId += 1
-	local myId = snowCollectThreadId
-
-	local char, hum, hrp = getCharParts()
-	if not (char and hum and hrp) then
-		Notify("❌ Character no listo", false)
-		AddLog("❌ Character no listo")
-		snowCollectRunning = false
-		return
-	end
-
-	local folder = workspace:FindFirstChild("Snowmans")
-	if not folder then
-		Notify("❌ No se encontró Snowmans", false)
-		AddLog("❌ Snowmans folder no existe")
-		snowCollectRunning = false
-		return
-	end
-
-	local snowmans = folder:GetChildren()
-	local valid = {}
-
-	for _,m in ipairs(snowmans) do
-		if m:IsA("Model") then
-			for _,d in ipairs(m:GetDescendants()) do
-				if d:IsA("ProximityPrompt") then
-					table.insert(valid, m)
-					break
-				end
-			end
-		end
-	end
-
-	if #valid == 0 then
-		Notify("❄️ No hay Snowmans en el mapa", false)
-		AddLog("❄️ No hay Snowmans disponibles")
-		snowCollectRunning = false
-		return
-	end
-
-	for i,m in ipairs(valid) do
-		if not m:GetAttribute("GlassmasID") then
-			m:SetAttribute("GlassmasID", i)
-		end
-	end
-
-	Notify("☃️ Recolectando Snowmans...", true)
-	AddLog("☃️ Iniciando ONE-SHOT Snowmans ("..#valid..")")
-
-	cacheSnowmanPrompts()
-	forceSnowmanPrompts()
-
-	local cam = Camera
-	local processed = {}
-
-	local function tpTo(part)
-		if not part then return end
-		hrp.CFrame = part.CFrame + TP_OFFSET
-		task.wait(0.12)
-	end
-
-	local collected = 0
-
-	for i,m in ipairs(valid) do
-		if myId ~= snowCollectThreadId then break end
-		if processed[m] then continue end
-
-		local prompt
-		for _,d in ipairs(m:GetDescendants()) do
-			if d:IsA("ProximityPrompt") and d.Enabled then
-				prompt = d
-				break
-			end
-		end
-
-		if prompt and prompt.Parent and prompt.Parent:IsA("BasePart") then
-			tpTo(prompt.Parent)
-			pcall(function()
-				cam.CFrame = CFrame.new(cam.CFrame.Position, prompt.Parent.Position)
-			end)
-			task.wait(0.25)
-
-			local ok = false
-			if fireproximityprompt then
-				ok = pcall(function() fireproximityprompt(prompt) end)
-			else
-				ok = pcall(function() PPS:TriggerPrompt(prompt) end)
-			end
-
-			if ok then
-				collected += 1
-				processed[m] = true
-				pcall(function() prompt.Enabled = false end)
-				AddLog("✅ Snowman #" .. tostring(m:GetAttribute("GlassmasID") or i))
-				Notify("☃️ "..collected.." / "..#valid, true)
-			else
-				AddLog("❌ Fallo Snowman #" .. tostring(m:GetAttribute("GlassmasID") or i))
-				Notify("❌ Fallo Snowman #" .. tostring(m:GetAttribute("GlassmasID") or i), false)
-			end
-		end
-
-		task.wait(0.35)
-	end
-
-	restoreSnowmanPrompts()
-	snowCollectRunning = false
-	Notify("✅ Recolección finalizada ("..collected.." / "..#valid..")", true)
-	AddLog("☃️ Final: "..collected.." / "..#valid)
-	AddLog("🛑 Snowmans auto OFF")
-end
 
 -- ==================== FLY + HIDE UI + TOGGLE (FIX FINAL - FUNCIONA SIEMPRE) ====================
 local FlyKey = Enum.KeyCode.F
@@ -2481,59 +1982,46 @@ local function buySingleBackpack(backpackName)
 		for _, obj in ipairs(shop:GetDescendants()) do
 			if obj:IsA("ProximityPrompt") and obj.ActionText then
 				local a = obj.ActionText:lower()
-				if a:find("buy") then
-					local key = backpackName:lower():gsub("backpack","")
-					if key == "" then key = backpackName:lower() end
+				local key = backpackName:lower():gsub("backpack","")
+				if key == "" then key = backpackName:lower() end
 
 				if a:find(key) or (backpackName == "BackpackLV" and a:find("lv")) then
-found = true
-local part = obj.Parent
-if part and part:IsA("BasePart") then
-tpStanding(part, 2.2)
-task.wait(0.25)
-pcall(function() obj.HoldDuration = 0 end)
-local ok = false
-if fireproximityprompt then
-ok = pcall(function() fireproximityprompt(obj) end)
-else
-ok = pcall(function() PPS:TriggerPrompt(obj) end)
-end
-task.wait(0.8)
-tpBack(originalCFrame)
-if ok then
-Notify("📨 Compra enviada: "..backpackName, true)
-AddLog("📨 Solicitud enviada: "..backpackName)
---[[
-task.spawn(function()
-    local success = waitForBackpackChange(3)
-    if success then
-        Notify("✅ Compra confirmada: "..backpackName, true)
-        AddLog("✅ Compra confirmada: "..backpackName)
-    else
-        Notify("⚠️ Compra no confirmada (posible fallo)", false)
-        AddLog("⚠️ Compra no confirmada: "..backpackName)
-    end
-end)
-]]
-else
-Notify("❌ Prompt falló: "..backpackName, false)
-AddLog("❌ Prompt falló: "..backpackName)
-end
-return
-end
-end
-end
-end
-end
-end
-if not found then
-Notify("❌ No se encontró la siguiente: "..backpackName, false)
-AddLog("❌ No se encontró prompt: "..backpackName)
-end
+					found = true
+					local part = obj.Parent
+					if part and part:IsA("BasePart") then
+						tpStanding(part, 2.2)
+						task.wait(0.25)
+						pcall(function() obj.HoldDuration = 0 end)
+						local ok = false
+						if fireproximityprompt then
+							ok = pcall(function() fireproximityprompt(obj) end)
+						else
+							ok = pcall(function() PPS:TriggerPrompt(obj) end)
+						end
+						task.wait(0.8)
+						tpBack(originalCFrame)
+						if ok then
+							Notify("📨 Compra enviada: "..backpackName, true)
+							AddLog("📨 Solicitud enviada: "..backpackName)
+						else
+							Notify("❌ Prompt falló: "..backpackName, false)
+							AddLog("❌ Prompt falló: "..backpackName)
+						end
+						return
+					end
+				end
+			end
+		end
+	end
+	if not found then
+		Notify("❌ No se encontró la siguiente: "..backpackName, false)
+		AddLog("❌ No se encontró prompt: "..backpackName)
+	end
 end
 local BackpackHeader, BackpackContainer = makeDropdownHeaderDynamic(MiscRight, "🎒 Mochilas")
 BackpackHeader.LayoutOrder = 4
 BackpackContainer.LayoutOrder = 5
+
 -- 🔄 RECUPERAR MOCHILAS
 local backpacks = getAvailableBackpacks()
 if #backpacks == 0 then
@@ -2547,6 +2035,7 @@ else
         btn.TextSize = 13
     end
 end
+
 -- 🔁 SERVER HOP FIABLE 2025 (sin readfile/writefile + fallback random)
 local serverHopBtn = makeAppleAction(
     MiscRight,
@@ -2654,9 +2143,6 @@ rejoinWithScriptBtn.Size = UDim2.new(1, 0, 0, 34)
 rejoinWithScriptBtn.TextSize = 14
 rejoinWithScriptBtn:SetAttribute("NoDrag", true)
 
-
-
-
 --==================== MINIMIZE / CLOSE ====================
 local originalSize = Window.Size
 
@@ -2701,8 +2187,7 @@ BtnClose.MouseButton1Click:Connect(function()
     task.delay(0.42, function()
         if UI then UI:Destroy() end
     end)
-end) -- ⬅️ ESTE end) ES EL QUE TE FALTABA
-
+end)
 
 --==================== FINAL ====================
 AddLog("🧪 Sistema de logs iniciado correctamente")
