@@ -11,6 +11,7 @@ local PLRS = game:GetService("Players")
 local TS = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
 local CORE = game:GetService("CoreGui")
+local HS = game:GetService("HttpService")
 
 -- [ LOC ]
 local LPLR = PLRS.LocalPlayer
@@ -33,6 +34,18 @@ local CFG = {
 }
 
 -- [ FUN ]
+local function SAVE_CFG(DATA)
+    if not isfolder("CentralConfig") then makefolder("CentralConfig") end
+    writefile("CentralConfig/config.json", HS:JSONEncode(DATA))
+end
+
+local function LOAD_CFG()
+    if isfile("CentralConfig/config.json") then
+        return HS:JSONDecode(readfile("CentralConfig/config.json"))
+    end
+    return {}
+end
+
 local function TWN(OBJ, PRP, TIM)
     local INF = TweenInfo.new(TIM or CFG.SPD, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
     TS:Create(OBJ, INF, PRP):Play()
@@ -575,9 +588,12 @@ local function START_DUPE(AUTO_MODE)
     
     -- Save for Auto Mode
     if AUTO_MODE then
-        writefile("CentralConfig/AutoDupe.txt", "true")
-        writefile("CentralConfig/Target.txt", SEL_PLR.Name)
-        writefile("CentralConfig/Amount.txt", tostring(AMT_SND))
+        local DATA = {
+            AutoDupe = true,
+            Target = SEL_PLR.Name,
+            Amount = AMT_SND
+        }
+        SAVE_CFG(DATA)
     end
     
     NOTIFY("System", "Starting Dupe Sequence...", 3)
@@ -652,39 +668,6 @@ end
 ADD_BTN(P_FRM, "DUPE MONEY (ONE TIME)", function()
     START_DUPE(false)
 end)
-
-ADD_BTN(P_FRM, "ENABLE AUTO DUPE", function()
-    if not SEL_PLR then NOTIFY("Error", "Select a Player first!", 3) return end
-    if not isfile or not isfile("central.lua") then 
-        NOTIFY("Critical Error", "Save script as 'central.lua' in workspace!", 10) 
-        return 
-    end
-    
-    if writefile then
-        writefile("CentralConfig/AutoDupe.txt", "true")
-        writefile("CentralConfig/Target.txt", SEL_PLR.Name)
-        writefile("CentralConfig/Amount.txt", tostring(AMT_SND))
-    end
-    
-    START_DUPE(true)
-end)
-
-local HS = game:GetService("HttpService")
-
--- ... (Existing code)
-
--- CONFIG SYSTEM (JSON)
-local function SAVE_CFG(DATA)
-    if not isfolder("CentralConfig") then makefolder("CentralConfig") end
-    writefile("CentralConfig/config.json", HS:JSONEncode(DATA))
-end
-
-local function LOAD_CFG()
-    if isfile("CentralConfig/config.json") then
-        return HS:JSONDecode(readfile("CentralConfig/config.json"))
-    end
-    return {}
-end
 
 -- Check Auto Start
 task.spawn(function()
