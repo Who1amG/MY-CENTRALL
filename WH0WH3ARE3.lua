@@ -1,9 +1,31 @@
---potassium 0%
---==================== COMPATIBILITY FIX (POTASSIUM/GENERIC) ====================
-task.wait(1) -- Esperar carga inicial
-pcall(function() if not game:IsLoaded() then game.Loaded:Wait() end end)
+--potassium 0%%%
+
+--==================== ULTRA COMPATIBILITY HEADER ====================
+-- 1. Polyfill para 'task' (si el ejecutor es viejo o limitado)
+if not task then
+    _G.task = {
+        wait = function(t) return wait(t) end,
+        spawn = function(f) return spawn(f) end,
+        delay = function(t, f) return delay(t, f) end,
+        defer = function(f) return coroutine.resume(coroutine.create(f)) end
+    }
+end
+local task = task or _G.task
+
+-- 2. Polyfill para 'getgenv' (si no existe)
+local getgenv = getgenv or function() return _G end
+
+-- 3. Espera segura de carga
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
 
 local Players = game:GetService("Players")
+if not Players.LocalPlayer then
+    Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+end
+local LocalPlayer = Players.LocalPlayer
+
 --==================== SERVICES ====================
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -26,7 +48,12 @@ local GlassBlur
 local minimized = false
 
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui", 10) or LocalPlayer:FindFirstChild("PlayerGui")
+if not PlayerGui then 
+    -- Fallback extremo si PlayerGui no carga
+    local CoreGui = game:GetService("CoreGui")
+    PlayerGui = CoreGui
+end
 local UI = Instance.new("ScreenGui")
 UI.Name = "GlassmasUI"
 UI.ResetOnSpawn = false
