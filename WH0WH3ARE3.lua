@@ -1,4 +1,9 @@
 
+--==================== COMPATIBILITY FIX (POTASSIUM/GENERIC) ====================
+if not getgenv then
+    getgenv = function() return _G end
+end
+
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
