@@ -1,8 +1,6 @@
 
 --==================== COMPATIBILITY FIX (POTASSIUM/GENERIC) ====================
-if not getgenv then
-    getgenv = function() return _G end
-end
+local getgenv = getgenv or function() return _G end
 
 --==================== SERVICES ====================
 local Players = game:GetService("Players")
@@ -270,12 +268,12 @@ end
 
 --==================== SOUNDS ====================
 local S_Slide = Instance.new("Sound")
-S_Slide.SoundId = "rbxassetid://541909867"
+pcall(function() S_Slide.SoundId = "rbxassetid://541909867" end)
 S_Slide.Volume = 1
 S_Slide.Parent = UI
 
 local S_Click = Instance.new("Sound")
-S_Click.SoundId = "rbxassetid://6026984224"
+pcall(function() S_Click.SoundId = "rbxassetid://6026984224" end)
 S_Click.Volume = 1
 S_Click.Parent = UI
 
