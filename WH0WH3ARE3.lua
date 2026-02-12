@@ -3,8 +3,7 @@
     Style: Apple Glass Dark / Elegant / Limix Mint
     Variables: Short (3-4 chars)
     Tabs: Redesigned (Top Pills)
-    Controls: Resize, Minimize, Close (Traffic Lights)
--- v1 00,
+    --v2
 ]]
 
 -- [ SVC ]
@@ -738,25 +737,20 @@ task.spawn(function()
                 NOTIFY("System", "Target Found! Waiting for Play...", 5)
                 
                 -- [ SMART WAIT: Play Detection ]
+                -- Wait for MainScreen to EXIST (HUD loaded)
                 local M_SCR = LPLR.PlayerGui:WaitForChild("MainScreen", 30)
                 
                 if M_SCR then
-                    NOTIFY("System", "Menu Detected. Waiting for Play...", 5)
+                    NOTIFY("System", "HUD Detected. Waiting for Char...", 5)
                     
-                    -- Wait until MainScreen is hidden (Player clicked Play)
-                    -- OR Character spawns and moves
-                    
-                    -- Method 1: Wait for Character
+                    -- Wait for Character to be fully ready
                     if not LPLR.Character then LPLR.CharacterAdded:Wait() end
                     local CHAR = LPLR.Character
                     
-                    -- Method 2: Wait for MainScreen to hide (Intro finish)
-                    -- Most games hide the menu ScreenGui when playing
-                    while M_SCR.Visible or (M_SCR:FindFirstChild("Profile") and M_SCR.Profile.Visible) do
-                         task.wait(1)
-                    end
+                    -- Wait for HumanoidRootPart to ensure physics are ready
+                    local HRP = CHAR:WaitForChild("HumanoidRootPart", 10)
                     
-                    NOTIFY("System", "Game Started! Waiting 3s...", 3)
+                    NOTIFY("System", "Player Ready! Starting in 3s...", 3)
                     task.wait(3)
                 else
                     NOTIFY("System", "UI Not Found, using 11s fallback...", 5)
