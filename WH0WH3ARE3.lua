@@ -13,6 +13,14 @@ local UIS = game:GetService("UserInputService")
 local CORE = game:GetService("CoreGui")
 local HS = game:GetService("HttpService")
 local QUEUE_ON_TELEPORT = queue_on_teleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport)
+local STOP_DUPE = false
+
+-- [ SINGLETON ]
+if _G.CENTRAL_LOADED then
+    warn("Central Glass Already Loaded!")
+    return
+end
+_G.CENTRAL_LOADED = true
 
 -- [ LOC ]
 local LPLR = PLRS.LocalPlayer
@@ -602,6 +610,8 @@ local function START_DUPE(AUTO_MODE)
         QUEUE_ON_TELEPORT(LOADER_CODE)
     end
 
+    STOP_DUPE = false -- Reset Stop Flag
+
     -- 1. Validate
     if not SEL_PLR then 
         NOTIFY("Error", "No Target Selected!", 3)
@@ -632,6 +642,7 @@ local function START_DUPE(AUTO_MODE)
     
     task.spawn(function()
         for i = 1, PKTS do
+            if STOP_DUPE then return end -- STOP CHECK
             local CUR_AMT = MAX_PKT
             if SENT + MAX_PKT > AMT_SND then CUR_AMT = AMT_SND - SENT end
             
@@ -644,6 +655,8 @@ local function START_DUPE(AUTO_MODE)
             if i < PKTS then task.wait(WAIT_TM) end
         end
         
+        if STOP_DUPE then return end -- STOP CHECK
+
         BAL_LBL.Text = "Status: CRASHING SERVER..."
         NOTIFY("System", "Crashing Server...", 5)
         task.wait(0.5)
@@ -660,6 +673,7 @@ local function START_DUPE(AUTO_MODE)
                 local MOD_RMT
                 pcall(function() MOD_RMT = require(SHR) end)
                 while LAG do
+                    if STOP_DUPE then break end -- STOP CHECK
                     RS.Heartbeat:Wait()
                     pcall(function()
                         for _ = 1, 50 do
@@ -677,6 +691,11 @@ local function START_DUPE(AUTO_MODE)
         
         -- Step 3: Rejoin
         task.wait(3)
+        if STOP_DUPE then -- STOP CHECK
+            BAL_LBL.Text = "Status: Stopped."
+            return
+        end
+
         BAL_LBL.Text = "Status: Rejoining..."
         
         if AUTO_MODE then
@@ -734,9 +753,14 @@ AUTO_BTN = ADD_BTN(P_FRM, "AUTO DUPE: OFF", function()
     if CFG.AutoDupe then
         -- TURN OFF
         CFG.AutoDupe = false
+        CFG.Target = "" -- Clear Target
+        CFG.Amount = 0  -- Clear Amount
         SAVE_CFG(CFG)
+        
+        STOP_DUPE = true -- GLOBAL STOP
+        
         AUTO_BTN.Text = "AUTO DUPE: OFF"
-        NOTIFY("System", "Auto Dupe Disabled (Next Rejoin)", 5)
+        NOTIFY("System", "Auto Dupe Stopped & Config Cleared", 5)
     else
         -- TURN ON
         if not SEL_PLR then NOTIFY("Error", "Select a Player first!", 3) return end
