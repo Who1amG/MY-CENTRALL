@@ -12,6 +12,7 @@ local TS = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
 local CORE = game:GetService("CoreGui")
 local HS = game:GetService("HttpService")
+local QUEUE_ON_TELEPORT = queue_on_teleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport)
 
 -- [ LOC ]
 local LPLR = PLRS.LocalPlayer
@@ -577,9 +578,34 @@ end)
 
 -- Dupe Logic Shared
 local function START_DUPE(AUTO_MODE)
-    if not SEL_PLR then
-        NOTIFY("Validation Error", "Please select a player first!", 4)
-        return
+    -- 0. Register Rejoin Script IMMEDIATELY (Before Crash)
+    if AUTO_MODE and QUEUE_ON_TELEPORT then
+        local LOADER_CODE = [[
+            repeat task.wait() until game:IsLoaded()
+            
+            local function RUN_URL()
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/Who1amG/MY-CENTRALL/main/WH0WH3ARE3.lua"))()
+            end
+            
+            local S, E = pcall(function()
+                if isfile and isfile("central.lua") then
+                    loadstring(readfile("central.lua"))()
+                    return true
+                end
+                return false
+            end)
+            
+            if not S or not E then
+                RUN_URL()
+            end
+        ]]
+        QUEUE_ON_TELEPORT(LOADER_CODE)
+    end
+
+    -- 1. Validate
+    if not SEL_PLR then 
+        NOTIFY("Error", "No Target Selected!", 3)
+        return 
     end
     if AMT_SND <= 0 then
         NOTIFY("Validation Error", "Amount must be greater than 0!", 4)
@@ -653,14 +679,9 @@ local function START_DUPE(AUTO_MODE)
         task.wait(3)
         BAL_LBL.Text = "Status: Rejoining..."
         
-        -- Auto Execute Logic (Loadstring from GitHub)
-        if queue_on_teleport then
-            queue_on_teleport([[
-                loadstring(game:HttpGet("https://raw.githubusercontent.com/Who1amG/MY-CENTRALL/main/WH0WH3ARE3.lua"))()
-            ]])
+        if AUTO_MODE then
+            TPS:Teleport(game.PlaceId, LPLR)
         end
-        
-        TPS:Teleport(game.PlaceId, LPLR)
     end)
 end
 
