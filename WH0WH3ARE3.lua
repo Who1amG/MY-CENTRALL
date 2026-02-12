@@ -4,6 +4,7 @@
     Variables: Short (3-4 chars)
     Tabs: Redesigned (Top Pills)
     Controls: Resize, Minimize, Close (Traffic Lights)
+-- v1 00,
 ]]
 
 -- [ SVC ]
@@ -734,16 +735,34 @@ task.spawn(function()
             
             if T_PLR then
                 SEL_PLR = T_PLR
-                NOTIFY("System", "Target Found! Waiting for Intro (8s)...", 5)
+                NOTIFY("System", "Target Found! Waiting for Play...", 5)
                 
-                -- [ SMART WAIT: MainScreen ]
-                local M_SCR = LPLR.PlayerGui:FindFirstChild("MainScreen")
-                if not M_SCR then
-                    NOTIFY("System", "Waiting for Game UI...", 3)
-                    M_SCR = LPLR.PlayerGui:WaitForChild("MainScreen", 10)
+                -- [ SMART WAIT: Play Detection ]
+                local M_SCR = LPLR.PlayerGui:WaitForChild("MainScreen", 30)
+                
+                if M_SCR then
+                    NOTIFY("System", "Menu Detected. Waiting for Play...", 5)
+                    
+                    -- Wait until MainScreen is hidden (Player clicked Play)
+                    -- OR Character spawns and moves
+                    
+                    -- Method 1: Wait for Character
+                    if not LPLR.Character then LPLR.CharacterAdded:Wait() end
+                    local CHAR = LPLR.Character
+                    
+                    -- Method 2: Wait for MainScreen to hide (Intro finish)
+                    -- Most games hide the menu ScreenGui when playing
+                    while M_SCR.Visible or (M_SCR:FindFirstChild("Profile") and M_SCR.Profile.Visible) do
+                         task.wait(1)
+                    end
+                    
+                    NOTIFY("System", "Game Started! Waiting 3s...", 3)
+                    task.wait(3)
+                else
+                    NOTIFY("System", "UI Not Found, using 11s fallback...", 5)
+                    task.wait(11)
                 end
                 
-                task.wait(8) -- User requested 8s for Intro
                 START_DUPE(true)
             else
                 NOTIFY("Auto Dupe", "Target not found! Stopping.", 10)
