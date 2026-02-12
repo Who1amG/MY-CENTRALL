@@ -4,7 +4,6 @@
     Variables: Short (3-4 chars)
     Tabs: Redesigned (Top Pills)
     Controls: Resize, Minimize, Close (Traffic Lights)
---92
 ]]
 
 -- [ SVC ]
@@ -737,28 +736,32 @@ task.spawn(function()
                 SEL_PLR = T_PLR
                 NOTIFY("System", "Target Found! Waiting for Play...", 5)
                 
-                -- [ SMART WAIT: Play Detection ]
-                -- Wait for MainScreen to EXIST (HUD loaded)
+                -- [ SMART WAIT: IntroFrame Detection ]
+                -- Wait for MainScreen (HUD)
                 local M_SCR = LPLR.PlayerGui:WaitForChild("MainScreen", 30)
                 
                 if M_SCR then
-                    NOTIFY("System", "HUD Detected. Waiting for Movement...", 5)
+                    NOTIFY("System", "HUD Detected. Checking for Intro...", 5)
                     
-                    -- Wait for Character
-                    if not LPLR.Character then LPLR.CharacterAdded:Wait() end
-                    local CHAR = LPLR.Character
-                    local HRP = CHAR:WaitForChild("HumanoidRootPart", 10)
+                    -- Check for IntroFrame (The Menu)
+                    local INTRO = M_SCR:FindFirstChild("IntroFrame")
                     
-                    -- Wait for player to actually spawn (position change from origin or nil)
-                    -- OR wait for Intro Camera to break (CurrentCamera.CameraSubject becomes Humanoid)
-                    
-                    local CAM = workspace.CurrentCamera
-                    repeat
-                        task.wait(1)
-                    until CAM.CameraSubject == CHAR:FindFirstChild("Humanoid")
-                    
-                    NOTIFY("System", "Camera Active! Starting in 5s...", 3)
-                    task.wait(5)
+                    if INTRO and INTRO.Visible then
+                        NOTIFY("System", "Intro Active. Waiting for Play...", 5)
+                        
+                        -- Wait until IntroFrame is destroyed or hidden
+                        repeat
+                            task.wait(1)
+                        until not INTRO.Parent or not INTRO.Visible
+                        
+                        NOTIFY("System", "Intro Finished! Starting in 3s...", 3)
+                        task.wait(3)
+                    else
+                        -- If IntroFrame doesn't exist, we might be already playing
+                        -- Or it might be named differently, but let's assume we are ready
+                        NOTIFY("System", "No Intro Detected. Starting in 3s...", 3)
+                        task.wait(3)
+                    end
                 else
                     NOTIFY("System", "UI Not Found, using 11s fallback...", 5)
                     task.wait(11)
