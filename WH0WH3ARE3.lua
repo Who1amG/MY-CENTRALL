@@ -1,9 +1,9 @@
-
+--potassium 0%
 --==================== COMPATIBILITY FIX (POTASSIUM/GENERIC) ====================
-if not game:IsLoaded() then game.Loaded:Wait() end
-local Players = game:GetService("Players")
-if not Players.LocalPlayer then Players:GetPropertyChangedSignal("LocalPlayer"):Wait() end
+task.wait(1) -- Esperar carga inicial
+pcall(function() if not game:IsLoaded() then game.Loaded:Wait() end end)
 
+local Players = game:GetService("Players")
 --==================== SERVICES ====================
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
