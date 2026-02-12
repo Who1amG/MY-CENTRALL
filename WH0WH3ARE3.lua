@@ -3,7 +3,8 @@
     Style: Apple Glass Dark / Elegant / Limix Mint
     Variables: Short (3-4 chars)
     Tabs: Redesigned (Top Pills)
-    --v2
+    Controls: Resize, Minimize, Close (Traffic Lights)
+--92
 ]]
 
 -- [ SVC ]
@@ -741,17 +742,23 @@ task.spawn(function()
                 local M_SCR = LPLR.PlayerGui:WaitForChild("MainScreen", 30)
                 
                 if M_SCR then
-                    NOTIFY("System", "HUD Detected. Waiting for Char...", 5)
+                    NOTIFY("System", "HUD Detected. Waiting for Movement...", 5)
                     
-                    -- Wait for Character to be fully ready
+                    -- Wait for Character
                     if not LPLR.Character then LPLR.CharacterAdded:Wait() end
                     local CHAR = LPLR.Character
-                    
-                    -- Wait for HumanoidRootPart to ensure physics are ready
                     local HRP = CHAR:WaitForChild("HumanoidRootPart", 10)
                     
-                    NOTIFY("System", "Player Ready! Starting in 3s...", 3)
-                    task.wait(3)
+                    -- Wait for player to actually spawn (position change from origin or nil)
+                    -- OR wait for Intro Camera to break (CurrentCamera.CameraSubject becomes Humanoid)
+                    
+                    local CAM = workspace.CurrentCamera
+                    repeat
+                        task.wait(1)
+                    until CAM.CameraSubject == CHAR:FindFirstChild("Humanoid")
+                    
+                    NOTIFY("System", "Camera Active! Starting in 5s...", 3)
+                    task.wait(5)
                 else
                     NOTIFY("System", "UI Not Found, using 11s fallback...", 5)
                     task.wait(11)
