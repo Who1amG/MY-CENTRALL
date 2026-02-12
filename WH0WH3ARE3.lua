@@ -1,9 +1,10 @@
 
 --==================== COMPATIBILITY FIX (POTASSIUM/GENERIC) ====================
-local getgenv = getgenv or function() return _G end
+if not game:IsLoaded() then game.Loaded:Wait() end
+local Players = game:GetService("Players")
+if not Players.LocalPlayer then Players:GetPropertyChangedSignal("LocalPlayer"):Wait() end
 
 --==================== SERVICES ====================
-local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local SoundService = game:GetService("SoundService")
@@ -65,15 +66,15 @@ local Theme = {
 }
 
 --==================== ANTI DUPLICATE (FIXED - CIERRA LA VIEJA) ====================
-if getgenv().GlassmasUI_Running then
+if _G.GlassmasUI_Running then
 	pcall(function()
-		if getgenv().GlassmasUI_Shutdown then
-			getgenv().GlassmasUI_Shutdown()
+		if _G.GlassmasUI_Shutdown then
+			_G.GlassmasUI_Shutdown()
 		end
 	end)
 	task.wait(0.5)
 end
-getgenv().GlassmasUI_Running = true
+_G.GlassmasUI_Running = true
 
 --==================== SAFE FOLDERS (NO CRASH) ====================
 local ElementsFolder = RS:FindFirstChild("Elements")
@@ -244,14 +245,14 @@ do
 end
 
 
-getgenv().GlassmasUI_Shutdown = function()
-	getgenv().GlassmasUI_Running = false
+_G.GlassmasUI_Shutdown = function()
+	_G.GlassmasUI_Running = false
 
 	if FlyEnabled then stopFly() end
 
 	pcall(function()
-		if getgenv().GlassmasUI_ESP_Stop then
-			getgenv().GlassmasUI_ESP_Stop()
+		if _G.GlassmasUI_ESP_Stop then
+			_G.GlassmasUI_ESP_Stop()
 		else
 			clearESP()
 			disableESP()
@@ -654,7 +655,7 @@ local function snowLoop()
 	snowThreadId += 1
 	local myId = snowThreadId
 	task.spawn(function()
-		while UI.Parent and getgenv().GlassmasUI_Running and myId == snowThreadId do
+		while UI.Parent and _G.GlassmasUI_Running and myId == snowThreadId do
 			task.wait(0.28)
 			if SnowEnabled and Window.Visible then
 				spawnSnowflake()
@@ -1337,7 +1338,7 @@ local ESP = {
 }
 
 local function espIsAlive()
-	return UI and UI.Parent and getgenv().GlassmasUI_Running and ESP.Running
+	return UI and UI.Parent and _G.GlassmasUI_Running and ESP.Running
 end
 
 local function refreshESPFont()
@@ -1725,11 +1726,12 @@ ESP.Conns.ESP_LoopB = task.spawn(function()
 	end
 end)
 
-getgenv().GlassmasUI_ESP_Clear = function()
+_G.GlassmasUI_ESP_Clear = function()
 	clearESP()
 end
-getgenv().GlassmasUI_ESP_Stop = function()
-	ESP.Running = false
+_G.GlassmasUI_ESP_Stop = function()
+	disableESP()
+endESP.Running = false
 	clearESP()
 	for k, c in pairs(ESP.Conns) do
 		if typeof(c) == "RBXScriptConnection" then
@@ -2590,7 +2592,7 @@ local rejoinWithScriptBtn = makeAppleAction(
         -- 🔒 Script en cola (se ejecuta al entrar)
        if queue_on_teleport then
     queue_on_teleport([[
-        getgenv().Glassmas_AutoLoad = true
+        _G.Glassmas_AutoLoad = true
         pcall(function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/Who1amG/MY-CENTRALL/refs/heads/main/WH0WH3ARE3.lua"))()
         end)
@@ -2639,7 +2641,7 @@ BtnClose.MouseButton1Click:Connect(function()
     if shouldIgnoreClick() then return end
     pcall(blurOut)
     playOptionSound()
-    getgenv().GlassmasUI_Running = false
+    _G.GlassmasUI_Running = false
 
     if FlyEnabled then stopFly() end
 
