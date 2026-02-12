@@ -1,30 +1,32 @@
---potassium 0%%%
 
---==================== ULTRA COMPATIBILITY HEADER ====================
--- 1. Polyfill para 'task' (si el ejecutor es viejo o limitado)
-if not task then
-    _G.task = {
-        wait = function(t) return wait(t) end,
-        spawn = function(f) return spawn(f) end,
-        delay = function(t, f) return delay(t, f) end,
-        defer = function(f) return coroutine.resume(coroutine.create(f)) end
-    }
+-- [[ POTASSIUM FIX V3 - EXTREME SAFE MODE ]] --
+local function safe_env()
+    getgenv = getgenv or function() return _G end
+    
+    if not task then
+        getgenv().task = {
+            wait = wait,
+            spawn = spawn,
+            delay = delay,
+            defer = function(f) coroutine.resume(coroutine.create(f)) end
+        }
+    end
 end
-local task = task or _G.task
+pcall(safe_env)
 
--- 2. Polyfill para 'getgenv' (si no existe)
-local getgenv = getgenv or function() return _G end
-
--- 3. Espera segura de carga
-if not game:IsLoaded() then
-    game.Loaded:Wait()
-end
-
+local task = _G.task or task or {wait=wait, spawn=spawn, delay=delay}
 local Players = game:GetService("Players")
-if not Players.LocalPlayer then
-    Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+
+-- Espera pasiva (sin eventos complejos)
+if not game:IsLoaded() then
+    repeat task.wait(0.1) until game:IsLoaded()
 end
+
 local LocalPlayer = Players.LocalPlayer
+if not LocalPlayer then
+    repeat task.wait(0.1) LocalPlayer = Players.LocalPlayer until LocalPlayer
+end
+-- [[ END FIX ]] --
 
 --==================== SERVICES ====================
 local TweenService = game:GetService("TweenService")
