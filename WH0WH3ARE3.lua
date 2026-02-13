@@ -1,10 +1,5 @@
 --[[
-    CENTRAL GLASS - MINT EDITION v2
-    Style: Apple Glass Dark / Elegant / Limix Mint
-    Variables: Short (3-4 chars)
-    Tabs: Redesigned (Top Pills)
-    Controls: Resize, Minimize, Close (Traffic Lights)
-uywg
+ v2
 ]]
 
 -- [ SVC ]
@@ -25,6 +20,7 @@ if _G.CENTRAL_LOADED then
     else
         _G.CENTRAL_LOADED = false -- Reset if GUI is gone
     end
+
 end
 _G.CENTRAL_LOADED = true
 
@@ -874,19 +870,22 @@ DRG.Size = UDim2.new(1, 0, 1, 0) -- Drag Anywhere
 DRG.BackgroundTransparency = 1
 DRG.ZIndex = 1 -- Behind everything interactive
 
-local DG_ON, DG_STR, DG_POS
+local DG_ON, DG_STR, DG_POS, DG_INP
 DRG.InputBegan:Connect(function(I)
-    if I.UserInputType == Enum.UserInputType.MouseButton1 then
+    if I.UserInputType == Enum.UserInputType.MouseButton1 or I.UserInputType == Enum.UserInputType.Touch then
         DG_ON = true
         DG_STR = I.Position
         DG_POS = MAIN.Position
+        DG_INP = I
         I.Changed:Connect(function()
             if I.UserInputState == Enum.UserInputState.End then DG_ON = false end
         end)
     end
 end)
 UIS.InputChanged:Connect(function(I)
-    if I.UserInputType == Enum.UserInputType.MouseMovement and DG_ON then
+    local IS_MOUSE = I.UserInputType == Enum.UserInputType.MouseMovement
+    local IS_TOUCH = I.UserInputType == Enum.UserInputType.Touch
+    if DG_ON and (IS_MOUSE or (IS_TOUCH and I == DG_INP)) then
         local DEL = I.Position - DG_STR
         MAIN.Position = UDim2.new(DG_POS.X.Scale, DG_POS.X.Offset + DEL.X, DG_POS.Y.Scale, DG_POS.Y.Offset + DEL.Y)
     end
@@ -915,10 +914,12 @@ RSZ.InputBegan:Connect(function(I)
     end
 end)
 UIS.InputChanged:Connect(function(I)
-    if (I.UserInputType == Enum.UserInputType.MouseMovement or I.UserInputType == Enum.UserInputType.Touch) and R_ON and I == R_INP then
+    local IS_MOUSE = I.UserInputType == Enum.UserInputType.MouseMovement
+    local IS_TOUCH = I.UserInputType == Enum.UserInputType.Touch
+    if R_ON and (IS_MOUSE or (IS_TOUCH and I == R_INP)) then
         local DEL = I.Position - R_STR
-        local NW_X = math.max(300, R_SIZ.X + DEL.X) -- Min 300px width
-        local NW_Y = math.max(200, R_SIZ.Y + DEL.Y) -- Min 200px height
+        local NW_X = math.max(450, R_SIZ.X + DEL.X) -- Min 450px width
+        local NW_Y = math.max(300, R_SIZ.Y + DEL.Y) -- Min 300px height
         MAIN.Size = UDim2.new(0, NW_X, 0, NW_Y)
     end
 end)
@@ -929,6 +930,79 @@ UIS.InputBegan:Connect(function(I, G)
         MAIN.Visible = not MAIN.Visible
     end
 end)
+
+-- [ MOBILE ]
+if UIS.TouchEnabled then
+    -- Adjust Main UI
+    MAIN.AnchorPoint = Vector2.new(0.5, 0.5)
+    MAIN.Position = UDim2.new(0.5, 0, 0.5, 0)
+    MAIN.Size = UDim2.new(0.6, 0, 0.5, 0)
+    
+    -- Mobile Toggle Button
+    local MTOG = Instance.new("ImageButton", SCR)
+    MTOG.Name = "MTOG"
+    MTOG.Size = UDim2.new(0, 50, 0, 50)
+    MTOG.Position = UDim2.new(1, -70, 0.2, 0)
+    MTOG.BackgroundColor3 = CFG.COL.BG
+    MTOG.BackgroundTransparency = 0.2
+    MTOG.Image = CFG.IMG
+    MTOG.ImageColor3 = CFG.COL.ACC
+    MTOG.ZIndex = 100
+    RND(MTOG, 25)
+    STR(MTOG, CFG.COL.ACC, 2)
+    
+    MTOG.MouseButton1Click:Connect(function()
+        MAIN.Visible = not MAIN.Visible
+    end)
+    
+    -- Draggable Toggle
+    local M_ON, M_STR, M_POS, M_INP
+    MTOG.InputBegan:Connect(function(I)
+        if I.UserInputType == Enum.UserInputType.Touch or I.UserInputType == Enum.UserInputType.MouseButton1 then
+            M_ON = true
+            M_STR = I.Position
+            M_POS = MTOG.Position
+            M_INP = I
+            I.Changed:Connect(function() if I.UserInputState == Enum.UserInputState.End then M_ON = false end end)
+        end
+    end)
+    UIS.InputChanged:Connect(function(I)
+        local IS_MOUSE = I.UserInputType == Enum.UserInputType.MouseMovement
+        local IS_TOUCH = I.UserInputType == Enum.UserInputType.Touch
+        if M_ON and (IS_MOUSE or (IS_TOUCH and I == M_INP)) then
+            local DEL = I.Position - M_STR
+            MTOG.Position = UDim2.new(M_POS.X.Scale, M_POS.X.Offset + DEL.X, M_POS.Y.Scale, M_POS.Y.Offset + DEL.Y)
+        end
+    end)
+end
+
+-- [ GOTH GIRLFRIEND ]
+--                                          '
+--                                         c'               ..
+--                                        o:               ;:.
+--                                       ll,             .c:;
+--                                      'o:,            'l:;;.
+--                                      dl:;.        .  lc;;;,
+--                                     dol;;,      ,l' co;;;;;
+--                                    :oll;;,'....;lc'.oc;;;;;.
+--                                .;ccloll;;;;;;;;:c:;,l:;;;;;,
+--                             'loolllccc:;:cc:;;;;;;;;;,,;;;;.
+--                          .cddolllllllllllllllc:;;;;;;,'',;''
+--                        .cddollllllllllllllllllll:;;;;,''''''.
+--                      .lddlllldddolllllllllllllc:;;;;;;;,''''''
+--                     .oollll:;;:coddolllllllc;;,,:ccc;;;;;'.'''.
+--                     KKOdollll.::;:coddolc:;;;;,clllll;coko..''.
+--                     NNKNKkoll:occlc::cc::ccccl:lllldkk0XNl  ...'
+--                     lNXkNXX0OkxxkoKXNNNNX0okxxxxk0KX00kNN
+--                      KNOod00XKXXX00NNNNNN0XNXXXXKXOdooKN,
+--                      xNNO:.ocKOW0XKXKKXXKKXKXONd0;c.cON,
+--                 .':ooldXNKl'.,.x.O:0lcO0l:K'x.l....lKNOo;,..
+--            .':ldddolc:,  NXOd'.    .  ..  .     'l0Xo :clodddoc;'..
+--      ..,:oddddolcc::'     .XXX0lc;;',.; ,,:;::k0XXx     ::ccllodddddoc:,..
+--  .,coooolllccc::,            ,XXXXKXXONOXXKXXNXk           .:::ccccllllloolc;.
+--                                    xXXXXKK'
+--                                    
+-- TE AMO MI AMOR ETERNO <3
 
 
 
