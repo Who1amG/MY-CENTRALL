@@ -1,5 +1,9 @@
 --[[
-  bug FIX
+    CENTRAL GLASS - MINT EDITION v2
+    Style: Apple Glass Dark / Elegant / Limix Mint
+    Variables: Short (3-4 chars)
+    Tabs: Redesigned (Top Pills)
+    Controls: Resize, Minimize, Close (Traffic Lights)
 ]]
 
 -- [ SVC ]
