@@ -1,6 +1,72 @@
 --[[
- v2
+    CENTRAL GLASS - MINT EDITION v2
+    Style: Apple Glass Dark / Elegant / Limix Mint
+    Variables: Short (3-4 chars)
+    Tabs: Redesigned (Top Pills)
+    Controls: Resize, Minimize, Close (Traffic Lights)
 ]]
+
+-- [ ANTI CHEAT BYPASS ]
+--[[ 
+    WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk! 
+]] 
+local g = getinfo or debug.getinfo 
+local d = false 
+local h = {} 
+
+local x, y 
+
+setthreadidentity(2) 
+
+for i, v in getgc(true) do 
+    if typeof(v) == "table" then 
+        local a = rawget(v, "Detected") 
+        local b = rawget(v, "Kill") 
+    
+        if typeof(a) == "function" and not x then 
+            x = a 
+            
+            local o; o = hookfunction(x, function(c, f, n) 
+                if c ~= "_" then 
+                    if d then 
+                        warn(`Adonis AntiCheat flagged\nMethod: {c}\nInfo: {f}`) 
+                    end 
+                end 
+                
+                return true 
+            end) 
+
+            table.insert(h, x) 
+        end 
+
+        if rawget(v, "Variables") and rawget(v, "Process") and typeof(b) == "function" and not y then 
+            y = b 
+            local o; o = hookfunction(y, function(f) 
+                if d then 
+                    warn(`Adonis AntiCheat tried to kill (fallback): {f}`) 
+                end 
+            end) 
+
+            table.insert(h, y) 
+        end 
+    end 
+end 
+
+local o; o = hookfunction(getrenv().debug.info, newcclosure(function(...) 
+    local a, f = ... 
+
+    if x and a == x then 
+        if d then 
+            warn(`zins | adonis bypassed`) 
+        end 
+
+        return coroutine.yield(coroutine.running()) 
+    end 
+    
+    return o(...) 
+end)) 
+
+setthreadidentity(7)
 
 -- [ SVC ]
 local PLRS = game:GetService("Players")
@@ -10,6 +76,58 @@ local CORE = game:GetService("CoreGui")
 local HS = game:GetService("HttpService")
 local QUEUE_ON_TELEPORT = queue_on_teleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport)
 local STOP_DUPE = false
+
+-- [ AUTO PLAY ]
+task.spawn(function()
+    -- Check Config First (Only Auto Play if Auto Dupe is ON)
+    if isfile("CentralConfig/config.json") then
+        local S, D = pcall(function() 
+            return game:GetService("HttpService"):JSONDecode(readfile("CentralConfig/config.json")) 
+        end)
+        if not S or not D or not D.AutoDupe then
+            return -- Exit if AutoDupe is OFF
+        end
+    else
+        return -- Exit if no config
+    end
+
+    local PG = PLRS.LocalPlayer:WaitForChild("PlayerGui", 20)
+    if not PG then return end
+    
+    local VIM = game:GetService("VirtualInputManager")
+    local ATTEMPTS = 0
+    while ATTEMPTS < 20 do
+        local SCR = PG:FindFirstChild("MainScreen") or PG:FindFirstChild("Intro") or PG:FindFirstChild("Loading")
+        if SCR then
+            local BTN = SCR:FindFirstChild("Play", true) or SCR:FindFirstChild("PlayButton", true) or SCR:FindFirstChild("Enter", true)
+            if BTN and BTN:IsA("GuiButton") and BTN.Visible then
+                -- Method 1: VirtualInputManager (Simulate Real Click)
+                local ABS_POS = BTN.AbsolutePosition
+                local ABS_SIZ = BTN.AbsoluteSize
+                local CENTER = ABS_POS + (ABS_SIZ / 2)
+                VIM:SendMouseButtonEvent(CENTER.X, CENTER.Y, 0, true, game, 1)
+                task.wait(0.05)
+                VIM:SendMouseButtonEvent(CENTER.X, CENTER.Y, 0, false, game, 1)
+                
+                -- Method 2: FireSignals (Backup)
+                if firesignal then firesignal(BTN.MouseButton1Click) end
+                if getconnections then
+                    for _, c in pairs(getconnections(BTN.MouseButton1Click)) do c:Fire() end
+                    for _, c in pairs(getconnections(BTN.MouseButton1Down)) do c:Fire() end
+                    for _, c in pairs(getconnections(BTN.Activated)) do c:Fire() end
+                end
+                
+                -- Wait for game to react
+                task.wait(1)
+            end
+        end
+        if PLRS.LocalPlayer.Character and PLRS.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            break -- Already playing
+        end
+        ATTEMPTS = ATTEMPTS + 1
+        task.wait(0.5)
+    end
+end)
 
 -- [ SINGLETON ]
 if _G.CENTRAL_LOADED then
@@ -976,7 +1094,7 @@ if UIS.TouchEnabled then
     end)
 end
 
--- [ GOTH GIRLFRIEND ]
+-- [ WHO1AM BRO FUCK ]
 --                                          '
 --                                         c'               ..
 --                                        o:               ;:.
