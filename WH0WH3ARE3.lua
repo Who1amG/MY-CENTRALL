@@ -596,9 +596,25 @@ local function START_DUPE(AUTO_MODE)
     end
 
     -- 0. Register Rejoin Script IMMEDIATELY (Before Crash)
-    if QUEUE_ON_TELEPORT then
+    if AUTO_MODE and QUEUE_ON_TELEPORT then
         local LOADER_CODE = [[
             repeat task.wait() until game:IsLoaded()
+            
+            -- [ SECURITY CHECK ]
+            -- Only load if AutoDupe is still active in Config
+            local HS = game:GetService("HttpService")
+            local CAN_LOAD = false
+            pcall(function()
+                if isfile and isfile("CentralConfig/config.json") then
+                    local RAW = readfile("CentralConfig/config.json")
+                    local DAT = HS:JSONDecode(RAW)
+                    if DAT and DAT.AutoDupe then
+                        CAN_LOAD = true
+                    end
+                end
+            end)
+            
+            if not CAN_LOAD then return end -- STOP IF OFF
             
             local function RUN_URL()
                 loadstring(game:HttpGet("https://raw.githubusercontent.com/Who1amG/MY-CENTRALL/main/WH0WH3ARE3.lua"))()
@@ -667,7 +683,7 @@ local function START_DUPE(AUTO_MODE)
         if STOP_DUPE then return end -- STOP CHECK
 
         BAL_LBL.Text = "Status: CRASHING SERVER..."
-        NOTIFY("System", "Crashing Server...", 5)
+        NOTIFY("System", "Rejoin Server...", 5)
         task.wait(0.5)
         
         -- Step 2: Crash
@@ -729,7 +745,7 @@ task.spawn(function()
         MAIN.Visible = true -- Force visible
         
         if T_NM ~= "" then
-            NOTIFY("Auto Dupe", "Config Found! Waiting for " .. T_NM, 10)
+            -- Silent Success (User requested removal of "Config Found")
             AMT_SND = T_AM
             
             -- Wait for player loop
@@ -748,7 +764,7 @@ task.spawn(function()
                 local M_SCR = LPLR.PlayerGui:WaitForChild("MainScreen", 30)
                 
                 if M_SCR then
-                    NOTIFY("System", "HUD Detected. Checking for Intro...", 5)
+                    -- HUD Detected
                     
                     -- Check for IntroFrame (The Menu)
                     local INTRO = M_SCR:FindFirstChild("IntroFrame")
@@ -793,7 +809,12 @@ task.spawn(function()
                 CFG_DAT.AutoDupe = false
                 SAVE_CFG(CFG_DAT)
             end
+        else
+            NOTIFY("Auto Dupe", "Config Error: No Target Found!", 5)
         end
+    else
+        -- Manual Mode Notification
+        NOTIFY("System", "Config Not Found (Manual Mode)", 3)
     end
 end)
 
