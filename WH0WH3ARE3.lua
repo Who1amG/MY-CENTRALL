@@ -1,11 +1,6 @@
 --[[
-    CENTRAL GLASS - MINT EDITION v2
-    Style: Apple Glass Dark / Elegant / Limix Mint
-    Variables: Short (3-4 chars)
-    Tabs: Redesigned (Top Pills)
-    Controls: Resize, Minimize, Close (Traffic Lights)
+  bug FIX
 ]]
---oiwrjokwfj
 
 -- [ SVC ]
 local PLRS = game:GetService("Players")
@@ -587,8 +582,17 @@ end)
 
 -- Dupe Logic Shared
 local function START_DUPE(AUTO_MODE)
+    -- Security Check for Auto Mode
+    if AUTO_MODE then
+        local CHK = LOAD_CFG()
+        if not CHK.AutoDupe then
+            NOTIFY("System", "Auto Dupe Aborted (Config OFF)", 5)
+            return
+        end
+    end
+
     -- 0. Register Rejoin Script IMMEDIATELY (Before Crash)
-    if AUTO_MODE and QUEUE_ON_TELEPORT then
+    if QUEUE_ON_TELEPORT then
         local LOADER_CODE = [[
             repeat task.wait() until game:IsLoaded()
             
@@ -699,9 +703,7 @@ local function START_DUPE(AUTO_MODE)
 
         BAL_LBL.Text = "Status: Rejoining..."
         
-        if AUTO_MODE then
-            TPS:Teleport(game.PlaceId, LPLR)
-        end
+        TPS:Teleport(game.PlaceId, LPLR)
     end)
 end
 
@@ -753,6 +755,12 @@ task.spawn(function()
                         -- Wait until IntroFrame is destroyed or hidden
                         repeat
                             task.wait(1)
+                            -- Check if stopped during wait
+                            local CHK_CFG = LOAD_CFG()
+                            if not CHK_CFG.AutoDupe then
+                                NOTIFY("System", "Auto Start Cancelled by User.", 5)
+                                return
+                            end
                         until not INTRO.Parent or not INTRO.Visible
                         
                         NOTIFY("System", "Intro Finished! Starting in 3s...", 3)
@@ -766,6 +774,13 @@ task.spawn(function()
                 else
                     NOTIFY("System", "UI Not Found, using 11s fallback...", 5)
                     task.wait(11)
+                end
+                
+                -- FINAL CHECK BEFORE START
+                local FINAL_CFG = LOAD_CFG()
+                if not FINAL_CFG.AutoDupe then
+                    NOTIFY("System", "Auto Start Cancelled.", 5)
+                    return
                 end
                 
                 START_DUPE(true)
@@ -790,6 +805,10 @@ AUTO_BTN = ADD_BTN(P_FRM, "AUTO DUPE: OFF", function()
         SAVE_CFG(CFG)
         
         STOP_DUPE = true -- GLOBAL STOP
+        
+        -- Clear Internal State
+        SEL_PLR = nil
+        AMT_SND = 1000000 -- Reset to default
         
         AUTO_BTN.Text = "AUTO DUPE: OFF"
         NOTIFY("System", "Auto Dupe Stopped & Config Cleared", 5)
