@@ -4,6 +4,7 @@
     Variables: Short (3-4 chars)
     Tabs: Redesigned (Top Pills)
     Controls: Resize, Minimize, Close (Traffic Lights)
+uywg
 ]]
 
 -- [ SVC ]
@@ -17,8 +18,13 @@ local STOP_DUPE = false
 
 -- [ SINGLETON ]
 if _G.CENTRAL_LOADED then
-    warn("Central Glass Already Loaded!")
-    return
+    local OLD = CORE:FindFirstChild("CEN_V2") or PLRS.LocalPlayer.PlayerGui:FindFirstChild("CEN_V2")
+    if OLD then
+        warn("Central Glass Already Loaded!")
+        return
+    else
+        _G.CENTRAL_LOADED = false -- Reset if GUI is gone
+    end
 end
 _G.CENTRAL_LOADED = true
 
@@ -407,6 +413,7 @@ local B_MIN = MK_BTN(CFG.COL.YEL, UDim2.new(0, 35, 0.5, -7))
 -- local B_MAX = MK_BTN(CFG.COL.GRN, UDim2.new(0, 55, 0.5, -7)) -- Optional
 
 B_CLS.MouseButton1Click:Connect(function()
+    _G.CENTRAL_LOADED = false
     SCR:Destroy()
 end)
 
@@ -895,22 +902,23 @@ RSZ.ImageColor3 = CFG.COL.ACC
 RSZ.ImageTransparency = 0.5
 RSZ.ZIndex = 10
 
-local R_ON, R_STR, R_SIZ
+local R_ON, R_STR, R_SIZ, R_INP
 RSZ.InputBegan:Connect(function(I)
-    if I.UserInputType == Enum.UserInputType.MouseButton1 then
+    if I.UserInputType == Enum.UserInputType.MouseButton1 or I.UserInputType == Enum.UserInputType.Touch then
         R_ON = true
         R_STR = I.Position
         R_SIZ = MAIN.AbsoluteSize
+        R_INP = I
         I.Changed:Connect(function()
             if I.UserInputState == Enum.UserInputState.End then R_ON = false end
         end)
     end
 end)
 UIS.InputChanged:Connect(function(I)
-    if I.UserInputType == Enum.UserInputType.MouseMovement and R_ON then
+    if (I.UserInputType == Enum.UserInputType.MouseMovement or I.UserInputType == Enum.UserInputType.Touch) and R_ON and I == R_INP then
         local DEL = I.Position - R_STR
-        local NW_X = math.max(400, R_SIZ.X + DEL.X)
-        local NW_Y = math.max(300, R_SIZ.Y + DEL.Y)
+        local NW_X = math.max(300, R_SIZ.X + DEL.X) -- Min 300px width
+        local NW_Y = math.max(200, R_SIZ.Y + DEL.Y) -- Min 200px height
         MAIN.Size = UDim2.new(0, NW_X, 0, NW_Y)
     end
 end)
@@ -921,3 +929,7 @@ UIS.InputBegan:Connect(function(I, G)
         MAIN.Visible = not MAIN.Visible
     end
 end)
+
+
+
+
