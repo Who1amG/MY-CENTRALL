@@ -596,8 +596,9 @@ local function START_DUPE(AUTO_MODE)
     end
 
     -- 0. Register Rejoin Script IMMEDIATELY (Before Crash)
-    if QUEUE_ON_TELEPORT then
-        local LOADER_CODE = [[
+    if AUTO_MODE and QUEUE_ON_TELEPORT then
+        local CURRENT_GAME_ID = game.GameId
+        local LOADER_CODE = "if game.GameId ~= " .. CURRENT_GAME_ID .. " then return end\n" .. [[
             repeat task.wait() until game:IsLoaded()
             
             local function RUN_URL()
@@ -732,6 +733,8 @@ task.spawn(function()
             -- Silent Success (User requested removal of "Config Found")
             AMT_SND = T_AM
             
+            MAIN.Visible = true -- SHOW UI
+            
             -- Wait for player loop
             local T_PLR = PLRS:FindFirstChild(T_NM)
             if not T_PLR then
@@ -795,10 +798,12 @@ task.spawn(function()
             end
         else
             NOTIFY("Auto Dupe", "Config Error: No Target Found!", 5)
+            MAIN.Visible = true -- Force visible on error
         end
     else
-        -- Manual Mode Notification
-        NOTIFY("System", "Config Not Found (Manual Mode)", 3)
+        -- Manual Mode (First Time Load)
+        -- NOTIFY("System", "Config Not Found (Manual Mode)", 3) -- Silent
+        MAIN.Visible = true -- Force visible on manual
     end
 end)
 
