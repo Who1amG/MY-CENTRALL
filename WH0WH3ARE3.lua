@@ -596,25 +596,9 @@ local function START_DUPE(AUTO_MODE)
     end
 
     -- 0. Register Rejoin Script IMMEDIATELY (Before Crash)
-    if AUTO_MODE and QUEUE_ON_TELEPORT then
+    if QUEUE_ON_TELEPORT then
         local LOADER_CODE = [[
             repeat task.wait() until game:IsLoaded()
-            
-            -- [ SECURITY CHECK ]
-            -- Only load if AutoDupe is still active in Config
-            local HS = game:GetService("HttpService")
-            local CAN_LOAD = false
-            pcall(function()
-                if isfile and isfile("CentralConfig/config.json") then
-                    local RAW = readfile("CentralConfig/config.json")
-                    local DAT = HS:JSONDecode(RAW)
-                    if DAT and DAT.AutoDupe then
-                        CAN_LOAD = true
-                    end
-                end
-            end)
-            
-            if not CAN_LOAD then return end -- STOP IF OFF
             
             local function RUN_URL()
                 loadstring(game:HttpGet("https://raw.githubusercontent.com/Who1amG/MY-CENTRALL/main/WH0WH3ARE3.lua"))()
@@ -830,6 +814,11 @@ AUTO_BTN = ADD_BTN(P_FRM, "AUTO DUPE: OFF", function()
         SAVE_CFG(CFG)
         
         STOP_DUPE = true -- GLOBAL STOP
+        
+        -- Attempt to clear any pending Teleport Queue
+        if QUEUE_ON_TELEPORT then
+            QUEUE_ON_TELEPORT("")
+        end
         
         -- Clear Internal State
         SEL_PLR = nil
