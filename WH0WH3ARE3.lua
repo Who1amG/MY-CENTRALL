@@ -668,28 +668,36 @@ end
 local MNY_RMT = REP:WaitForChild("Remotes"):WaitForChild("SendMoney")
 
 -- [ FARM UI ]
+local function ADD_SPLIT(PAG)
+    local ROW = Instance.new("Frame", PAG)
+    ROW.Size = UDim2.new(1, -10, 0, 35)
+    ROW.BackgroundTransparency = 1
+    
+    local L = Instance.new("Frame", ROW)
+    L.Size = UDim2.new(0.5, -2, 1, 0)
+    L.Position = UDim2.new(0, 0, 0, 0)
+    L.BackgroundTransparency = 1
+    
+    local R = Instance.new("Frame", ROW)
+    R.Size = UDim2.new(0.5, -2, 1, 0)
+    R.Position = UDim2.new(0.5, 2, 0, 0)
+    R.BackgroundTransparency = 1
+    
+    return L, R, ROW
+end
+
 ADD_LBL(P_FRM, "AUTO DUPE CONFIG")
+local MDL = ADD_LBL(P_FRM, "MONEY DUPE")
+MDL.TextColor3 = Color3.new(1, 1, 1)
 
--- Balance Monitor (Moved Top)
-local BAL_LBL = ADD_LBL(P_FRM, "Balance: Loading...")
-task.spawn(function()
-    while true do
-        task.wait(1)
-        pcall(function()
-            local UTL = require(REP.Functions:WaitForChild("Utility"))
-            local DAT = UTL:GetClientData()
-            local BAL = DAT and DAT.Balance or 0
-            BAL_LBL.Text = "Balance: $" .. FMT_NUM(BAL)
-        end)
-    end
-end)
+-- Row 1: Player & Refresh
+local R1_L, R1_R, R1 = ADD_SPLIT(P_FRM)
+R1.ZIndex = 20
 
--- Dropdown
-local DRP_PLR = ADD_DRP(P_FRM, "Select Player", function(VAL)
+local DRP_PLR = ADD_DRP(R1_L, "Select Player", function(VAL)
     SEL_PLR = PLRS:FindFirstChild(VAL)
 end)
 
--- Refresh Logic
 local function UPD_PLR()
     local NMS = {}
     for _, P in pairs(PLRS:GetPlayers()) do
@@ -698,10 +706,13 @@ local function UPD_PLR()
     DRP_PLR.REFRESH(NMS)
 end
 UPD_PLR() -- Init
-ADD_BTN(P_FRM, "Refresh Players", UPD_PLR)
+ADD_BTN(R1_R, "Refresh Players", UPD_PLR)
 
--- Amount Input
-ADD_INP(P_FRM, "Amount (Default: 1M)", "1000000", function(VAL)
+-- Row 2: Amount & Money Dupe
+local R2_L, R2_R, R2 = ADD_SPLIT(P_FRM)
+R2.ZIndex = 10
+
+ADD_INP(R2_L, "Amount (1M)", "1000000", function(VAL)
     AMT_SND = tonumber(VAL) or 0
 end)
 
@@ -780,7 +791,6 @@ local function START_DUPE(AUTO_MODE)
             if CUR_AMT > 0 then
                 MNY_RMT:FireServer(SEL_PLR.Name, CUR_AMT)
                 SENT = SENT + CUR_AMT
-                BAL_LBL.Text = "Sending: " .. i .. "/" .. PKTS .. " ($" .. FMT_NUM(CUR_AMT) .. ")"
             end
             
             if i < PKTS then task.wait(WAIT_TM) end
@@ -788,7 +798,7 @@ local function START_DUPE(AUTO_MODE)
         
         if STOP_DUPE then return end -- STOP CHECK
 
-        BAL_LBL.Text = "Status: CRASHING SERVER..."
+        NOTIFY("System", "CRASHING SERVER...", 5)
         NOTIFY("System", "Rejoin Server...", 5)
         task.wait(0.5)
         
@@ -823,18 +833,18 @@ local function START_DUPE(AUTO_MODE)
         -- Step 3: Rejoin
         task.wait(3)
         if STOP_DUPE then -- STOP CHECK
-            BAL_LBL.Text = "Status: Stopped."
+            NOTIFY("System", "Stopped.", 3)
             return
         end
 
-        BAL_LBL.Text = "Status: Rejoining..."
+        NOTIFY("System", "Rejoining...", 5)
         
         TPS:Teleport(game.PlaceId, LPLR)
     end)
 end
 
 -- [ CONTROLS ]
-ADD_BTN(P_FRM, "DUPE MONEY (ONE TIME)", function()
+ADD_BTN(R2_R, "DUPE MONEY (ONE TIME)", function()
     START_DUPE(false)
 end)
 
