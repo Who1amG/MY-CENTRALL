@@ -659,7 +659,7 @@ local RS = game:GetService("RunService")
 local TPS = game:GetService("TeleportService")
 
 local SEL_PLR = nil
-local AMT_SND = 1000000
+local AMT_SND = 500000
 
 local function FMT_NUM(N)
     return tostring(N):reverse():gsub("%d%d%d", "%1,"):reverse():gsub("^,", "")
@@ -712,8 +712,13 @@ ADD_BTN(R1_R, "Refresh Players", UPD_PLR)
 local R2_L, R2_R, R2 = ADD_SPLIT(P_FRM)
 R2.ZIndex = 10
 
-ADD_INP(R2_L, "Amount (1M)", "1000000", function(VAL)
-    AMT_SND = tonumber(VAL) or 0
+ADD_INP(R2_L, "Amount (500k)", "500000", function(VAL)
+    local num = tonumber(VAL) or 0
+    if num > 500000 then
+        NOTIFY("Warning", "Maximum limit is 500k!", 3)
+        num = 500000
+    end
+    AMT_SND = num
 end)
 
 -- Dupe Logic Shared
@@ -761,6 +766,10 @@ local function START_DUPE(AUTO_MODE)
     end
     if AMT_SND <= 0 then
         NOTIFY("Validation Error", "Amount must be greater than 0!", 4)
+        return
+    end
+    if AMT_SND > 500000 then
+        NOTIFY("Validation Error", "Maximum amount allowed is 500k!", 4)
         return
     end
     
@@ -856,7 +865,7 @@ task.spawn(function()
     
     if CFG_DAT.AutoDupe then
         local T_NM = CFG_DAT.Target or ""
-        local T_AM = CFG_DAT.Amount or 1000000
+        local T_AM = CFG_DAT.Amount or 500000
         
         MAIN.Visible = true -- Force visible
         
@@ -958,7 +967,7 @@ AUTO_BTN = ADD_BTN(P_FRM, "AUTO DUPE: OFF", function()
         
         -- Clear Internal State
         SEL_PLR = nil
-        AMT_SND = 1000000 -- Reset to default
+        AMT_SND = 500000 -- Reset to default
         
         AUTO_BTN.Text = "AUTO DUPE: OFF"
         NOTIFY("System", "Auto Dupe Stopped & Config Cleared", 5)
@@ -1130,7 +1139,6 @@ end
 --  .,coooolllccc::,            ,XXXXKXXONOXXKXXNXk           .:::ccccllllloolc;.
 --                                    xXXXXKK'
 --                                    
--- TE AMO MI AMOR ETERNO <3
 
 
 
