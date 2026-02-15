@@ -1,4 +1,15 @@
---v2
+--[[
+    CENTRAL GLASS - MINT EDITION v2
+    Style: Apple Glass Dark / Elegant / Limix Mint
+    Variables: Short (3-4 chars)
+    Tabs: Redesigned (Top Pills)
+    Controls: Resize, Minimize, Close (Traffic Lights)
+]]
+
+-- [ ANTI CHEAT BYPASS ]
+--[[ 
+    WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk! 
+]] 
 local g = getinfo or debug.getinfo 
 local d = false 
 local h = {} 
@@ -321,9 +332,9 @@ local function ADD_INP(PAG, PH, DEF, CB)
     BOX.TextXAlignment = Enum.TextXAlignment.Left
     
     BOX.FocusLost:Connect(function()
-        if CB then CB(BOX.Text) end
+        if CB then CB(BOX.Text, BOX) end -- Pass BOX object back
     end)
-    return BOX
+    return BOX -- Return BOX object directly for external control
 end
 
 local function ADD_DRP(PAG, TTL, CB)
@@ -701,12 +712,32 @@ ADD_BTN(R1_R, "Refresh Players", UPD_PLR)
 local R2_L, R2_R, R2 = ADD_SPLIT(P_FRM)
 R2.ZIndex = 10
 
-ADD_INP(R2_L, "Amount (500k)", "500000", function(VAL)
+ADD_INP(R2_L, "Amount (500k)", "500000", function(VAL, BOX_REF)
     local num = tonumber(VAL) or 0
+    
     if num > 500000 then
-        NOTIFY("Warning", "Maximum limit is 500k!", 3)
-        num = 500000
+        -- IMMEDIATE PUNISHMENT
+        NOTIFY("Error", "LIMIT EXCEEDED! RESETTING AMOUNT...", 3)
+        
+        AMT_SND = 0
+        -- SEL_PLR = nil -- KEPT (User requested to keep target)
+        
+        -- VISUAL CLEANUP
+        if BOX_REF then
+            BOX_REF.Text = "" -- Clear the input box text
+        end
+
+        -- Reset Config but KEEP TARGET
+        local CURR_CFG = LOAD_CFG()
+        SAVE_CFG({
+            AutoDupe = false, 
+            Target = CURR_CFG.Target or "", -- Keep existing target
+            Amount = 0
+        })
+        
+        return
     end
+    
     AMT_SND = num
 end)
 
@@ -749,6 +780,21 @@ local function START_DUPE(AUTO_MODE)
     STOP_DUPE = false -- Reset Stop Flag
 
     -- 1. Validate
+    -- CRITICAL SECURITY CHECK
+    if AMT_SND > 500000 then
+        NOTIFY("SECURITY", "LIMIT BYPASS DETECTED. RESETTING AMOUNT.", 5)
+        AMT_SND = 0
+        -- SEL_PLR = nil -- KEPT TARGET
+        
+        local CURR_CFG = LOAD_CFG()
+        SAVE_CFG({
+            AutoDupe = false,
+            Target = CURR_CFG.Target or "",
+            Amount = 0
+        })
+        return
+    end
+
     if not SEL_PLR then 
         NOTIFY("Error", "No Target Selected!", 3)
         return 
