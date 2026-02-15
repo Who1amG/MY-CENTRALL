@@ -1,4 +1,4 @@
---v1 
+--v2
 local g = getinfo or debug.getinfo 
 local d = false 
 local h = {} 
@@ -757,12 +757,32 @@ local function START_DUPE(AUTO_MODE)
         NOTIFY("Validation Error", "Amount must be greater than 0!", 4)
         return
     end
+
     if AMT_SND > 500000 then
-        NOTIFY("Error", "Amount too high! Resetting to 500k...", 4)
-        AMT_SND = 500000 -- Force Reset
+        NOTIFY("Error", "Amount too high! RESETTING CONFIG.", 4)
         
-        -- Try to update visual input if we can find it, but AMT_SND is the important logic
-        -- (The UI input updates on focus lost usually, so we just enforce the value for next click)
+        -- 1. Reset Amount
+        AMT_SND = 0 
+        
+        -- 2. Reset Player Selection
+        SEL_PLR = nil
+        
+        -- 3. Reset Visuals (Dropdown)
+        if DRP_PLR then
+             -- Force refresh dropdown to clear selection text visually if possible, 
+             -- or at least logic is cleared. The dropdown text stays but logic is nil.
+             -- We can try to reset the text if we had access to the button directly, 
+             -- but resetting SEL_PLR is enough to stop the script.
+        end
+        
+        -- 4. Clear Saved Config (Hard Reset)
+        local RESET_CFG = {
+            AutoDupe = false,
+            Target = "",
+            Amount = 0
+        }
+        SAVE_CFG(RESET_CFG)
+        
         return -- Stop execution
     end
     
