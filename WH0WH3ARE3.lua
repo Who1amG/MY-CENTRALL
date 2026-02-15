@@ -1,15 +1,4 @@
---[[
-    CENTRAL GLASS - MINT EDITION v2
-    Style: Apple Glass Dark / Elegant / Limix Mint
-    Variables: Short (3-4 chars)
-    Tabs: Redesigned (Top Pills)
-    Controls: Resize, Minimize, Close (Traffic Lights)
-]]
-
--- [ ANTI CHEAT BYPASS ]
---[[ 
-    WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk! 
-]] 
+--v1 
 local g = getinfo or debug.getinfo 
 local d = false 
 local h = {} 
