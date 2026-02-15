@@ -769,8 +769,12 @@ local function START_DUPE(AUTO_MODE)
         return
     end
     if AMT_SND > 500000 then
-        NOTIFY("Validation Error", "Maximum amount allowed is 500k!", 4)
-        return
+        NOTIFY("Error", "Amount too high! Resetting to 500k...", 4)
+        AMT_SND = 500000 -- Force Reset
+        
+        -- Try to update visual input if we can find it, but AMT_SND is the important logic
+        -- (The UI input updates on focus lost usually, so we just enforce the value for next click)
+        return -- Stop execution
     end
     
     -- Save for Auto Mode
