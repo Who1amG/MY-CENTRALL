@@ -2,7 +2,7 @@ local Players          = game:GetService("Players")
 local TweenService     = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService       = game:GetService("RunService")
-local HttpService      = game:GetService("HttpService") -- YA NO SOY NIGGER
+local HttpService      = game:GetService("HttpService")
 
 local localPlayer = Players.LocalPlayer
 local PlayerGui   = localPlayer:WaitForChild("PlayerGui")
@@ -56,7 +56,10 @@ local function loadConfig()
         end
         return data
     end
-    return table.clone(defaultConfig)
+    -- table.clone is not available in all executors, use manual copy
+    local copy = {}
+    for k,v in pairs(defaultConfig) do copy[k] = v end
+    return copy
 end
 
 local config = loadConfig()
@@ -139,6 +142,17 @@ gui:SetAttribute("__mt", true); gui.Parent=PlayerGui
 local T_FAST   = TweenInfo.new(0.2,Enum.EasingStyle.Quad,Enum.EasingDirection.Out)
 local T_SMOOTH = TweenInfo.new(0.4,Enum.EasingStyle.Quad,Enum.EasingDirection.Out)
 local function tw(o,i,p) TweenService:Create(o,i,p):Play() end
+
+-- Safe task.cancel wrapper (not available in some executors)
+local function safeCancel(thread)
+    if not thread then return end
+    pcall(function()
+        if task and task.cancel then task.cancel(thread)
+        elseif coroutine.status(thread) ~= "dead" then
+            coroutine.close(thread)
+        end
+    end)
+end
 
 --====================================================
 -- OBJECT REGISTRIES
@@ -844,7 +858,7 @@ local currentNotif = nil
 local notifTimer   = nil
 
 local function showNotif(title,message,isError)
-    if notifTimer then task.cancel(notifTimer) end
+    if notifTimer then safeCancel(notifTimer) end
     if currentNotif and currentNotif.Parent then pcall(function() currentNotif:Destroy() end) end
     local t=themes[config.theme]
     local notif=Instance.new("Frame"); notif.Parent=gui
@@ -1462,7 +1476,7 @@ end)
 -- ── Lógica de plantado ────────────────────────────────────────
 local function stopPlanting(silent)
     isPlanting = false
-    if plantThread_main then task.cancel(plantThread_main); plantThread_main = nil end
+    if plantThread_main then safeCancel(plantThread_main); plantThread_main = nil end
     if not silent then
         statusLabel.Text = "● Plant Seeds: Stopped"
         -- restaurar visual del botón Plant All
@@ -1831,7 +1845,15 @@ for i,spot in ipairs(teleportSpots) do
                 task.wait(0.5)
                 pcall(function()
                     local prompt=workspace.MapPhysical.Shops["Seed Shop"].SeedNPC.HumanoidRootPart:WaitForChild("ProximityPrompt")
-                    fireproximityprompt(prompt); statusLabel.Text="● Interacting with Seed Shop..."
+                    -- fireproximityprompt may not exist in all executors
+                    if fireproximityprompt then
+                        fireproximityprompt(prompt)
+                    else
+                        prompt.Enabled = true
+                        -- fallback: trigger via proximity prompt fire event
+                        pcall(function() prompt:InputHoldBegin() end)
+                    end
+                    statusLabel.Text="● Interacting with Seed Shop..."
                 end)
             end
         else
