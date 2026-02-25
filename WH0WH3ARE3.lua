@@ -2,7 +2,7 @@ local Players          = game:GetService("Players")
 local TweenService     = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService       = game:GetService("RunService")
-local HttpService      = game:GetService("HttpService")
+local HttpService      = game:GetService("HttpService") --Niggers
 
 local localPlayer = Players.LocalPlayer
 local PlayerGui   = localPlayer:WaitForChild("PlayerGui")
