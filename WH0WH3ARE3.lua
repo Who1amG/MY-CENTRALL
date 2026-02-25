@@ -56,10 +56,7 @@ local function loadConfig()
         end
         return data
     end
-    -- table.clone is not available in all executors, use manual copy
-    local copy = {}
-    for k,v in pairs(defaultConfig) do copy[k] = v end
-    return copy
+    return table.clone(defaultConfig)
 end
 
 local config = loadConfig()
@@ -74,8 +71,10 @@ local themes = {
         subtext=Color3.fromRGB(150,150,150), sidebar=Color3.fromRGB(12,12,12),
         row=Color3.fromRGB(18,18,18), stroke=Color3.fromRGB(255,255,255),
         snow=false, valentine=false, logoId="121057068601747",
-        mainTabIcon="97378928892774", teleportTabIcon="124656414586890",
-        settingsTabIcon="84417015405492", micsTabIcon="129896879015985",
+        mainTabIcon="97378928892774",
+        teleportTabIcon="124656414586890",
+        settingsTabIcon="84417015405492",
+        micsTabIcon="129896879015985",
         bgId="108458500083995",
     },
     Valentine = {
@@ -84,8 +83,10 @@ local themes = {
         subtext=Color3.fromRGB(180,100,130), sidebar=Color3.fromRGB(25,5,12),
         row=Color3.fromRGB(30,8,18), stroke=Color3.fromRGB(220,60,100),
         snow=false, valentine=true, logoId="128713599886538",
-        mainTabIcon="118293451431629", teleportTabIcon="93867203416430",
-        settingsTabIcon="92027932993173", micsTabIcon="81212960677084",
+        mainTabIcon="118293451431629",
+        teleportTabIcon="93867203416430",
+        settingsTabIcon="92027932993173",
+        micsTabIcon="81212960677084",
         bgId="86406538802929",
     },
     Snow = {
@@ -94,8 +95,10 @@ local themes = {
         subtext=Color3.fromRGB(140,160,200), sidebar=Color3.fromRGB(10,13,22),
         row=Color3.fromRGB(16,20,35), stroke=Color3.fromRGB(180,210,255),
         snow=true, valentine=false, logoId="105877636667273",
-        mainTabIcon="86228203034983", teleportTabIcon="99769954902270",
-        settingsTabIcon="98653576343548", micsTabIcon="96765613903347",
+        mainTabIcon="86228203034983",
+        teleportTabIcon="99769954902270",
+        settingsTabIcon="98653576343548",
+        micsTabIcon="96765613903347",
         bgId="103508032104468",
     },
     Garden = {
@@ -104,8 +107,10 @@ local themes = {
         subtext=Color3.fromRGB(180,160,120), sidebar=Color3.fromRGB(30,25,15),
         row=Color3.fromRGB(40,32,18), stroke=Color3.fromRGB(150,200,80),
         snow=false, valentine=false, garden=true, logoId="121057068601747",
-        mainTabIcon="97378928892774", teleportTabIcon="124656414586890",
-        settingsTabIcon="84417015405492", micsTabIcon="129896879015985",
+        mainTabIcon="97378928892774",
+        teleportTabIcon="124656414586890",
+        settingsTabIcon="84417015405492",
+        micsTabIcon="129896879015985",
         bgId="113023242212701",
     },
 }
@@ -143,17 +148,6 @@ local T_FAST   = TweenInfo.new(0.2,Enum.EasingStyle.Quad,Enum.EasingDirection.Ou
 local T_SMOOTH = TweenInfo.new(0.4,Enum.EasingStyle.Quad,Enum.EasingDirection.Out)
 local function tw(o,i,p) TweenService:Create(o,i,p):Play() end
 
--- Safe task.cancel wrapper (not available in some executors)
-local function safeCancel(thread)
-    if not thread then return end
-    pcall(function()
-        if task and task.cancel then task.cancel(thread)
-        elseif coroutine.status(thread) ~= "dead" then
-            coroutine.close(thread)
-        end
-    end)
-end
-
 --====================================================
 -- OBJECT REGISTRIES
 --====================================================
@@ -166,7 +160,7 @@ local dropRows    = {}
 local dropLists   = {}
 local strokeObjs  = {}
 local sliderObjs  = {}
-local scrollBars  = {}
+local scrollBars = {}
 local tabBtns     = {}
 local tabData     = {}
 local gameName    = nil
@@ -328,8 +322,10 @@ local function applyTheme(name)
     tw(statusLabel,T_SMOOTH,{TextColor3=t.subtext})
     tw(minimize,T_SMOOTH,{BackgroundColor3=t.row,TextColor3=t.text}); minimizeStroke.Color=t.stroke
     tw(close,T_SMOOTH,{BackgroundColor3=t.row,TextColor3=t.text}); closeStroke.Color=t.stroke
-    for _, scroll in ipairs(scrollBars) do
-        if scroll and scroll.Parent then scroll.ScrollBarImageColor3 = t.accent end
+    for _, scroll in ipairs(scrollBars) do 
+        if scroll and scroll.Parent then 
+            scroll.ScrollBarImageColor3 = t.accent 
+        end 
     end
     for _,r in ipairs(rows) do
         if r.frame and r.frame.Parent then
@@ -412,6 +408,145 @@ local function applyFont(name)
     config.fontStyle=name; saveConfig(config)
     local f=fonts[name] or Enum.Font.GothamBold
     for _,o in ipairs(fontObjs) do if o and o.Parent then o.Font=f end end
+end
+
+--====================================================
+-- AUTO-PLANT LOGIC
+--====================================================
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local plantRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("PlantSeed")
+
+local plantLogic = {}
+plantLogic.isPlanting = false
+plantLogic.plantThread = nil
+plantLogic.seedsToPlant = {} -- A table of plantTypes to plant
+
+-- Lista maestra de todas las seeds
+plantLogic.ALL_SEEDS = {
+    "Wheat", "Amberpine", "Apple", "Banana", "Beetroot", "Bellpepper", "Birch",
+    "Cabbage", "Carrot", "Cherry", "Corn", "Dandelion", "Dawnblossom", "Dawnfruit",
+    "Emberwood", "Goldenberry", "Mushroom", "Olive", "Onion", "Orange", "Plum",
+    "Pomaganit", "Potato", "Rose", "Strawberry", "Sunpetal", "Tomato",
+}
+
+-- Extrae el PlantType de cualquier tool de seed
+function plantLogic.getPlantTypeFromTool(tool)
+    if not tool:IsA("Tool") then return nil end
+    local pt = tool:GetAttribute("PlantType")
+    if pt and pt ~= "" then return pt end
+    local bn = tool:GetAttribute("BaseName")
+    if bn then
+        local stripped = bn:match("^(.+)%s+Seed$")
+        if stripped then return stripped end
+    end
+    local name = tool.Name
+    local clean = name:match("^x%d+%s+(.+)$") or name
+    local stripped = clean:match("^(.+)%s+Seed$")
+    if stripped then return stripped end
+    return nil
+end
+
+-- Obtener seeds en backpack + personaje
+function plantLogic.getSeedsInBackpack()
+    local found = {}
+    local function checkTool(tool)
+        if tool:GetAttribute("IsHarvested") or tool:GetAttribute("HarvestedFrom") or tool:GetAttribute("FruitValue") then return end
+        local pt = plantLogic.getPlantTypeFromTool(tool)
+        if not pt then return end
+        local valid = false
+        for _, knownType in ipairs(plantLogic.ALL_SEEDS) do
+            if knownType == pt then valid = true; break end
+        end
+        if not valid then return end
+        local count = tool:GetAttribute("ItemCount") or 1
+        if not found[pt] then
+            found[pt] = { tool = tool, count = count }
+        else
+            found[pt].count = found[pt].count + count
+        end
+    end
+    for _, t in ipairs(localPlayer.Backpack:GetChildren()) do pcall(checkTool, t) end
+    if localPlayer.Character then
+        for _, t in ipairs(localPlayer.Character:GetChildren()) do
+            if t:IsA("Tool") then pcall(checkTool, t) end
+        end
+    end
+    return found
+end
+
+-- Equipar una seed
+function plantLogic.equipSeed(plantType)
+    for _, tool in ipairs(localPlayer.Backpack:GetChildren()) do
+        if plantLogic.getPlantTypeFromTool(tool) == plantType then
+            if localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid") then
+                localPlayer.Character:FindFirstChildOfClass("Humanoid"):EquipTool(tool)
+                return true
+            end
+        end
+    end
+    if localPlayer.Character then
+        for _, t in ipairs(localPlayer.Character:GetChildren()) do
+            if t:IsA("Tool") and plantLogic.getPlantTypeFromTool(t) == plantType then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+-- Obtener una posición aleatoria cerca del jugador
+function plantLogic.getRandomPositionAroundPlayer(radius)
+    local rootPart = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return nil end
+    local playerPos = rootPart.Position
+    local angle = math.random() * 2 * math.pi
+    local randomRadius = math.random() * radius
+    local offsetX = math.cos(angle) * randomRadius
+    local offsetZ = math.sin(angle) * randomRadius
+    return playerPos + Vector3.new(offsetX, 0, offsetZ)
+end
+
+-- Iniciar/detener el proceso de plantado
+function plantLogic.togglePlanting(enable)
+    plantLogic.isPlanting = enable
+    if enable then
+        if plantLogic.plantThread then task.cancel(plantLogic.plantThread) end
+        plantLogic.plantThread = task.spawn(function()
+            while plantLogic.isPlanting do
+                local plantedSomething = false
+                for plantType, _ in pairs(plantLogic.seedsToPlant) do
+                    if not plantLogic.isPlanting then break end
+                    local backpackSeeds = plantLogic.getSeedsInBackpack()
+                    if backpackSeeds[plantType] and backpackSeeds[plantType].count > 0 then
+                        local equipSuccess = plantLogic.equipSeed(plantType)
+                        task.wait(0.2)
+                        if equipSuccess then
+                            local pos = plantLogic.getRandomPositionAroundPlayer(20)
+                            if pos then
+                                plantRemote:InvokeServer(plantType, pos)
+                                plantedSomething = true
+                                task.wait(0.6) -- Cooldown
+                            end
+                        end
+                    else
+                        -- ya no tenemos esta seed, la quitamos de la lista
+                        plantLogic.seedsToPlant[plantType] = nil
+                    end
+                end
+                if not plantedSomething or next(plantLogic.seedsToPlant) == nil then
+                    plantLogic.isPlanting = false
+                    -- AQUI PODEMOS ACTUALIZAR LA UI PARA MOSTRAR QUE SE DETUVO
+                    break
+                end
+                task.wait(1) -- Wait between full loops
+            end
+        end)
+    else
+        if plantLogic.plantThread then
+            task.cancel(plantLogic.plantThread)
+            plantLogic.plantThread = nil
+        end
+    end
 end
 
 --====================================================
@@ -855,21 +990,30 @@ end
 -- NOTIFICATION HELPER
 --====================================================
 local currentNotif = nil
-local notifTimer   = nil
+local notifTimer = nil
 
 local function showNotif(title,message,isError)
-    if notifTimer then safeCancel(notifTimer) end
-    if currentNotif and currentNotif.Parent then pcall(function() currentNotif:Destroy() end) end
+    -- Cancelar timer anterior si existe
+    if notifTimer then task.cancel(notifTimer) end
+    
+    -- Destruir notificación anterior SI EXISTE
+    if currentNotif and currentNotif.Parent then
+        pcall(function() currentNotif:Destroy() end)
+    end
+    
     local t=themes[config.theme]
     local notif=Instance.new("Frame"); notif.Parent=gui
     notif.Size=UDim2.new(0,240,0,65); notif.Position=UDim2.new(0,-260,0,100)
     notif.BackgroundColor3=t.primary; notif.BackgroundTransparency=0.08; notif.BorderSizePixel=0; notif.ZIndex=100; notif.ClipsDescendants=true
     local nc=Instance.new("UICorner",notif); nc.CornerRadius=UDim.new(0,16)
+    
+    -- Agregar imagen de fondo del tema
     local notifBg=Instance.new("ImageLabel"); notifBg.Parent=notif
     notifBg.Size=UDim2.new(1,0,1,0); notifBg.BackgroundTransparency=1
     notifBg.Image="rbxassetid://"..t.bgId
     notifBg.ScaleType=Enum.ScaleType.Crop; notifBg.ImageTransparency=0.85; notifBg.ZIndex=101
     local nbic=Instance.new("UICorner"); nbic.CornerRadius=UDim.new(0,16); nbic.Parent=notifBg
+    
     local ns=Instance.new("UIStroke",notif)
     ns.Color=isError and Color3.fromRGB(220,60,60) or t.stroke; ns.Transparency=0.5; ns.Thickness=1.2
     local tl=Instance.new("TextLabel"); tl.Parent=notif
@@ -880,8 +1024,11 @@ local function showNotif(title,message,isError)
     ml.Size=UDim2.new(1,-14,0,28); ml.Position=UDim2.new(0,10,0,28)
     ml.BackgroundTransparency=1; ml.Text=message; ml.Font=Enum.Font.GothamMedium; ml.TextSize=10
     ml.TextColor3=t.text; ml.TextWrapped=true; ml.TextXAlignment=Enum.TextXAlignment.Left; ml.ZIndex=102
+    
     currentNotif = notif
+    
     tw(notif,TweenInfo.new(0.35,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Position=UDim2.new(0,10,0,100)})
+    
     notifTimer = task.delay(3.5,function()
         if notif and notif.Parent then
             tw(notif,TweenInfo.new(0.3,Enum.EasingStyle.Quad,Enum.EasingDirection.In),{Position=UDim2.new(0,-260,0,100)})
@@ -912,728 +1059,456 @@ local function teleportTo(position)
     local character = Players.LocalPlayer.Character
     if not character then return false end
     local hrp = character:FindFirstChild("HumanoidRootPart")
-    if hrp then hrp.CFrame = CFrame.new(position); return true end
-    return false
-end
-
---====================================================
--- ★ PLANT LOGIC (portado del script separado) ★
---====================================================
-local plantRemote      = nil
-local isPlanting       = false
-local plantThread_main = nil
-local plantPanelOpen   = false
-local selectedPlantSeeds = {}   -- plantType → bool
-local seedRowData        = {}   -- plantType → { frame, box, chk, nameLbl }
-
-local ALL_SEEDS = {
-    "Wheat","Amberpine","Apple","Banana","Beetroot","Bellpepper",
-    "Birch","Cabbage","Carrot","Cherry","Corn","Dandelion",
-    "Dawnblossom","Dawnfruit","Emberwood","Goldenberry","Mushroom",
-    "Olive","Onion","Orange","Plum","Pomaganit","Potato","Rose",
-    "Strawberry","Sunpetal","Tomato",
-}
-
-local SEED_EMOJI = {
-    Wheat="🌾",  Amberpine="🌲", Apple="🍎",   Banana="🍌",
-    Beetroot="🫚", Bellpepper="🫑", Birch="🌳",  Cabbage="🥬",
-    Carrot="🥕",  Cherry="🍒",   Corn="🌽",    Dandelion="🌼",
-    Dawnblossom="🌸", Dawnfruit="🍑", Emberwood="🔥", Goldenberry="✨",
-    Mushroom="🍄", Olive="🫒",   Onion="🧅",   Orange="🍊",
-    Plum="🍇",    Pomaganit="🌺", Potato="🥔",  Rose="🌹",
-    Strawberry="🍓", Sunpetal="🌻", Tomato="🍅",
-}
-
--- Extrae PlantType de una herramienta del backpack
-local function getPlantTypeFromTool(tool)
-    if not tool:IsA("Tool") then return nil end
-    local pt = tool:GetAttribute("PlantType")
-    if pt and pt ~= "" then return pt end
-    local bn = tool:GetAttribute("BaseName")
-    if bn then
-        local stripped = bn:match("^(.+)%s+Seed$")
-        if stripped then return stripped end
-    end
-    local name  = tool.Name
-    local clean = name:match("^x%d+%s+(.+)$") or name
-    return clean:match("^(.+)%s+Seed$")
-end
-
--- Retorna seeds disponibles en el backpack  →  { [plantType] = { tool, count } }
-local function getSeedsInBackpack()
-    local found = {}
-    local function checkTool(tool)
-        if tool:GetAttribute("IsHarvested")  then return end
-        if tool:GetAttribute("HarvestedFrom") then return end
-        if tool:GetAttribute("FruitValue")    then return end
-        local pt = getPlantTypeFromTool(tool)
-        if not pt then return end
-        local valid = false
-        for _, k in ipairs(ALL_SEEDS) do if k == pt then valid=true; break end end
-        if not valid then return end
-        local count = tool:GetAttribute("ItemCount") or 1
-        if not found[pt] then
-            found[pt] = { tool=tool, count=count }
-        else
-            found[pt].count = found[pt].count + count
-        end
-    end
-    for _, t in ipairs(Players.LocalPlayer.Backpack:GetChildren()) do pcall(checkTool, t) end
-    local char = Players.LocalPlayer.Character
-    if char then
-        for _, t in ipairs(char:GetChildren()) do
-            if t:IsA("Tool") then pcall(checkTool, t) end
-        end
-    end
-    return found
-end
-
--- Equipa una seed al personaje
-local function equipPlantSeed(plantType)
-    for _, tool in ipairs(Players.LocalPlayer.Backpack:GetChildren()) do
-        if getPlantTypeFromTool(tool) == plantType then
-            local char = Players.LocalPlayer.Character
-            if char then
-                local hum = char:FindFirstChildOfClass("Humanoid")
-                if hum then hum:EquipTool(tool); return true end
-            end
-        end
-    end
-    -- Ya equipada
-    local char = Players.LocalPlayer.Character
-    if char then
-        for _, t in ipairs(char:GetChildren()) do
-            if t:IsA("Tool") and getPlantTypeFromTool(t) == plantType then return true end
-        end
+    if hrp then
+        hrp.CFrame = CFrame.new(position)
+        return true
     end
     return false
 end
 
--- Posición aleatoria alrededor del jugador
-local function getPlantPosition(radius)
-    local hrp = Players.LocalPlayer.Character and
-                Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return nil end
-    local angle = math.random() * 2 * math.pi
-    local r = math.random() * (radius or 25)
-    return hrp.Position + Vector3.new(math.cos(angle)*r, 0, math.sin(angle)*r)
+--====================================================
+-- ★ MAIN PAGE — PON TUS OPCIONES AQUÍ ★
+--====================================================
+local mainListLayout = Instance.new("UIListLayout")
+mainListLayout.Parent = mainPage
+mainListLayout.Padding = UDim.new(0, 8)
+mainListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+secLabel(mainPage,"SELL OPTIONS").LayoutOrder = 5
+
+-- Master Toggle
+local plantSeedsBtn, getPlantSeeds, forceOffPlantSeeds = checkbox(mainPage,"PLANT SEEDS",false)
+plantSeedsBtn.LayoutOrder = 6
+
+plantSeedsBtn.MouseButton1Click:Connect(function()
+    local isEnabled = not getPlantSeeds()
+    plantLogic.togglePlanting(isEnabled)
+    statusLabel.Text = "● Auto Plant: " .. (isEnabled and "ON" or "OFF")
+end)
+
+-- Botón para mostrar/ocultar las semillas
+local chooseSeedsBtn = actionButton(mainPage, "CHOSEE SEEDS")
+chooseSeedsBtn.LayoutOrder = 7
+
+-- Contenedor desplegable para las opciones de semillas
+local seedOptionsContainer = Instance.new("Frame")
+seedOptionsContainer.Parent = mainPage
+seedOptionsContainer.Size = UDim2.new(1, 0, 0, 0) -- Altura se animará
+seedOptionsContainer.BackgroundTransparency = 1
+seedOptionsContainer.ClipsDescendants = true
+seedOptionsContainer.LayoutOrder = 8
+local seedOptionsLayout = Instance.new("UIListLayout", seedOptionsContainer)
+seedOptionsLayout.Padding = UDim.new(0, 4)
+
+-- Botón "PLANT ALL" dentro del contenedor
+local plantAllBtn = actionButton(seedOptionsContainer, "PLANT ALL")
+
+-- ScrollingFrame para la lista de semillas
+local seedsScrollFrame = Instance.new("ScrollingFrame")
+seedsScrollFrame.Parent = seedOptionsContainer
+seedsScrollFrame.Size = UDim2.new(1, 0, 1, -44)
+seedsScrollFrame.BackgroundTransparency = 1
+seedsScrollFrame.BorderSizePixel = 0
+seedsScrollFrame.ScrollBarThickness = 3
+seedsScrollFrame.ScrollBarImageColor3 = themes[config.theme].accent
+seedsScrollFrame.ScrollBarImageTransparency = 0.3
+seedsScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+table.insert(scrollBars, seedsScrollFrame)
+local seedsScrollLayout = Instance.new("UIListLayout", seedsScrollFrame)
+seedsScrollLayout.Padding = UDim.new(0, 2)
+
+local seedCheckboxes = {}
+
+-- Lógica para poblar la lista de semillas
+local function populateSeedList()
+    for i,v in pairs(seedsScrollFrame:GetChildren()) do
+        if v:IsA("Frame") then v:Destroy() end
+    end
+    table.clear(seedCheckboxes)
+    
+    local availableSeeds = plantLogic.getSeedsInBackpack()
+    
+    for plantType, seedData in pairs(availableSeeds) do
+        local initialValue = plantLogic.seedsToPlant[plantType] or false
+        local btn, getValue, forceOff = checkbox(seedsScrollFrame, plantType .. " (" .. seedData.count .. ")", initialValue)
+        seedCheckboxes[plantType] = {button = btn, getValue = getValue, forceOff = forceOff}
+
+        btn.MouseButton1Click:Connect(function()
+            task.wait()
+            local isSelected = getValue()
+            plantLogic.seedsToPlant[plantType] = isSelected
+        end)
+    end
 end
 
---====================================================
--- ★ MAIN PAGE
---====================================================
-secLabel(mainPage,"SELL OPTIONS",0)
+-- Lógica para el botón "PLANT ALL"
+plantAllBtn.MouseButton1Click:Connect(function()
+    local allSelected = true
+    for plantType, _ in pairs(plantLogic.getSeedsInBackpack()) do
+        if not plantLogic.seedsToPlant[plantType] then
+            allSelected = false
+            break
+        end
+    end
 
-local option1Btn, getOption1, forceOffOption1 = checkbox(mainPage,"Sell Single",62,false)
+    local selectAll = not allSelected
+    for plantType, _ in pairs(plantLogic.getSeedsInBackpack()) do
+        plantLogic.seedsToPlant[plantType] = selectAll
+    end
+    
+    populateSeedList()
+    statusLabel.Text = "● All seeds " .. (selectAll and "selected" or "deselected")
+end)
+
+-- Lógica para mostrar/ocultar el panel de semillas
+local areSeedOptionsVisible = false
+chooseSeedsBtn.MouseButton1Click:Connect(function()
+    areSeedOptionsVisible = not areSeedOptionsVisible
+    
+    if areSeedOptionsVisible then
+        populateSeedList()
+        tw(seedOptionsContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = UDim2.new(1, 0, 0, 220)})
+    else
+        tw(seedOptionsContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = UDim2.new(1, 0, 0, 0)})
+    end
+end)
+
+
+local option1Btn, getOption1, forceOffOption1 = checkbox(mainPage,"Sell Single",false)
+option1Btn.LayoutOrder = 9
 local selling = false
 
 option1Btn.MouseButton1Click:Connect(function()
     local isNowOn = getOption1()
+    
     if not isNowOn then
+        -- PRENDIDO - Ejecutar función
         if selling then return end
         selling = true
+        
         task.spawn(function()
             local tool = getEquippedTool()
             if not tool then
                 showNotif("Sell Single","⚠️ Nothing TO sell",true)
                 statusLabel.Text="● Sell Single: Nothing To Sell"
-                selling = false; task.wait(2.5); forceOffOption1(); return
+                selling = false
+                task.wait(2.5)
+                forceOffOption1()
+                return
             end
+            
             showNotif("Sell Single","🛒 Plant Found: "..tool.Name,false)
-            statusLabel.Text="● Sell Single: Saving..."
+            statusLabel.Text="● Sell Single:Saving..."
             initialPosition = Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart").Position
+            
+            -- Capturar dinero inicial
             local initialMoney = 0
-            pcall(function() initialMoney = Players.LocalPlayer.leaderstats.Shillings.Value end)
+            pcall(function()
+                initialMoney = Players.LocalPlayer.leaderstats.Shillings.Value
+            end)
+            
             task.wait(0.3)
-            if not selling then showNotif("Sell Single","⏹️ Cancelled",false); selling=false; return end
-            statusLabel.Text="● Sell Single: TP"
+            
+            if not selling then 
+                showNotif("Sell Single","⏹️ Cancelled ",false)
+                selling = false
+                return 
+            end
+            
+            statusLabel.Text="● Sell Single: TP "
             if not teleportTo(SELL_POSITION) then
                 showNotif("Sell Single","❌ Error At TP",true)
                 statusLabel.Text="● Sell Single: Error"
-                selling=false; task.wait(2.5); forceOffOption1(); return
+                selling = false
+                task.wait(2.5)
+                forceOffOption1()
+                return
             end
+            
             task.wait(0.6)
-            if not selling then
-                showNotif("Sell Single","⏹️ Cancelled",false); statusLabel.Text="● Sell Single: Cancelled"
-                if initialPosition then teleportTo(initialPosition) end; selling=false; return
+            
+            if not selling then 
+                showNotif("Sell Single","⏹️ Cancelled",false)
+                statusLabel.Text="● Sell Single: Cancelled"
+                if initialPosition then teleportTo(initialPosition) end
+                selling = false
+                return
             end
+            
             pcall(function()
                 if not sellRemote then
-                    local remEv = ReplicatedStorage:FindFirstChild("RemoteEvents")
-                    if remEv then sellRemote = remEv:FindFirstChild("SellItems") end
+                    sellRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("SellItems")
                 end
-                if not sellRemote then
-                    showNotif("Sell Single","❌ SellItems remote not found",true)
-                    selling=false; task.wait(1.5); forceOffOption1(); return
-                end
+                
                 statusLabel.Text="● Sell Single: Selling"
-                local sellIsFn = sellRemote:IsA("RemoteFunction")
-                if sellIsFn then sellRemote:InvokeServer("SellSingle")
-                else sellRemote:FireServer("SellSingle") end
+                local result = sellRemote:InvokeServer("SellSingle")
+                
                 task.wait(0.4)
-                if initialPosition then statusLabel.Text="● Sell Single: Returning..."; teleportTo(initialPosition); task.wait(0.3) end
+                
+                if initialPosition then
+                    statusLabel.Text="● Sell Single: Regresando..."
+                    teleportTo(initialPosition)
+                    task.wait(0.3)
+                end
+                
+                -- Capturar dinero final y calcular ganancia
                 local finalMoney = 0
-                pcall(function() finalMoney = Players.LocalPlayer.leaderstats.Shillings.Value end)
-                local earned = finalMoney - initialMoney
-                showNotif("Sell Single","📦 Sell Complete | +$"..tostring(earned),false)
-                statusLabel.Text="● Sell Single: Complete | Earned: $"..tostring(earned)
-                selling=false; task.wait(2.5); forceOffOption1()
+                pcall(function()
+                    finalMoney = Players.LocalPlayer.leaderstats.Shillings.Value
+                end)
+                local moneyEarned = finalMoney - initialMoney
+                
+                showNotif("Sell Single","📦 Sell Complete | +$"..tostring(moneyEarned),false)
+                statusLabel.Text="● Sell Single: Complete | Earned: $"..tostring(moneyEarned)
+                selling = false
+                task.wait(2.5)
+                forceOffOption1()
             end)
         end)
     else
-        selling=false; statusLabel.Text="● Sell Single: Cancelled"
-        if initialPosition then teleportTo(initialPosition) end
+        -- APAGADO - Cancelar función
+        selling = false
+        statusLabel.Text="● Sell Single: Cancelado"
+        if initialPosition then
+            teleportTo(initialPosition)
+        end
     end
 end)
 
-local option2Btn, getOption2, forceOffOption2 = checkbox(mainPage,"Sell All",20,false)
+local option2Btn, getOption2, forceOffOption2 = checkbox(mainPage,"Sell All",false)
+option2Btn.LayoutOrder = 10
 local sellAllFlag = false
 
-local blacklist = {"Basic Sprinkler","Turbo Sprinkler","Super Sprinkler","Favorite Tool","Harvest Bell","Watering Can","Shovel"}
+-- Blacklist de items que no se pueden vender
+local blacklist = {
+    "Basic Sprinkler",
+    "Turbo Sprinkler",
+    "Super Sprinkler",
+    "Favorite Tool",
+    "Harvest Bell",
+    "Watering Can",
+    "Shovel",
+}
+
 local function isBlacklisted(toolName)
-    for _, n in ipairs(blacklist) do if string.find(toolName, n) then return true end end
-    return false
-end
-local function getBackpackTools()
-    local backpack = Players.LocalPlayer:FindFirstChild("Backpack"); local validTools = {}
-    if backpack then
-        for _, tool in ipairs(backpack:GetChildren()) do
-            if tool:IsA("Tool") and not isBlacklisted(tool.Name) then table.insert(validTools, tool) end
+    for _, blacklistedName in ipairs(blacklist) do
+        if string.find(toolName, blacklistedName) then
+            return true
         end
     end
+    return false
+end
+
+local function getBackpackTools()
+    local backpack = Players.LocalPlayer:FindFirstChild("Backpack")
+    local validTools = {}
+    
+    if backpack then
+        for _, tool in ipairs(backpack:GetChildren()) do
+            if tool:IsA("Tool") and not isBlacklisted(tool.Name) then
+                table.insert(validTools, tool)
+            end
+        end
+    end
+    
     return validTools
 end
 
 option2Btn.MouseButton1Click:Connect(function()
     local isNowOn = getOption2()
+    
     if not isNowOn then
-        if sellAllFlag then return end; sellAllFlag=true
+        -- PRENDIDO - Ejecutar función
+        if sellAllFlag then return end
+        sellAllFlag = true
+        
         task.spawn(function()
             local validTools = getBackpackTools()
+            
+            -- Si solo hay herramientas en blacklist
             if #validTools == 0 then
-                showNotif("Sell All","⚠️ Nothing TO sell",true); statusLabel.Text="● Sell All: Nothing To Sell"
-                sellAllFlag=false; task.wait(2.5); forceOffOption2(); return
+                showNotif("Sell All","⚠️ Nothing TO sell",true)
+                statusLabel.Text="● Sell All: Nothing To Sell"
+                sellAllFlag = false
+                task.wait(2.5)
+                forceOffOption2()
+                return
             end
+            
             showNotif("Sell All","🛒 Found "..#validTools.." items",false)
             statusLabel.Text="● Sell All: Saving..."
             initialPosition = Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart").Position
+            
+            -- Capturar dinero inicial
             local initialMoney = 0
-            pcall(function() initialMoney = Players.LocalPlayer.leaderstats.Shillings.Value end)
+            pcall(function()
+                initialMoney = Players.LocalPlayer.leaderstats.Shillings.Value
+            end)
+            
             task.wait(0.3)
-            if not sellAllFlag then showNotif("Sell All","⏹️ Cancelled",false); sellAllFlag=false; return end
+            
+            if not sellAllFlag then 
+                showNotif("Sell All","⏹️ Cancelled",false)
+                sellAllFlag = false
+                return 
+            end
+            
             statusLabel.Text="● Sell All: TP"
             if not teleportTo(SELL_POSITION) then
-                showNotif("Sell All","❌ Error At TP",true); statusLabel.Text="● Sell All: Error"
-                sellAllFlag=false; task.wait(2.5); forceOffOption2(); return
+                showNotif("Sell All","❌ Error At TP",true)
+                statusLabel.Text="● Sell All: Error"
+                sellAllFlag = false
+                task.wait(2.5)
+                forceOffOption2()
+                return
             end
+            
             task.wait(0.6)
-            if not sellAllFlag then
-                showNotif("Sell All","⏹️ Cancelled",false); statusLabel.Text="● Sell All: Cancelled"
-                if initialPosition then teleportTo(initialPosition) end; sellAllFlag=false; return
+            
+            if not sellAllFlag then 
+                showNotif("Sell All","⏹️ Cancelled",false)
+                statusLabel.Text="● Sell All: Cancelled"
+                if initialPosition then teleportTo(initialPosition) end
+                sellAllFlag = false
+                return
             end
+            
             pcall(function()
                 if not sellRemote then
-                    local remEv = ReplicatedStorage:FindFirstChild("RemoteEvents")
-                    if remEv then sellRemote = remEv:FindFirstChild("SellItems") end
+                    sellRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("SellItems")
                 end
-                if not sellRemote then
-                    showNotif("Sell All","❌ SellItems remote not found",true)
-                    sellAllFlag=false; task.wait(1.5); forceOffOption2(); return
-                end
-                local sellIsFn = sellRemote:IsA("RemoteFunction")
+                
                 statusLabel.Text="● Sell All: Selling"
-                if sellIsFn then sellRemote:InvokeServer("SellAll")
-                else sellRemote:FireServer("SellAll") end
+                local result = sellRemote:InvokeServer("SellAll")
+                
                 task.wait(0.4)
-                if initialPosition then statusLabel.Text="● Sell All: Returning..."; teleportTo(initialPosition); task.wait(0.3) end
+                
+                if initialPosition then
+                    statusLabel.Text="● Sell All: Returning..."
+                    teleportTo(initialPosition)
+                    task.wait(0.3)
+                end
+                
+                -- Capturar dinero final y calcular ganancia
                 local finalMoney = 0
-                pcall(function() finalMoney = Players.LocalPlayer.leaderstats.Shillings.Value end)
-                local earned = finalMoney - initialMoney
-                showNotif("Sell All","📦 Sell Complete | +$"..tostring(earned),false)
-                statusLabel.Text="● Sell All: Complete | "..tostring(earned)
-                sellAllFlag=false; task.wait(2.5); forceOffOption2()
+                pcall(function()
+                    finalMoney = Players.LocalPlayer.leaderstats.Shillings.Value
+                end)
+                local moneyEarned = finalMoney - initialMoney
+                
+                showNotif("Sell All","📦 Sell Complete | +$"..tostring(moneyEarned),false)
+                statusLabel.Text="● Sell All: Complete|"..tostring(moneyEarned)
+                sellAllFlag = false
+                task.wait(2.5)
+                forceOffOption2()
             end)
         end)
     else
-        sellAllFlag=false; statusLabel.Text="● Sell All: Cancelled"
-        if initialPosition then teleportTo(initialPosition) end
-    end
-end)
-
-secLabel(mainPage,"ACTIONS",108)
-
-local actionBtn1 = actionButton(mainPage,"Action 1",126)
-actionBtn1.MouseButton1Click:Connect(function()
-    statusLabel.Text="● Action 1 pressed"; showNotif("Action 1","Button pressed!",false)
-end)
-
-local actionBtn2 = actionButton(mainPage,"Action 2",126 + ROW_H + 8)
-actionBtn2.MouseButton1Click:Connect(function()
-    statusLabel.Text="● Action 2 pressed"; showNotif("Action 2","Second button pressed!",false)
-end)
-
---====================================================
--- ★ PLANT OPTIONS — integración en mainPage ★
---====================================================
-
--- ── Constantes de layout ─────────────────────────────────────
-local PLANT_SEC_Y       = 226           -- secLabel
-local PLANT_CB_Y        = PLANT_SEC_Y + 20           -- 246  toggle principal
-local CHOOSE_Y          = PLANT_CB_Y + ROW_H + 8     -- 292  botón "Choose Seeds"
-local CHOOSE_H          = 44
-local PANEL_Y           = CHOOSE_Y + CHOOSE_H + 4    -- 340  panel expandible
-local PANEL_OPEN_H      = 168           -- altura cuando está abierto
-local PLANTALL_Y_CLOSED = PANEL_Y + 8  -- 348  botón Plant All (panel cerrado)
-local PLANTALL_Y_OPEN   = PANEL_Y + PANEL_OPEN_H + 8 -- 516  (panel abierto)
-
--- ── 1. Etiqueta de sección ───────────────────────────────────
-secLabel(mainPage,"PLANT OPTIONS", PLANT_SEC_Y)
-
--- ── 2. Toggle maestro "Plant Seeds" ─────────────────────────
-local plantSeedsBtn, getPlantSeedsState, forceOffPlantSeeds =
-    checkbox(mainPage, "Plant Seeds", PLANT_CB_Y, false)
-
--- ── 3. Botón "Choose Seeds" (expandible) ────────────────────
-local t0 = themes[config.theme]
-
-local chooseCont = Instance.new("Frame"); chooseCont.Parent = mainPage
-chooseCont.Size            = UDim2.new(1, 0, 0, CHOOSE_H)
-chooseCont.Position        = UDim2.new(0, 0, 0, CHOOSE_Y)
-chooseCont.BackgroundColor3 = t0.row; chooseCont.BackgroundTransparency = 0.2
-chooseCont.BorderSizePixel = 0; chooseCont.ZIndex = 5
-local chooseCorner  = Instance.new("UICorner", chooseCont); chooseCorner.CornerRadius = UDim.new(0, ROW_R)
-local chooseStroke_ = Instance.new("UIStroke", chooseCont); chooseStroke_.Color = t0.stroke; chooseStroke_.Transparency = 0.88
-table.insert(rows, {frame=chooseCont, stroke=chooseStroke_})
-
--- Ícono de hoja
-local chooseIco = Instance.new("TextLabel"); chooseIco.Parent = chooseCont
-chooseIco.Size = UDim2.new(0, 22, 0, 22); chooseIco.Position = UDim2.new(0, 10, 0.5, -11)
-chooseIco.BackgroundTransparency = 1; chooseIco.Text = "🌱"
-chooseIco.Font = Enum.Font.Gotham; chooseIco.TextSize = 14
-chooseIco.TextColor3 = t0.text; chooseIco.ZIndex = 6
-
-local chooseLbl_ = Instance.new("TextLabel"); chooseLbl_.Parent = chooseCont
-chooseLbl_.Size = UDim2.new(1,-90,0,18); chooseLbl_.Position = UDim2.new(0,36,0,6)
-chooseLbl_.BackgroundTransparency = 1; chooseLbl_.Text = "Choose Seeds"
-chooseLbl_.Font = fonts[config.fontStyle] or Enum.Font.GothamBold
-chooseLbl_.TextSize = FONT_MD; chooseLbl_.TextColor3 = t0.text
-chooseLbl_.TextXAlignment = Enum.TextXAlignment.Left; chooseLbl_.ZIndex = 6
-table.insert(textMain, chooseLbl_); table.insert(fontObjs, chooseLbl_)
-
-local chooseSubLbl_ = Instance.new("TextLabel"); chooseSubLbl_.Parent = chooseCont
-chooseSubLbl_.Size = UDim2.new(1,-90,0,13); chooseSubLbl_.Position = UDim2.new(0,36,0,24)
-chooseSubLbl_.BackgroundTransparency = 1; chooseSubLbl_.Text = "Tap to select seeds"
-chooseSubLbl_.Font = Enum.Font.Gotham; chooseSubLbl_.TextSize = FONT_SM-1
-chooseSubLbl_.TextColor3 = t0.subtext; chooseSubLbl_.TextXAlignment = Enum.TextXAlignment.Left; chooseSubLbl_.ZIndex = 6
-table.insert(textSub, chooseSubLbl_)
-
--- Badge con número de seeds seleccionadas
-local chooseBadge = Instance.new("TextLabel"); chooseBadge.Parent = chooseCont
-chooseBadge.Size = UDim2.new(0,28,0,18); chooseBadge.Position = UDim2.new(1,-62,0.5,-9)
-chooseBadge.BackgroundColor3 = t0.secondary; chooseBadge.BorderSizePixel = 0
-chooseBadge.Text = "0"; chooseBadge.Font = Enum.Font.GothamBold
-chooseBadge.TextSize = 9; chooseBadge.TextColor3 = t0.subtext; chooseBadge.ZIndex = 6
-local chooseBadgeC = Instance.new("UICorner", chooseBadge); chooseBadgeC.CornerRadius = UDim.new(0,5)
-
-local chooseArrow_ = Instance.new("TextLabel"); chooseArrow_.Parent = chooseCont
-chooseArrow_.Size = UDim2.new(0,24,0,24); chooseArrow_.Position = UDim2.new(1,-28,0.5,-12)
-chooseArrow_.BackgroundTransparency = 1; chooseArrow_.Text = "▼"
-chooseArrow_.Font = Enum.Font.GothamBold; chooseArrow_.TextSize = 11
-chooseArrow_.TextColor3 = t0.subtext; chooseArrow_.ZIndex = 6
-table.insert(textSub, chooseArrow_)
-
-local chooseTBtn_ = Instance.new("TextButton"); chooseTBtn_.Parent = chooseCont
-chooseTBtn_.Size = UDim2.fromScale(1,1); chooseTBtn_.BackgroundTransparency = 1
-chooseTBtn_.Text = ""; chooseTBtn_.ZIndex = 8
-
--- ── 4. Panel expandible con scroll de seeds ──────────────────
-local seedPanel = Instance.new("Frame"); seedPanel.Parent = mainPage
-seedPanel.Size             = UDim2.new(1, 0, 0, 0)   -- empieza colapsado
-seedPanel.Position         = UDim2.new(0, 0, 0, PANEL_Y)
-seedPanel.BackgroundColor3 = t0.secondary; seedPanel.BackgroundTransparency = 0.08
-seedPanel.BorderSizePixel  = 0; seedPanel.ClipsDescendants = true; seedPanel.ZIndex = 5
-local seedPanelC  = Instance.new("UICorner", seedPanel); seedPanelC.CornerRadius = UDim.new(0, ROW_R)
-local seedPanelS  = Instance.new("UIStroke", seedPanel);  seedPanelS.Color = t0.stroke; seedPanelS.Transparency = 0.82
-
-local seedPanelScroll = Instance.new("ScrollingFrame"); seedPanelScroll.Parent = seedPanel
-seedPanelScroll.Size                    = UDim2.new(1,-4,1,-4); seedPanelScroll.Position = UDim2.new(0,2,0,2)
-seedPanelScroll.BackgroundTransparency  = 1; seedPanelScroll.BorderSizePixel = 0
-seedPanelScroll.ScrollBarThickness      = 2; seedPanelScroll.ScrollBarImageColor3 = t0.accent
-seedPanelScroll.ScrollBarImageTransparency = 0.3
-seedPanelScroll.CanvasSize              = UDim2.new(0,0,0,0); seedPanelScroll.ZIndex = 6
-seedPanelScroll.AutomaticCanvasSize     = Enum.AutomaticSize.Y
-table.insert(scrollBars, seedPanelScroll)
-local seedScrollLayout = Instance.new("UIListLayout", seedPanelScroll)
-seedScrollLayout.Padding    = UDim.new(0,3); seedScrollLayout.SortOrder = Enum.SortOrder.LayoutOrder
-local seedScrollPad = Instance.new("UIPadding", seedPanelScroll)
-seedScrollPad.PaddingLeft  = UDim.new(0,4); seedScrollPad.PaddingRight = UDim.new(0,4)
-seedScrollPad.PaddingTop   = UDim.new(0,4); seedScrollPad.PaddingBottom = UDim.new(0,4)
-
--- ── 5. Botón "Plant All" ─────────────────────────────────────
-local plantAllBtn = Instance.new("TextButton"); plantAllBtn.Parent = mainPage
-plantAllBtn.Size             = UDim2.new(1, 0, 0, ROW_H)
-plantAllBtn.Position         = UDim2.new(0, 0, 0, PLANTALL_Y_CLOSED)
-plantAllBtn.Text             = ""; plantAllBtn.AutoButtonColor = false; plantAllBtn.ZIndex = 5
-plantAllBtn.BackgroundColor3 = t0.row; plantAllBtn.BackgroundTransparency = 0.2; plantAllBtn.BorderSizePixel = 0
-local plantAllBtnC = Instance.new("UICorner", plantAllBtn); plantAllBtnC.CornerRadius = UDim.new(0, ROW_R)
-local plantAllBtnS = Instance.new("UIStroke", plantAllBtn); plantAllBtnS.Color = t0.stroke; plantAllBtnS.Transparency = 0.93
-table.insert(rows, {frame=plantAllBtn, stroke=plantAllBtnS})
-
-local plantAllLbl = Instance.new("TextLabel"); plantAllLbl.Parent = plantAllBtn
-plantAllLbl.Size = UDim2.new(1,-38,1,0); plantAllLbl.Position = UDim2.new(0,12,0,0)
-plantAllLbl.BackgroundTransparency = 1; plantAllLbl.Text = "🌱  Plant All"
-plantAllLbl.Font = fonts[config.fontStyle] or Enum.Font.GothamBold; plantAllLbl.TextSize = FONT_MD
-plantAllLbl.TextColor3 = t0.text; plantAllLbl.TextXAlignment = Enum.TextXAlignment.Left; plantAllLbl.ZIndex = 6
-table.insert(textMain, plantAllLbl); table.insert(fontObjs, plantAllLbl)
-
-local plantAllArr = Instance.new("TextLabel"); plantAllArr.Parent = plantAllBtn
-plantAllArr.Size = UDim2.new(0,20,0,20); plantAllArr.Position = UDim2.new(1,-26,0.5,-10)
-plantAllArr.BackgroundTransparency = 1; plantAllArr.Text = "→"
-plantAllArr.Font = Enum.Font.GothamBold; plantAllArr.TextSize = 14
-plantAllArr.TextColor3 = t0.subtext; plantAllArr.ZIndex = 6
-table.insert(textSub, plantAllArr)
-
-plantAllBtn.MouseEnter:Connect(function()
-    tw(plantAllBtn,T_FAST,{BackgroundColor3=themes[config.theme].accent,BackgroundTransparency=0.4})
-    tw(plantAllLbl,T_FAST,{TextColor3=themes[config.theme].primary})
-    tw(plantAllArr,T_FAST,{TextColor3=themes[config.theme].primary,Position=UDim2.new(1,-21,0.5,-10)})
-end)
-plantAllBtn.MouseLeave:Connect(function()
-    tw(plantAllBtn,T_FAST,{BackgroundColor3=themes[config.theme].row,BackgroundTransparency=0.2})
-    tw(plantAllLbl,T_FAST,{TextColor3=themes[config.theme].text})
-    tw(plantAllArr,T_FAST,{TextColor3=themes[config.theme].subtext,Position=UDim2.new(1,-26,0.5,-10)})
-end)
-plantAllBtn.MouseButton1Down:Connect(function() tw(plantAllBtn,TweenInfo.new(0.1),{Size=UDim2.new(1,-4,0,ROW_H-2)}) end)
-plantAllBtn.MouseButton1Up:Connect(function()   tw(plantAllBtn,TweenInfo.new(0.1),{Size=UDim2.new(1,0,0,ROW_H)}) end)
-
--- ── Helpers de selección visual en seed rows ─────────────────
-local function refreshBadge()
-    local n = 0
-    for _, v in pairs(selectedPlantSeeds) do if v then n=n+1 end end
-    chooseBadge.Text = tostring(n)
-end
-
-local function setSeedVisual(plantType, selected)
-    local d = seedRowData[plantType]
-    if not d then return end
-    d.chk.Visible = selected
-    tw(d.box, T_FAST, {BackgroundColor3 = selected and themes[config.theme].accent or themes[config.theme].row})
-    tw(d.frame, T_FAST, {BackgroundColor3 = selected and themes[config.theme].accent or themes[config.theme].row,
-                         BackgroundTransparency = selected and 0.35 or 0.2})
-    tw(d.nameLbl, T_FAST, {TextColor3 = selected and themes[config.theme].primary or themes[config.theme].text})
-end
-
--- ── Builder del panel de seeds ───────────────────────────────
-local function buildSeedPanel()
-    -- Limpiar contenido anterior
-    for _, v in ipairs(seedPanelScroll:GetChildren()) do
-        if not v:IsA("UIListLayout") and not v:IsA("UIPadding") then v:Destroy() end
-    end
-    seedRowData = {}
-
-    local backpackSeeds = getSeedsInBackpack()
-    local t = themes[config.theme]
-    local count = 0
-
-    for _, plantType in ipairs(ALL_SEEDS) do
-        if backpackSeeds[plantType] then
-            count = count + 1
-            local seedInfo = backpackSeeds[plantType]
-            local selState = selectedPlantSeeds[plantType] or false
-
-            -- Frame de la fila
-            local row = Instance.new("Frame"); row.Parent = seedPanelScroll
-            row.Size             = UDim2.new(1, 0, 0, 32)
-            row.BackgroundColor3 = selState and t.accent or t.row
-            row.BackgroundTransparency = selState and 0.35 or 0.2
-            row.BorderSizePixel  = 0; row.LayoutOrder = count; row.ZIndex = 7
-            local rowC = Instance.new("UICorner", row); rowC.CornerRadius = UDim.new(0, 8)
-            local rowS = Instance.new("UIStroke",  row); rowS.Color = t.stroke; rowS.Transparency = 0.82
-            table.insert(rows, {frame=row, stroke=rowS})
-
-            -- Emoji
-            local emo = Instance.new("TextLabel"); emo.Parent = row
-            emo.Size = UDim2.new(0,22,1,0); emo.Position = UDim2.new(0,6,0,0)
-            emo.BackgroundTransparency = 1; emo.Text = SEED_EMOJI[plantType] or "🌿"
-            emo.Font = Enum.Font.Gotham; emo.TextSize = 14; emo.TextColor3 = t.text; emo.ZIndex = 8
-
-            -- Nombre
-            local nameLbl = Instance.new("TextLabel"); nameLbl.Parent = row
-            nameLbl.Size = UDim2.new(1,-86,1,0); nameLbl.Position = UDim2.new(0,32,0,0)
-            nameLbl.BackgroundTransparency = 1; nameLbl.Text = plantType
-            nameLbl.Font = fonts[config.fontStyle] or Enum.Font.GothamBold; nameLbl.TextSize = FONT_MD-1
-            nameLbl.TextColor3 = selState and t.primary or t.text
-            nameLbl.TextXAlignment = Enum.TextXAlignment.Left; nameLbl.ZIndex = 8
-            table.insert(textMain, nameLbl); table.insert(fontObjs, nameLbl)
-
-            -- Badge cantidad
-            local cntBadge = Instance.new("TextLabel"); cntBadge.Parent = row
-            cntBadge.Size = UDim2.new(0,32,0,16); cntBadge.Position = UDim2.new(1,-58,0.5,-8)
-            cntBadge.BackgroundColor3 = t.secondary; cntBadge.BorderSizePixel = 0
-            cntBadge.Text = "x"..seedInfo.count; cntBadge.Font = Enum.Font.GothamBold
-            cntBadge.TextSize = 9; cntBadge.TextColor3 = t.subtext; cntBadge.ZIndex = 8
-            local cntC = Instance.new("UICorner", cntBadge); cntC.CornerRadius = UDim.new(0,4)
-
-            -- Checkbox
-            local boxSz = isMobile and 18 or 20
-            local box = Instance.new("Frame"); box.Parent = row
-            box.Size = UDim2.new(0,boxSz,0,boxSz); box.Position = UDim2.new(1,-(boxSz+5),0.5,-(boxSz/2))
-            box.BackgroundColor3 = selState and t.accent or t.row; box.BorderSizePixel = 0; box.ZIndex = 8
-            local boxC = Instance.new("UICorner", box); boxC.CornerRadius = UDim.new(0,5)
-            local boxS = Instance.new("UIStroke",  box); boxS.Color = t.stroke; boxS.Transparency = 0.65
-            local chk = Instance.new("TextLabel"); chk.Parent = box
-            chk.Size = UDim2.fromScale(1,1); chk.BackgroundTransparency = 1
-            chk.Text = "✓"; chk.Font = Enum.Font.GothamBold; chk.TextSize = 11
-            chk.TextColor3 = t.primary; chk.Visible = selState; chk.ZIndex = 9
-            table.insert(checkBoxes, {box=box, chk=chk, stroke=boxS, getState=function() return selectedPlantSeeds[plantType] or false end})
-
-            -- Registrar en seedRowData
-            seedRowData[plantType] = {frame=row, box=box, chk=chk, nameLbl=nameLbl}
-
-            -- Botón invisible encima
-            local rowBtn = Instance.new("TextButton"); rowBtn.Parent = row
-            rowBtn.Size = UDim2.fromScale(1,1); rowBtn.BackgroundTransparency = 1; rowBtn.Text = ""; rowBtn.ZIndex = 10
-
-            rowBtn.MouseEnter:Connect(function()
-                if not selectedPlantSeeds[plantType] then
-                    tw(row,T_FAST,{BackgroundColor3=themes[config.theme].accent,BackgroundTransparency=0.45})
-                    tw(nameLbl,T_FAST,{TextColor3=themes[config.theme].primary})
-                end
-            end)
-            rowBtn.MouseLeave:Connect(function()
-                if not selectedPlantSeeds[plantType] then
-                    tw(row,T_FAST,{BackgroundColor3=themes[config.theme].row,BackgroundTransparency=0.2})
-                    tw(nameLbl,T_FAST,{TextColor3=themes[config.theme].text})
-                end
-            end)
-            rowBtn.MouseButton1Click:Connect(function()
-                selectedPlantSeeds[plantType] = not (selectedPlantSeeds[plantType] or false)
-                local sel = selectedPlantSeeds[plantType]
-                setSeedVisual(plantType, sel)
-                refreshBadge()
-                statusLabel.Text = "● "..plantType..": "..(sel and "SELECTED ✓" or "DESELECTED")
-            end)
+        -- APAGADO - Cancelar función
+        sellAllFlag = false
+        statusLabel.Text="● Sell All: Cancelled"
+        if initialPosition then
+            teleportTo(initialPosition)
         end
     end
-
-    -- Mensaje si backpack vacío
-    if count == 0 then
-        local emptyLbl = Instance.new("TextLabel"); emptyLbl.Parent = seedPanelScroll
-        emptyLbl.Size = UDim2.new(1,0,0,40); emptyLbl.BackgroundTransparency = 1
-        emptyLbl.Text = "⚠  No seeds found in backpack"
-        emptyLbl.Font = Enum.Font.Gotham; emptyLbl.TextSize = 10
-        emptyLbl.TextColor3 = themes[config.theme].subtext
-        emptyLbl.TextXAlignment = Enum.TextXAlignment.Center; emptyLbl.ZIndex = 7
-    end
-
-    refreshBadge()
-    return count
-end
-
--- ── Lógica de apertura / cierre del panel ────────────────────
-chooseTBtn_.MouseEnter:Connect(function()
-    if not plantPanelOpen then
-        tw(chooseCont,T_FAST,{BackgroundColor3=themes[config.theme].accent,BackgroundTransparency=0.4})
-        tw(chooseLbl_,T_FAST,{TextColor3=themes[config.theme].primary})
-    end
-end)
-chooseTBtn_.MouseLeave:Connect(function()
-    if not plantPanelOpen then
-        tw(chooseCont,T_FAST,{BackgroundColor3=themes[config.theme].row,BackgroundTransparency=0.2})
-        tw(chooseLbl_,T_FAST,{TextColor3=themes[config.theme].text})
-    end
 end)
 
-chooseTBtn_.MouseButton1Click:Connect(function()
-    plantPanelOpen = not plantPanelOpen
+secLabel(mainPage,"ACTIONS").LayoutOrder = 8
 
-    if plantPanelOpen then
-        buildSeedPanel()
-        -- Animar apertura (slide down)
-        tw(seedPanel,
-           TweenInfo.new(0.32, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-           {Size=UDim2.new(1,0,0,PANEL_OPEN_H)})
-        tw(plantAllBtn, T_SMOOTH, {Position=UDim2.new(0,0,0,PLANTALL_Y_OPEN)})
-        tw(chooseArrow_, T_FAST,  {Rotation=180})
-        tw(chooseCont, T_FAST,
-           {BackgroundColor3=themes[config.theme].accent, BackgroundTransparency=0.25})
-        tw(chooseLbl_, T_FAST, {TextColor3=themes[config.theme].primary})
-        task.delay(0.35, function() updateCanvasSize(mainPage) end)
-    else
-        -- Animar cierre
-        tw(seedPanel,
-           TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-           {Size=UDim2.new(1,0,0,0)})
-        tw(plantAllBtn, T_SMOOTH, {Position=UDim2.new(0,0,0,PLANTALL_Y_CLOSED)})
-        tw(chooseArrow_, T_FAST,  {Rotation=0})
-        tw(chooseCont, T_FAST,
-           {BackgroundColor3=themes[config.theme].row, BackgroundTransparency=0.2})
-        tw(chooseLbl_, T_FAST, {TextColor3=themes[config.theme].text})
-        task.delay(0.25, function() updateCanvasSize(mainPage) end)
-    end
-end)
+-- Master Toggle
+local plantSeedsBtn, getPlantSeeds, forceOffPlantSeeds = checkbox(mainPage,"PLANT SEEDS",false)
+plantSeedsBtn.LayoutOrder = 9
 
--- ── Lógica de plantado ────────────────────────────────────────
-local function stopPlanting(silent)
-    isPlanting = false
-    if plantThread_main then safeCancel(plantThread_main); plantThread_main = nil end
-    if not silent then
-        statusLabel.Text = "● Plant Seeds: Stopped"
-        -- restaurar visual del botón Plant All
-        tw(plantAllBtn,T_FAST,{BackgroundColor3=themes[config.theme].row,BackgroundTransparency=0.2})
-        tw(plantAllLbl,T_FAST,{TextColor3=themes[config.theme].text})
-        plantAllLbl.Text = "🌱  Plant All"
-    end
-end
-
-local function startPlanting()
-    if isPlanting then return end
-
-    -- Obtener remote (auto-detecta tipo: RemoteFunction → InvokeServer, RemoteEvent → FireServer)
-    if not plantRemote then
-        local remEvents = ReplicatedStorage:FindFirstChild("RemoteEvents")
-        if remEvents then
-            plantRemote = remEvents:FindFirstChild("PlantSeed")
-        end
-        if not plantRemote then
-            showNotif("Plant Seeds","❌ PlantSeed remote not found",true)
-            statusLabel.Text = "● Plant Seeds: Remote not found"
-            forceOffPlantSeeds()
-            return
-        end
-    end
-    local plantIsFunction = plantRemote:IsA("RemoteFunction")
-
-    -- Construir lista de seeds seleccionadas
-    local toPlant = {}
-    for _, pt in ipairs(ALL_SEEDS) do
-        if selectedPlantSeeds[pt] then table.insert(toPlant, pt) end
-    end
-    if #toPlant == 0 then
-        showNotif("Plant Seeds","⚠ No seeds selected",true)
-        statusLabel.Text = "● Plant Seeds: Select seeds first"
-        forceOffPlantSeeds()
-        return
-    end
-
-    isPlanting = true
-    plantAllLbl.Text = "⏹  Stop Planting"
-    tw(plantAllBtn,T_FAST,{BackgroundColor3=Color3.fromRGB(60,20,20),BackgroundTransparency=0.15})
-    tw(plantAllLbl,T_FAST,{TextColor3=Color3.fromRGB(255,100,80)})
-
-    showNotif("Plant Seeds","🌱 Planting "..#toPlant.." types…",false)
-    statusLabel.Text = "● Plant Seeds: Planting..."
-
-    plantThread_main = task.spawn(function()
-        local RADIUS = 25
-        while isPlanting and getPlantSeedsState() do
-            -- Re-evaluar lista por si el backpack cambió
-            local active = {}
-            for _, pt in ipairs(toPlant) do
-                if selectedPlantSeeds[pt] and getSeedsInBackpack()[pt] then
-                    table.insert(active, pt)
-                end
-            end
-
-            if #active == 0 then
-                statusLabel.Text = "● Plant Seeds: No more seeds"
-                break
-            end
-
-            for _, plantType in ipairs(active) do
-                if not isPlanting then break end
-
-                -- Equipar
-                local equipped = equipPlantSeed(plantType)
-                if equipped then
-                    task.wait(0.15)
-                    -- Plantar batch
-                    for i = 1, 8 do
-                        if not isPlanting then break end
-                        local pos = getPlantPosition(RADIUS)
-                        if pos then
-                            pcall(function()
-                                if plantIsFunction then
-                                    plantRemote:InvokeServer(plantType, pos)
-                                else
-                                    plantRemote:FireServer(plantType, pos)
-                                end
-                            end)
-                            statusLabel.Text = "● Planting: "..plantType.." ["..i.."/8]"
-                            task.wait(0.15)
-                        end
-                    end
-                else
-                    -- Sin esa seed, desmarcar
-                    selectedPlantSeeds[plantType] = false
-                    setSeedVisual(plantType, false)
-                    refreshBadge()
-                    task.wait(0.1)
-                end
-            end
-            task.wait(0.4)
-        end
-
-        -- Fin del loop
-        isPlanting = false
-        plantAllLbl.Text = "🌱  Plant All"
-        tw(plantAllBtn,T_FAST,{BackgroundColor3=themes[config.theme].row,BackgroundTransparency=0.2})
-        tw(plantAllLbl,T_FAST,{TextColor3=themes[config.theme].text})
-        if getPlantSeedsState() then
-            statusLabel.Text = "● Plant Seeds: Cycle complete ✓"
-            showNotif("Plant Seeds","✓ Planting cycle complete",false)
-            task.wait(2); forceOffPlantSeeds()
-        end
-    end)
-end
-
--- ── Botón Plant All ───────────────────────────────────────────
-plantAllBtn.MouseButton1Click:Connect(function()
-    -- Si ya está plantando, parar
-    if isPlanting then
-        stopPlanting(false); return
-    end
-
-    -- Verificar toggle maestro
-    if not getPlantSeedsState() then
-        showNotif("Plant Seeds","⚠ Enable 'Plant Seeds' first",true)
-        statusLabel.Text = "● Plant Seeds must be ON"
-        return
-    end
-
-    -- Auto-seleccionar TODAS las seeds disponibles
-    local backpackSeeds = getSeedsInBackpack()
-    local count = 0
-    for _, pt in ipairs(ALL_SEEDS) do
-        if backpackSeeds[pt] then
-            selectedPlantSeeds[pt] = true; count = count + 1
-            setSeedVisual(pt, true)
-        end
-    end
-    refreshBadge()
-
-    if count == 0 then
-        showNotif("Plant All","⚠ No seeds in backpack",true)
-        statusLabel.Text = "● Plant All: Backpack empty"
-        return
-    end
-
-    startPlanting()
-end)
-
--- ── Toggle maestro "Plant Seeds" ─────────────────────────────
 plantSeedsBtn.MouseButton1Click:Connect(function()
-    local nowOn = getPlantSeedsState()
-    if not nowOn then
-        -- Apagado  → detener si estaba activo
-        if isPlanting then
-            stopPlanting(false)
-            showNotif("Plant Seeds","⏹ Planting stopped",false)
+    local isEnabled = not getPlantSeeds()
+    plantLogic.togglePlanting(isEnabled)
+    statusLabel.Text = "● Auto Plant: " .. (isEnabled and "ON" or "OFF")
+end)
+
+-- Botón para mostrar/ocultar las semillas
+local chooseSeedsBtn = actionButton(mainPage, "CHOSEE SEEDS")
+chooseSeedsBtn.LayoutOrder = 10
+
+-- Contenedor desplegable para las opciones de semillas
+local seedOptionsContainer = Instance.new("Frame")
+seedOptionsContainer.Parent = mainPage
+seedOptionsContainer.Size = UDim2.new(1, 0, 0, 0) -- Altura se animará
+seedOptionsContainer.BackgroundTransparency = 1
+seedOptionsContainer.ClipsDescendants = true
+seedOptionsContainer.LayoutOrder = 11
+local seedOptionsLayout = Instance.new("UIListLayout", seedOptionsContainer)
+seedOptionsLayout.Padding = UDim.new(0, 4)
+
+-- Botón "PLANT ALL" dentro del contenedor
+local plantAllBtn = actionButton(seedOptionsContainer, "PLANT ALL")
+
+-- ScrollingFrame para la lista de semillas
+local seedsScrollFrame = Instance.new("ScrollingFrame")
+seedsScrollFrame.Parent = seedOptionsContainer
+seedsScrollFrame.Size = UDim2.new(1, 0, 1, -44)
+seedsScrollFrame.BackgroundTransparency = 1
+seedsScrollFrame.BorderSizePixel = 0
+seedsScrollFrame.ScrollBarThickness = 3
+seedsScrollFrame.ScrollBarImageColor3 = themes[config.theme].accent
+seedsScrollFrame.ScrollBarImageTransparency = 0.3
+seedsScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+table.insert(scrollBars, seedsScrollFrame)
+local seedsScrollLayout = Instance.new("UIListLayout", seedsScrollFrame)
+seedsScrollLayout.Padding = UDim.new(0, 2)
+
+local seedCheckboxes = {}
+
+-- Lógica para poblar la lista de semillas
+local function populateSeedList()
+    for i,v in pairs(seedsScrollFrame:GetChildren()) do
+        if v:IsA("Frame") then v:Destroy() end
+    end
+    table.clear(seedCheckboxes)
+    
+    local availableSeeds = plantLogic.getSeedsInBackpack()
+    
+    for plantType, seedData in pairs(availableSeeds) do
+        local initialValue = plantLogic.seedsToPlant[plantType] or false
+        local btn, getValue, forceOff = checkbox(seedsScrollFrame, plantType .. " (" .. seedData.count .. ")", initialValue)
+        seedCheckboxes[plantType] = {button = btn, getValue = getValue, forceOff = forceOff}
+
+        btn.MouseButton1Click:Connect(function()
+            task.wait()
+            local isSelected = getValue()
+            plantLogic.seedsToPlant[plantType] = isSelected
+        end)
+    end
+end
+
+-- Lógica para el botón "PLANT ALL"
+plantAllBtn.MouseButton1Click:Connect(function()
+    local allSelected = true
+    for plantType, _ in pairs(plantLogic.getSeedsInBackpack()) do
+        if not plantLogic.seedsToPlant[plantType] then
+            allSelected = false
+            break
         end
+    end
+
+    local selectAll = not allSelected
+    for plantType, _ in pairs(plantLogic.getSeedsInBackpack()) do
+        plantLogic.seedsToPlant[plantType] = selectAll
+    end
+    
+    populateSeedList()
+    statusLabel.Text = "● All seeds " .. (selectAll and "selected" or "deselected")
+end)
+
+-- Lógica para mostrar/ocultar el panel de semillas
+local areSeedOptionsVisible = false
+chooseSeedsBtn.MouseButton1Click:Connect(function()
+    areSeedOptionsVisible = not areSeedOptionsVisible
+    
+    if areSeedOptionsVisible then
+        populateSeedList()
+        tw(seedOptionsContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = UDim2.new(1, 0, 0, 220)})
     else
-        -- Encendido → solo habilita, no planta automáticamente
-        statusLabel.Text = "● Plant Seeds: ON — choose seeds"
-        showNotif("Plant Seeds","✓ Select seeds then tap Plant All",false)
+        tw(seedOptionsContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = UDim2.new(1, 0, 0, 0)})
     end
 end)
 
@@ -1642,192 +1517,253 @@ end)
 --====================================================
 local seedShopLabel = secLabel(otherPage,"SEED SHOP STOCK",0)
 
+-- ScrollingFrame para SEED SHOP
 local seedScroll = Instance.new("ScrollingFrame"); seedScroll.Parent = otherPage
-seedScroll.Size = UDim2.new(1,-12,0,150); seedScroll.Position = UDim2.new(0,6,0,20)
-seedScroll.BackgroundTransparency=1; seedScroll.BorderSizePixel=0
-seedScroll.ScrollBarThickness=3; seedScroll.ScrollBarImageColor3=themes[config.theme].accent
-seedScroll.ScrollBarImageTransparency=0.3; seedScroll.CanvasSize=UDim2.new(0,0,0,0)
-seedScroll.ClipsDescendants=true; seedScroll.ZIndex=4
+seedScroll.Size = UDim2.new(1, -12, 0, 150); seedScroll.Position = UDim2.new(0, 6, 0, 20)
+seedScroll.BackgroundTransparency = 1; seedScroll.BorderSizePixel = 0
+seedScroll.ScrollBarThickness = 3; seedScroll.ScrollBarImageColor3 = themes[config.theme].accent
+seedScroll.ScrollBarImageTransparency = 0.3; seedScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+seedScroll.ClipsDescendants = true; seedScroll.ZIndex = 4
 table.insert(scrollBars, seedScroll)
 
 local seedItems = {}
-local function createShopItem(parent,ypos,itemName,initialAmount)
-    local t=themes[config.theme]
-    local itemFrame=Instance.new("Frame"); itemFrame.Parent=parent
-    itemFrame.Size=UDim2.new(1,-12,0,32); itemFrame.Position=UDim2.new(0,6,0,ypos)
-    itemFrame.BackgroundColor3=t.row; itemFrame.BackgroundTransparency=0.3; itemFrame.ZIndex=5
-    local ic=Instance.new("UICorner",itemFrame); ic.CornerRadius=UDim.new(0,10)
-    local is=Instance.new("UIStroke",itemFrame); is.Color=t.stroke; is.Transparency=0.8
-    table.insert(rows,{frame=itemFrame,stroke=is})
-    local nameLabel=Instance.new("TextLabel"); nameLabel.Parent=itemFrame
-    nameLabel.Size=UDim2.new(1,-50,1,0); nameLabel.Position=UDim2.new(0,10,0,0)
-    nameLabel.BackgroundTransparency=1; nameLabel.Text=itemName
-    nameLabel.Font=Enum.Font.GothamBold; nameLabel.TextSize=11
-    nameLabel.TextColor3=t.text; nameLabel.TextXAlignment=Enum.TextXAlignment.Left; nameLabel.ZIndex=6
-    table.insert(textMain,nameLabel); table.insert(fontObjs,nameLabel)
-    local amountLabel=Instance.new("TextLabel"); amountLabel.Parent=itemFrame
-    amountLabel.Size=UDim2.new(0,40,1,0); amountLabel.Position=UDim2.new(1,-46,0,0)
-    amountLabel.BackgroundTransparency=1; amountLabel.Text=tostring(initialAmount)
-    amountLabel.Font=Enum.Font.GothamBold; amountLabel.TextSize=12
-    amountLabel.TextColor3=Color3.fromRGB(255,255,255); amountLabel.TextXAlignment=Enum.TextXAlignment.Right; amountLabel.ZIndex=6
-    table.insert(fontObjs,amountLabel)
-    return amountLabel
-end
+local function createShopItem(parent, ypos, itemName, initialAmount) 
+     local t = themes[config.theme] 
+ 
+     local itemFrame = Instance.new("Frame") 
+     itemFrame.Parent = parent 
+     itemFrame.Size = UDim2.new(1, -12, 0, 32) 
+     itemFrame.Position = UDim2.new(0, 6, 0, ypos) 
+     itemFrame.BackgroundColor3 = t.row 
+     itemFrame.BackgroundTransparency = 0.3 
+     itemFrame.ZIndex = 5 
+ 
+     local itemCorner = Instance.new("UICorner", itemFrame) 
+     itemCorner.CornerRadius = UDim.new(0, 10) 
+ 
+     local itemStroke = Instance.new("UIStroke", itemFrame) 
+     itemStroke.Color = t.stroke 
+     itemStroke.Transparency = 0.8 
+ 
+     -- 👇 REGISTRAR PARA applyTheme 
+     table.insert(rows, {frame = itemFrame, stroke = itemStroke}) 
+ 
+     local nameLabel = Instance.new("TextLabel") 
+     nameLabel.Parent = itemFrame 
+     nameLabel.Size = UDim2.new(1, -50, 1, 0) 
+     nameLabel.Position = UDim2.new(0, 10, 0, 0) 
+     nameLabel.BackgroundTransparency = 1 
+     nameLabel.Text = itemName 
+     nameLabel.Font = Enum.Font.GothamBold 
+     nameLabel.TextSize = 11 
+     nameLabel.TextColor3 = t.text 
+     nameLabel.TextXAlignment = Enum.TextXAlignment.Left 
+     nameLabel.ZIndex = 6 
+ 
+     table.insert(textMain, nameLabel) 
+     table.insert(fontObjs, nameLabel) 
+ 
+     local amountLabel = Instance.new("TextLabel") 
+     amountLabel.Parent = itemFrame 
+     amountLabel.Size = UDim2.new(0, 40, 1, 0) 
+     amountLabel.Position = UDim2.new(1, -46, 0, 0) 
+     amountLabel.BackgroundTransparency = 1 
+     amountLabel.Text = tostring(initialAmount) 
+     amountLabel.Font = Enum.Font.GothamBold 
+     amountLabel.TextSize = 12 
+     amountLabel.TextColor3 = Color3.fromRGB(255,255,255)
+     amountLabel.TextXAlignment = Enum.TextXAlignment.Right
+     amountLabel.ZIndex = 6
+ 
+     table.insert(fontObjs, amountLabel) 
+ 
+     return amountLabel 
+ end
 
-local seedLabels,gearLabels,seedItemFrames,gearItemFrames = {},{},{},{}
+local seedLabels = {}
+local gearLabels = {}
+local seedItemFrames = {}
+local gearItemFrames = {}
 
--- ── Seed scroll canvas helper ─────────────────────────────────
 local function recalculateSeedPositions()
-    local y=0
-    for _,frame in pairs(seedItemFrames) do
-        if frame and frame.Parent then frame.Position=UDim2.new(0,6,0,y); y=y+38 end
+    local y = 0
+    for _, frame in pairs(seedItemFrames) do
+        if frame and frame.Parent then
+            frame.Position = UDim2.new(0, 6, 0, y)
+            y = y + 38
+        end
     end
-    if seedScroll and seedScroll.Parent then
-        seedScroll.CanvasSize=UDim2.new(0,0,0,math.max(0,y+10))
-    end
+    seedScroll.CanvasSize = UDim2.new(0, 0, 0, math.max(0, y + 10))
 end
 
-local function addSeedItem(name,amount)
-    seedLabels[name]=createShopItem(seedScroll,0,name,amount)
-    seedItemFrames[name]=seedLabels[name].Parent; recalculateSeedPositions()
+local function recalculateGearPositions()
+    local y = 0
+    for _, frame in pairs(gearItemFrames) do
+        if frame and frame.Parent then
+            frame.Position = UDim2.new(0, 6, 0, y)
+            y = y + 38
+        end
+    end
+    gearScroll.CanvasSize = UDim2.new(0, 0, 0, math.max(0, y + 10))
 end
 
--- ── Gear shop section (gearScroll must be created BEFORE recalculateGearPositions) ──
+local function addSeedItem(name, amount)
+    seedLabels[name] = createShopItem(seedScroll, 0, name, amount)
+    seedItemFrames[name] = seedLabels[name].Parent
+    recalculateSeedPositions()
+end
+
 local gearShopLabel = secLabel(otherPage,"GEAR SHOP STOCK",180)
 
-local gearScroll=Instance.new("ScrollingFrame"); gearScroll.Parent=otherPage
-gearScroll.Size=UDim2.new(1,-12,0,150); gearScroll.Position=UDim2.new(0,6,0,200)
-gearScroll.BackgroundTransparency=1; gearScroll.BorderSizePixel=0
-gearScroll.ScrollBarThickness=3; gearScroll.ScrollBarImageColor3=themes[config.theme].accent
-gearScroll.ScrollBarImageTransparency=0.3; gearScroll.CanvasSize=UDim2.new(0,0,0,0)
-gearScroll.ClipsDescendants=true; gearScroll.ZIndex=4
-table.insert(scrollBars,gearScroll)
+-- ScrollingFrame para GEAR SHOP
+local gearScroll = Instance.new("ScrollingFrame"); gearScroll.Parent = otherPage
+gearScroll.Size = UDim2.new(1, -12, 0, 150); gearScroll.Position = UDim2.new(0, 6, 0, 200)
+gearScroll.BackgroundTransparency = 1; gearScroll.BorderSizePixel = 0
+gearScroll.ScrollBarThickness = 3; gearScroll.ScrollBarImageColor3 = themes[config.theme].accent
+gearScroll.ScrollBarImageTransparency = 0.3; gearScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+gearScroll.ClipsDescendants = true; gearScroll.ZIndex = 4
+table.insert(scrollBars, gearScroll)
 
--- Now gearScroll is in scope — safe to reference inside the function
-local function recalculateGearPositions()
-    local y=0
-    for _,frame in pairs(gearItemFrames) do
-        if frame and frame.Parent then frame.Position=UDim2.new(0,6,0,y); y=y+38 end
-    end
-    if gearScroll and gearScroll.Parent then
-        gearScroll.CanvasSize=UDim2.new(0,0,0,math.max(0,y+10))
-    end
+local function addGearItem(name, amount)
+    gearLabels[name] = createShopItem(gearScroll, 0, name, amount)
+    gearItemFrames[name] = gearLabels[name].Parent
+    recalculateGearPositions()
 end
 
-local function addGearItem(name,amount)
-    gearLabels[name]=createShopItem(gearScroll,0,name,amount)
-    gearItemFrames[name]=gearLabels[name].Parent; recalculateGearPositions()
-end
+-- Monitor de shops mejorado
+local seedSnapshot = {}
+local gearSnapshot = {}
 
-local seedSnapshot,gearSnapshot={},{}
-
-local function updateSeedItem(name,amount)
-    if amount<=0 then
-        if seedItemFrames[name] and seedItemFrames[name].Parent then seedItemFrames[name]:Destroy() end
-        seedLabels[name]=nil; seedItemFrames[name]=nil; seedSnapshot[name]=nil; recalculateSeedPositions()
+local function updateSeedItem(name, amount)
+    if amount <= 0 then
+        -- Eliminar si está en 0
+        if seedItemFrames[name] and seedItemFrames[name].Parent then
+            seedItemFrames[name]:Destroy()
+        end
+        seedLabels[name] = nil
+        seedItemFrames[name] = nil
+        seedSnapshot[name] = nil
+        recalculateSeedPositions()
     else
-        if not seedLabels[name] then addSeedItem(name,amount)
-        else seedLabels[name].Text=tostring(amount) end
-        seedSnapshot[name]=amount
+        -- Si no existe pero tiene stock, crear
+        if not seedLabels[name] then
+            addSeedItem(name, amount)
+        else
+            seedLabels[name].Text = tostring(amount)
+        end
+        seedSnapshot[name] = amount
     end
 end
 
-local function updateGearItem(name,amount)
-    if amount<=0 then
-        if gearItemFrames[name] and gearItemFrames[name].Parent then gearItemFrames[name]:Destroy() end
-        gearLabels[name]=nil; gearItemFrames[name]=nil; gearSnapshot[name]=nil; recalculateGearPositions()
+local function updateGearItem(name, amount)
+    if amount <= 0 then
+        -- Eliminar si está en 0
+        if gearItemFrames[name] and gearItemFrames[name].Parent then
+            gearItemFrames[name]:Destroy()
+        end
+        gearLabels[name] = nil
+        gearItemFrames[name] = nil
+        gearSnapshot[name] = nil
+        recalculateGearPositions()
     else
-        if not gearLabels[name] then addGearItem(name,amount)
-        else gearLabels[name].Text=tostring(amount) end
-        gearSnapshot[name]=amount
+        -- Si no existe pero tiene stock, crear
+        if not gearLabels[name] then
+            addGearItem(name, amount)
+        else
+            gearLabels[name].Text = tostring(amount)
+        end
+        gearSnapshot[name] = amount
     end
 end
 
--- ── Safe remote helper: returns (remote, isFunction) ──────────
-local function safeGetRemote(...)
-    local cur = ReplicatedStorage
-    for _, name in ipairs({...}) do
-        if not cur then return nil, false end
-        cur = cur:FindFirstChild(name)
-    end
-    if not cur then return nil, false end
-    return cur, cur:IsA("RemoteFunction")
-end
-
--- ── Shop monitor loop ─────────────────────────────────────────
+-- Monitor loop
 task.spawn(function()
     while true do
         pcall(function()
-            local rem, isFn = safeGetRemote("RemoteEvents","GetShopData")
-            if not rem or not isFn then return end
-            local ok, shopData = pcall(function() return rem:InvokeServer("SeedShop") end)
-            if ok and shopData and type(shopData.Items)=="table" then
-                for n,tbl in pairs(shopData.Items) do
-                    if type(tbl)=="table" and tbl.Amount then updateSeedItem(n, tbl.Amount) end
+            local shopData = ReplicatedStorage.RemoteEvents.GetShopData:InvokeServer("SeedShop")
+            if shopData and shopData.Items then
+                for seedName, seedTable in pairs(shopData.Items) do
+                    updateSeedItem(seedName, seedTable.Amount)
                 end
             end
         end)
+        
         pcall(function()
-            local rem, isFn = safeGetRemote("RemoteEvents","GetShopData")
-            if not rem or not isFn then return end
-            local ok, shopData = pcall(function() return rem:InvokeServer("GearShop") end)
-            if ok and shopData and type(shopData.Items)=="table" then
-                for n,tbl in pairs(shopData.Items) do
-                    if type(tbl)=="table" and tbl.Amount then updateGearItem(n, tbl.Amount) end
+            local shopData = ReplicatedStorage.RemoteEvents.GetShopData:InvokeServer("GearShop")
+            if shopData and shopData.Items then
+                for itemName, itemTable in pairs(shopData.Items) do
+                    updateGearItem(itemName, itemTable.Amount)
                 end
             end
         end)
-        task.wait(2)  -- reduced frequency to avoid spam
+        
+        task.wait(1)
     end
 end)
 
 --====================================================
--- ★ MICS PAGE
+-- ★ MICS PAGE — PON TUS OPCIONES AQUÍ ★
 --====================================================
 secLabel(micsPage,"MICS",0)
 
-local micsOption1Btn,getMicsOption1 = checkbox(micsPage,"Misc Option 1",20,false)
+local micsOption1Btn, getMicsOption1, forceOffMicsOption1 = checkbox(micsPage,"Misc Option 1",20,false)
 micsOption1Btn.MouseButton1Click:Connect(function()
+    -- TU LÓGICA AQUÍ
     statusLabel.Text="● Misc Option 1: "..(getMicsOption1() and "ON" or "OFF")
 end)
 
 slider(micsPage,"Misc Slider",62,1,100,50,function(val)
+    -- TU LÓGICA AQUÍ
     statusLabel.Text="● Misc Slider: "..tostring(math.floor(val))
 end)
 
 --====================================================
--- ★ TELEPORTS PAGE
+-- ★ TELEPORTS PAGE — PON TUS SPOTS AQUÍ ★
 --====================================================
 secLabel(teleportsPage,"TELEPORTS",0)
 
 local teleportSpots = {
-    {name="SEEDS SHOP", pos=Vector3.new(176.70,204.01,672.00)},
-    {name="SELL PLANTS", pos=Vector3.new(149.39,204.01,671.99)},
-    {name="QUEST TASK",  pos=Vector3.new(111.53,203.99,635.05)},
+    -- {name="Nombre", pos=Vector3.new(X, Y, Z)},
+    {name="SEEDS SHOP", pos=Vector3.new(176.70, 204.01, 672.00)},
+    {name="SELL PLANTS", pos=Vector3.new(149.39, 204.01, 671.99)},
+    {name="QUEST TASK", pos=Vector3.new(111.53, 203.99, 635.05)},
     {name="GARDEN"},
 }
 
 local function getTeleportSpawn()
-    local plots=workspace:FindFirstChild("Plots") or workspace:FindFirstChild("Gardens")
-    if not plots then return nil end
-    for _,plot in pairs(plots:GetChildren()) do
-        if plot:GetAttribute("Owner")==localPlayer.UserId or
-           plot:GetAttribute("OwnerName")==localPlayer.Name or
-           plot.Name==localPlayer.Name then
-            local spawn=plot:FindFirstChild("Spawn")
-            if spawn then spawn=spawn:FindFirstChild("Spawn") or spawn end
+    local plots = workspace:FindFirstChild("Plots") or workspace:FindFirstChild("Gardens")
+    if not plots then
+        warn("No se encontró la carpeta de plots")
+        return nil
+    end
+    for _, plot in pairs(plots:GetChildren()) do
+        if plot:GetAttribute("Owner") == localPlayer.UserId or plot:GetAttribute("OwnerName") == localPlayer.Name or plot.Name == localPlayer.Name then
+            local spawn = plot:FindFirstChild("Spawn")
+            if spawn then
+                spawn = spawn:FindFirstChild("Spawn") or spawn
+            end
             return spawn
         end
     end
+    warn("No se encontró tu plot")
     return nil
 end
 
 local function teleportToGarden()
-    local char=localPlayer.Character; if not char then return end
-    local hrp=char:FindFirstChild("HumanoidRootPart"); if not hrp then return end
-    local sp=getTeleportSpawn(); if not sp then warn("Garden spawn not found"); return end
-    hrp.Anchored=true; hrp.CFrame=sp.CFrame*CFrame.new(0,3.5,0)
-    hrp.AssemblyLinearVelocity=Vector3.new(0,0,0); hrp.Anchored=false
+    local character = localPlayer.Character
+    if not character then return end
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not hrp or not humanoid then return end
+    local spawnPart = getTeleportSpawn()
+    if not spawnPart then
+        warn("No se encontró el spawn del garden!")
+        return
+    end
+    hrp.Anchored = true
+    hrp.CFrame = spawnPart.CFrame * CFrame.new(0, 3.5, 0)
+    hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+    hrp.Anchored = false
 end
 
 local teleportGap=isMobile and 40 or 44
@@ -1835,29 +1771,27 @@ for i,spot in ipairs(teleportSpots) do
     local yp=20+(i-1)*teleportGap
     local btn=actionButton(teleportsPage,spot.name,yp)
     btn.MouseButton1Click:Connect(function()
-        if spot.name=="GARDEN" then
-            teleportToGarden(); statusLabel.Text="● Teleported to: GARDEN"
-        elseif spot.name=="SEEDS SHOP" then
-            local char=localPlayer.Character or localPlayer.CharacterAdded:Wait()
-            local hrp=char:WaitForChild("HumanoidRootPart")
+        if spot.name == "GARDEN" then
+            teleportToGarden()
+            statusLabel.Text="● Teleported to: "..spot.name
+        elseif spot.name == "SEEDS SHOP" then
+            local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+            local hrp = character:WaitForChild("HumanoidRootPart")
             if hrp then
-                hrp.CFrame=CFrame.new(spot.pos); statusLabel.Text="● Teleported to: "..spot.name
+                hrp.CFrame = CFrame.new(spot.pos)
+                statusLabel.Text="● Teleported to: "..spot.name
                 task.wait(0.5)
                 pcall(function()
-                    local prompt=workspace.MapPhysical.Shops["Seed Shop"].SeedNPC.HumanoidRootPart:WaitForChild("ProximityPrompt")
-                    -- fireproximityprompt may not exist in all executors
-                    if fireproximityprompt then
-                        fireproximityprompt(prompt)
-                    else
-                        prompt.Enabled = true
-                        -- fallback: trigger via proximity prompt fire event
-                        pcall(function() prompt:InputHoldBegin() end)
-                    end
+                    local prompt = workspace.MapPhysical.Shops["Seed Shop"].SeedNPC.HumanoidRootPart:WaitForChild("ProximityPrompt")
+                    fireproximityprompt(prompt)
                     statusLabel.Text="● Interacting with Seed Shop..."
                 end)
+            else
+                statusLabel.Text="● Error: Character not found"
             end
         else
-            local hrp=Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            local char=Players.LocalPlayer.Character
+            local hrp=char and char:FindFirstChild("HumanoidRootPart")
             if hrp then hrp.CFrame=CFrame.new(spot.pos); statusLabel.Text="● Teleported to: "..spot.name
             else statusLabel.Text="● Error: Character not found" end
         end
