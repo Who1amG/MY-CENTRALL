@@ -2,7 +2,7 @@ local Players          = game:GetService("Players")
 local TweenService     = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService       = game:GetService("RunService")
-local HttpService      = game:GetService("HttpService") --Niggers
+local HttpService      = game:GetService("HttpService") -- YA NO SOY NIGGER
 
 local localPlayer = Players.LocalPlayer
 local PlayerGui   = localPlayer:WaitForChild("PlayerGui")
@@ -1045,10 +1045,17 @@ option1Btn.MouseButton1Click:Connect(function()
             end
             pcall(function()
                 if not sellRemote then
-                    sellRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("SellItems")
+                    local remEv = ReplicatedStorage:FindFirstChild("RemoteEvents")
+                    if remEv then sellRemote = remEv:FindFirstChild("SellItems") end
+                end
+                if not sellRemote then
+                    showNotif("Sell Single","❌ SellItems remote not found",true)
+                    selling=false; task.wait(1.5); forceOffOption1(); return
                 end
                 statusLabel.Text="● Sell Single: Selling"
-                sellRemote:InvokeServer("SellSingle")
+                local sellIsFn = sellRemote:IsA("RemoteFunction")
+                if sellIsFn then sellRemote:InvokeServer("SellSingle")
+                else sellRemote:FireServer("SellSingle") end
                 task.wait(0.4)
                 if initialPosition then statusLabel.Text="● Sell Single: Returning..."; teleportTo(initialPosition); task.wait(0.3) end
                 local finalMoney = 0
@@ -1112,9 +1119,18 @@ option2Btn.MouseButton1Click:Connect(function()
             end
             pcall(function()
                 if not sellRemote then
-                    sellRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("SellItems")
+                    local remEv = ReplicatedStorage:FindFirstChild("RemoteEvents")
+                    if remEv then sellRemote = remEv:FindFirstChild("SellItems") end
                 end
-                statusLabel.Text="● Sell All: Selling"; sellRemote:InvokeServer("SellAll"); task.wait(0.4)
+                if not sellRemote then
+                    showNotif("Sell All","❌ SellItems remote not found",true)
+                    sellAllFlag=false; task.wait(1.5); forceOffOption2(); return
+                end
+                local sellIsFn = sellRemote:IsA("RemoteFunction")
+                statusLabel.Text="● Sell All: Selling"
+                if sellIsFn then sellRemote:InvokeServer("SellAll")
+                else sellRemote:FireServer("SellAll") end
+                task.wait(0.4)
                 if initialPosition then statusLabel.Text="● Sell All: Returning..."; teleportTo(initialPosition); task.wait(0.3) end
                 local finalMoney = 0
                 pcall(function() finalMoney = Players.LocalPlayer.leaderstats.Shillings.Value end)
@@ -1459,12 +1475,12 @@ end
 local function startPlanting()
     if isPlanting then return end
 
-    -- Obtener remote
+    -- Obtener remote (auto-detecta tipo: RemoteFunction → InvokeServer, RemoteEvent → FireServer)
     if not plantRemote then
-        pcall(function()
-            plantRemote = ReplicatedStorage:WaitForChild("RemoteEvents",5)
-                                           :WaitForChild("PlantSeed",5)
-        end)
+        local remEvents = ReplicatedStorage:FindFirstChild("RemoteEvents")
+        if remEvents then
+            plantRemote = remEvents:FindFirstChild("PlantSeed")
+        end
         if not plantRemote then
             showNotif("Plant Seeds","❌ PlantSeed remote not found",true)
             statusLabel.Text = "● Plant Seeds: Remote not found"
@@ -1472,6 +1488,7 @@ local function startPlanting()
             return
         end
     end
+    local plantIsFunction = plantRemote:IsA("RemoteFunction")
 
     -- Construir lista de seeds seleccionadas
     local toPlant = {}
@@ -1522,10 +1539,14 @@ local function startPlanting()
                         local pos = getPlantPosition(RADIUS)
                         if pos then
                             pcall(function()
-                                plantRemote:InvokeServer(plantType, pos)
+                                if plantIsFunction then
+                                    plantRemote:InvokeServer(plantType, pos)
+                                else
+                                    plantRemote:FireServer(plantType, pos)
+                                end
                             end)
                             statusLabel.Text = "● Planting: "..plantType.." ["..i.."/8]"
-                            task.wait(0.12)
+                            task.wait(0.15)
                         end
                     end
                 else
@@ -1641,20 +1662,15 @@ end
 
 local seedLabels,gearLabels,seedItemFrames,gearItemFrames = {},{},{},{}
 
+-- ── Seed scroll canvas helper ─────────────────────────────────
 local function recalculateSeedPositions()
     local y=0
     for _,frame in pairs(seedItemFrames) do
         if frame and frame.Parent then frame.Position=UDim2.new(0,6,0,y); y=y+38 end
     end
-    seedScroll.CanvasSize=UDim2.new(0,0,0,math.max(0,y+10))
-end
-
-local function recalculateGearPositions()
-    local y=0
-    for _,frame in pairs(gearItemFrames) do
-        if frame and frame.Parent then frame.Position=UDim2.new(0,6,0,y); y=y+38 end
+    if seedScroll and seedScroll.Parent then
+        seedScroll.CanvasSize=UDim2.new(0,0,0,math.max(0,y+10))
     end
-    -- gearScroll referenced below
 end
 
 local function addSeedItem(name,amount)
@@ -1662,6 +1678,7 @@ local function addSeedItem(name,amount)
     seedItemFrames[name]=seedLabels[name].Parent; recalculateSeedPositions()
 end
 
+-- ── Gear shop section (gearScroll must be created BEFORE recalculateGearPositions) ──
 local gearShopLabel = secLabel(otherPage,"GEAR SHOP STOCK",180)
 
 local gearScroll=Instance.new("ScrollingFrame"); gearScroll.Parent=otherPage
@@ -1672,16 +1689,20 @@ gearScroll.ScrollBarImageTransparency=0.3; gearScroll.CanvasSize=UDim2.new(0,0,0
 gearScroll.ClipsDescendants=true; gearScroll.ZIndex=4
 table.insert(scrollBars,gearScroll)
 
-local function addGearItem(name,amount)
-    gearLabels[name]=createShopItem(gearScroll,0,name,amount)
-    gearItemFrames[name]=gearLabels[name].Parent; recalculateGearPositions()
-end
-recalculateGearPositions = function()
+-- Now gearScroll is in scope — safe to reference inside the function
+local function recalculateGearPositions()
     local y=0
     for _,frame in pairs(gearItemFrames) do
         if frame and frame.Parent then frame.Position=UDim2.new(0,6,0,y); y=y+38 end
     end
-    gearScroll.CanvasSize=UDim2.new(0,0,0,math.max(0,y+10))
+    if gearScroll and gearScroll.Parent then
+        gearScroll.CanvasSize=UDim2.new(0,0,0,math.max(0,y+10))
+    end
+end
+
+local function addGearItem(name,amount)
+    gearLabels[name]=createShopItem(gearScroll,0,name,amount)
+    gearItemFrames[name]=gearLabels[name].Parent; recalculateGearPositions()
 end
 
 local seedSnapshot,gearSnapshot={},{}
@@ -1708,21 +1729,41 @@ local function updateGearItem(name,amount)
     end
 end
 
+-- ── Safe remote helper: returns (remote, isFunction) ──────────
+local function safeGetRemote(...)
+    local cur = ReplicatedStorage
+    for _, name in ipairs({...}) do
+        if not cur then return nil, false end
+        cur = cur:FindFirstChild(name)
+    end
+    if not cur then return nil, false end
+    return cur, cur:IsA("RemoteFunction")
+end
+
+-- ── Shop monitor loop ─────────────────────────────────────────
 task.spawn(function()
     while true do
         pcall(function()
-            local shopData=ReplicatedStorage.RemoteEvents.GetShopData:InvokeServer("SeedShop")
-            if shopData and shopData.Items then
-                for n,tbl in pairs(shopData.Items) do updateSeedItem(n,tbl.Amount) end
+            local rem, isFn = safeGetRemote("RemoteEvents","GetShopData")
+            if not rem or not isFn then return end
+            local ok, shopData = pcall(function() return rem:InvokeServer("SeedShop") end)
+            if ok and shopData and type(shopData.Items)=="table" then
+                for n,tbl in pairs(shopData.Items) do
+                    if type(tbl)=="table" and tbl.Amount then updateSeedItem(n, tbl.Amount) end
+                end
             end
         end)
         pcall(function()
-            local shopData=ReplicatedStorage.RemoteEvents.GetShopData:InvokeServer("GearShop")
-            if shopData and shopData.Items then
-                for n,tbl in pairs(shopData.Items) do updateGearItem(n,tbl.Amount) end
+            local rem, isFn = safeGetRemote("RemoteEvents","GetShopData")
+            if not rem or not isFn then return end
+            local ok, shopData = pcall(function() return rem:InvokeServer("GearShop") end)
+            if ok and shopData and type(shopData.Items)=="table" then
+                for n,tbl in pairs(shopData.Items) do
+                    if type(tbl)=="table" and tbl.Amount then updateGearItem(n, tbl.Amount) end
+                end
             end
         end)
-        task.wait(1)
+        task.wait(2)  -- reduced frequency to avoid spam
     end
 end)
 
