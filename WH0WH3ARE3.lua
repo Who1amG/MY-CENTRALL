@@ -1,7 +1,7 @@
 local Players          = game:GetService("Players")
 local TweenService     = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local RunService       = game:GetService("RunService")   --v2
+local UserInputService = game:GetService("UserInputService") --v3
+local RunService       = game:GetService("RunService")
 local HttpService      = game:GetService("HttpService")
 
 local localPlayer = Players.LocalPlayer
@@ -734,14 +734,26 @@ local teleportsPage = makePage()
 local otherPage     = makePage()
 
 local function updateCanvasSize(page)
-    local maxY=0
-    for _,child in ipairs(page:GetChildren()) do
-        if child:IsA("GuiObject") then
-            local bottom=child.Position.Y.Offset+child.Size.Y.Offset
-            if bottom>maxY then maxY=bottom end
-        end
-    end
-    contentArea.CanvasSize=UDim2.new(0,0,0,maxY+20)
+	task.defer(function()
+		if not page or not page.Parent or not page.Visible then return end
+
+		local layout = page:FindFirstChildOfClass("UIListLayout")
+		if layout then
+			contentArea.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 20)
+			return
+		end
+
+		local maxY = 0
+		for _, child in ipairs(page:GetChildren()) do
+			if child:IsA("GuiObject") then
+				local bottom = child.Position.Y.Offset + child.Size.Y.Offset
+				if bottom > maxY then
+					maxY = bottom
+				end
+			end
+		end
+		contentArea.CanvasSize = UDim2.new(0, 0, 0, maxY + 20)
+	end)
 end
 
 mainPage:GetPropertyChangedSignal("Visible"):Connect(function() if mainPage.Visible then updateCanvasSize(mainPage) end end)
@@ -1322,7 +1334,7 @@ local plantSeedsRow, plantSeedsBtn, getPlantSeeds, forceOffPlantSeeds = checkbox
 plantSeedsRow.LayoutOrder = 5
 
 plantSeedsBtn.MouseButton1Click:Connect(function()
-    local isEnabled = not getPlantSeeds()
+    local isEnabled = getPlantSeeds()
     plantLogic.togglePlanting(isEnabled)
     statusLabel.Text = "● Auto Plant: " .. (isEnabled and "ON" or "OFF")
 end)
@@ -1333,85 +1345,175 @@ chooseSeedsBtn.LayoutOrder = 6
 
 -- Contenedor desplegable para las opciones de semillas
 local seedOptionsContainer = Instance.new("Frame")
+seedOptionsContainer.Name = "SeedOptionsContainer"
 seedOptionsContainer.Parent = mainPage
-seedOptionsContainer.Size = UDim2.new(1, 0, 0, 0) -- Altura se animará
 seedOptionsContainer.BackgroundTransparency = 1
 seedOptionsContainer.ClipsDescendants = true
 seedOptionsContainer.LayoutOrder = 7
-local seedOptionsLayout = Instance.new("UIListLayout", seedOptionsContainer)
+seedOptionsContainer.Size = UDim2.new(1, 0, 0, 0)
+
+local seedOptionsLayout = Instance.new("UIListLayout")
+seedOptionsLayout.Parent = seedOptionsContainer
 seedOptionsLayout.Padding = UDim.new(0, 4)
+seedOptionsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
 -- Botón "PLANT ALL" dentro del contenedor
-local plantAllBtn = actionButton(seedOptionsContainer, "PLANT ALL")
+local plantAllBtn = actionButton(seedOptionsContainer, "PLANT ALL", 0)
+plantAllBtn.LayoutOrder = 1
+plantAllBtn.Size = UDim2.new(1, 0, 0, ROW_H)
 
--- ScrollingFrame para la lista de semillas
+-- ScrollingFrame para la lista de semillas (ALTURA FIJA DENTRO DEL DROPDOWN)
 local seedsScrollFrame = Instance.new("ScrollingFrame")
+seedsScrollFrame.Name = "SeedsScrollFrame"
 seedsScrollFrame.Parent = seedOptionsContainer
-seedsScrollFrame.Size = UDim2.new(1, 0, 1, -44)
+seedsScrollFrame.LayoutOrder = 2
+seedsScrollFrame.Size = UDim2.new(1, 0, 0, 172) -- << FIX: altura fija (no scale)
 seedsScrollFrame.BackgroundTransparency = 1
 seedsScrollFrame.BorderSizePixel = 0
-seedsScrollFrame.ScrollBarThickness = 3
+seedsScrollFrame.ScrollBarThickness = 4
 seedsScrollFrame.ScrollBarImageColor3 = themes[config.theme].accent
-seedsScrollFrame.ScrollBarImageTransparency = 0.3
+seedsScrollFrame.ScrollBarImageTransparency = 0.2
 seedsScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+seedsScrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.None
+seedsScrollFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+seedsScrollFrame.ClipsDescendants = true
+seedsScrollFrame.TopImage = "rbxasset://textures/ui/Scroll/scroll-middle.png"
+seedsScrollFrame.MidImage = "rbxasset://textures/ui/Scroll/scroll-middle.png"
+seedsScrollFrame.BottomImage = "rbxasset://textures/ui/Scroll/scroll-middle.png"
 table.insert(scrollBars, seedsScrollFrame)
-local seedsScrollLayout = Instance.new("UIListLayout", seedsScrollFrame)
+
+local seedsScrollLayout = Instance.new("UIListLayout")
+seedsScrollLayout.Parent = seedsScrollFrame
 seedsScrollLayout.Padding = UDim.new(0, 2)
+seedsScrollLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
 local seedCheckboxes = {}
 
--- Lógica para poblar la lista de semillas
-local function populateSeedList()
-    for i,v in pairs(seedsScrollFrame:GetChildren()) do
-        if v:IsA("Frame") then v:Destroy() end
-    end
-    table.clear(seedCheckboxes)
-    
-    local availableSeeds = plantLogic.getSeedsInBackpack()
-    
-    for plantType, seedData in pairs(availableSeeds) do
-        local initialValue = plantLogic.seedsToPlant[plantType] or false
-        local row, btn, getValue, forceOff = checkbox(seedsScrollFrame, plantType .. " (" .. seedData.count .. ")", 0, initialValue)
-seedCheckboxes[plantType] = {row = row, button = btn, getValue = getValue, forceOff = forceOff}
+-- Alturas del dropdown (cerrado / abierto)
+local DROPDOWN_LIST_H = 172
+local DROPDOWN_OPEN_H = ROW_H + 4 + DROPDOWN_LIST_H -- botón + padding + scroll
 
-btn.MouseButton1Click:Connect(function()
-    task.wait()
-    local isSelected = getValue()
-    plantLogic.seedsToPlant[plantType] = isSelected
-end)
-    end
+-- Función robusta para refrescar canvas del scroll de seeds
+local function refreshSeedScrollCanvas()
+	task.defer(function()
+		if seedsScrollFrame and seedsScrollFrame.Parent and seedsScrollLayout then
+			seedsScrollFrame.CanvasSize = UDim2.new(0, 0, 0, math.max(0, seedsScrollLayout.AbsoluteContentSize.Y + 4))
+		end
+	end)
 end
+
+-- Lógica para poblar la lista de semillas (UI)
+local function populateSeedList()
+	for _, v in ipairs(seedsScrollFrame:GetChildren()) do
+		if v:IsA("Frame") then
+			v:Destroy()
+		end
+	end
+	table.clear(seedCheckboxes)
+
+	local availableSeeds = plantLogic.getSeedsInBackpack()
+	local order = 1
+
+	for plantType, seedData in pairs(availableSeeds) do
+		local initialValue = plantLogic.seedsToPlant[plantType] or false
+		local row, btn, getValue, forceOff = checkbox(
+			seedsScrollFrame,
+			plantType .. " (" .. seedData.count .. ")",
+			0,
+			initialValue
+		)
+
+		row.LayoutOrder = order
+		order += 1
+
+		seedCheckboxes[plantType] = {
+			row = row,
+			button = btn,
+			getValue = getValue,
+			forceOff = forceOff
+		}
+
+		btn.MouseButton1Click:Connect(function()
+			task.wait()
+			local isSelected = getValue()
+			plantLogic.seedsToPlant[plantType] = isSelected
+		end)
+	end
+
+	refreshSeedScrollCanvas()
+end
+
+-- Recalcular canvas del panel principal cuando cambie el dropdown
+local function refreshMainAfterDropdown()
+	task.defer(function()
+		if mainPage.Visible then
+			updateCanvasSize(mainPage)
+		end
+	end)
+end
+
+-- Mantener tamaños sincronizados si cambia el contenido
+seedOptionsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	-- mientras está abierto, asegurar que el contenedor mantenga la altura correcta
+	if seedOptionsContainer.Size.Y.Offset > 0 then
+		-- forzamos la altura estable del dropdown (evita saltos)
+		seedOptionsContainer.Size = UDim2.new(1, 0, 0, DROPDOWN_OPEN_H)
+		refreshMainAfterDropdown()
+	end
+end)
+
+seedsScrollLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	refreshSeedScrollCanvas()
+	refreshMainAfterDropdown()
+end)
 
 -- Lógica para el botón "PLANT ALL"
 plantAllBtn.MouseButton1Click:Connect(function()
-    local allSelected = true
-    for plantType, _ in pairs(plantLogic.getSeedsInBackpack()) do
-        if not plantLogic.seedsToPlant[plantType] then
-            allSelected = false
-            break
-        end
-    end
+	local allSelected = true
+	for plantType, _ in pairs(plantLogic.getSeedsInBackpack()) do
+		if not plantLogic.seedsToPlant[plantType] then
+			allSelected = false
+			break
+		end
+	end
 
-    local selectAll = not allSelected
-    for plantType, _ in pairs(plantLogic.getSeedsInBackpack()) do
-        plantLogic.seedsToPlant[plantType] = selectAll
-    end
-    
-    populateSeedList()
-    statusLabel.Text = "● All seeds " .. (selectAll and "selected" or "deselected")
+	local selectAll = not allSelected
+	for plantType, _ in pairs(plantLogic.getSeedsInBackpack()) do
+		plantLogic.seedsToPlant[plantType] = selectAll
+	end
+
+	populateSeedList()
+	statusLabel.Text = "● All seeds " .. (selectAll and "selected" or "deselected")
 end)
 
--- Lógica para mostrar/ocultar el panel de semillas
+-- Lógica para mostrar/ocultar el panel de semillas (FIXED)
 local areSeedOptionsVisible = false
 chooseSeedsBtn.MouseButton1Click:Connect(function()
-    areSeedOptionsVisible = not areSeedOptionsVisible
-    
-    if areSeedOptionsVisible then
-        populateSeedList()
-        tw(seedOptionsContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = UDim2.new(1, 0, 0, 220)})
-    else
-        tw(seedOptionsContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = UDim2.new(1, 0, 0, 0)})
-    end
+	areSeedOptionsVisible = not areSeedOptionsVisible
+
+	if areSeedOptionsVisible then
+		populateSeedList()
+
+		-- Asegura estado visual antes de animar
+		seedsScrollFrame.CanvasPosition = Vector2.new(0, 0)
+
+		tw(seedOptionsContainer, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Size = UDim2.new(1, 0, 0, DROPDOWN_OPEN_H)
+		})
+
+		task.delay(0.24, function()
+			refreshSeedScrollCanvas()
+			refreshMainAfterDropdown()
+		end)
+	else
+		tw(seedOptionsContainer, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Size = UDim2.new(1, 0, 0, 0)
+		})
+
+		task.delay(0.20, function()
+			refreshMainAfterDropdown()
+		end)
+	end
 end)
 
 --====================================================
@@ -1612,8 +1714,6 @@ local micsOption1Row, micsOption1Btn, getMicsOption1, forceOffMicsOption1 = chec
 micsOption1Btn.MouseButton1Click:Connect(function()
     statusLabel.Text="● Misc Option 1: "..(getMicsOption1() and "ON" or "OFF")
 end)    -- TU LÓGICA AQUÍ
-    statusLabel.Text="● Misc Option 1: "..(getMicsOption1() and "ON" or "OFF")
-end)
 
 slider(micsPage,"Misc Slider",62,1,100,50,function(val)
     -- TU LÓGICA AQUÍ
