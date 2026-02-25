@@ -1,7 +1,7 @@
 local Players          = game:GetService("Players")
 local TweenService     = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local RunService       = game:GetService("RunService")  -- try 1
+local RunService       = game:GetService("RunService")   --v2
 local HttpService      = game:GetService("HttpService")
 
 local localPlayer = Players.LocalPlayer
@@ -753,9 +753,9 @@ otherPage:GetPropertyChangedSignal("Visible"):Connect(function() if otherPage.Vi
 --====================================================
 -- WIDGET HELPERS
 --====================================================
-local function secLabel(parent,text,yp)
+local function secLabel(parent,text)
     local l=Instance.new("TextLabel"); l.Parent=parent
-    l.Size=UDim2.new(1,0,0,16); l.Position=UDim2.new(0,2,0,yp)
+    l.Size=UDim2.new(1,0,0,16) 
     l.BackgroundTransparency=1; l.Text=text; l.Font=Enum.Font.GothamBold
     l.TextSize=FONT_SM; l.TextColor3=themes[config.theme].subtext
     l.TextXAlignment=Enum.TextXAlignment.Left; l.ZIndex=5
@@ -765,7 +765,7 @@ end
 local function checkbox(parent,text,yp,defaultOn)
     local t=themes[config.theme]; local state=defaultOn or false
     local row=Instance.new("Frame"); row.Parent=parent
-    row.Size=UDim2.new(1,0,0,ROW_H); row.Position=UDim2.new(0,0,0,yp)
+    row.Size=UDim2.new(1,0,0,ROW_H); row.Position=UDim2.new(0,0,0,yp or 0)
     row.BackgroundColor3=t.row; row.BackgroundTransparency=0.2; row.BorderSizePixel=0; row.ZIndex=5
     local rc2=Instance.new("UICorner",row); rc2.CornerRadius=UDim.new(0,ROW_R)
     local rs=Instance.new("UIStroke",row); rs.Color=t.stroke; rs.Transparency=0.93
@@ -808,7 +808,7 @@ local function checkbox(parent,text,yp,defaultOn)
         if state then overridden=true end
         state=false; chk.Visible=false; tw(box,T_FAST,{BackgroundColor3=themes[config.theme].row})
     end
-    return btn, function() return state end, forceOff
+    return row, btn, function() return state end, forceOff
 end
 
 local function slider(parent,labelText,yp,minVal,maxVal,defaultVal,onChange)
@@ -897,7 +897,7 @@ end
 local function actionButton(parent,text,yp)
     local t=themes[config.theme]
     local btn=Instance.new("TextButton"); btn.Parent=parent
-    btn.Size=UDim2.new(1,0,0,ROW_H); btn.Position=UDim2.new(0,0,0,yp)
+    btn.Size=UDim2.new(1,0,0,ROW_H); btn.Position=UDim2.new(0,0,0,yp or 0)
     btn.Text=""; btn.BackgroundColor3=t.row; btn.BackgroundTransparency=0.2; btn.AutoButtonColor=false; btn.ZIndex=5
     local bc2=Instance.new("UICorner",btn); bc2.CornerRadius=UDim.new(0,ROW_R)
     local bs=Instance.new("UIStroke",btn); bs.Color=t.stroke; bs.Transparency=0.93
@@ -1074,108 +1074,10 @@ mainListLayout.Parent = mainPage
 mainListLayout.Padding = UDim.new(0, 8)
 mainListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
-secLabel(mainPage,"SELL OPTIONS").LayoutOrder = 5
+secLabel(mainPage,"SELL OPTIONS").LayoutOrder = 1
 
--- Master Toggle
-local plantSeedsBtn, getPlantSeeds, forceOffPlantSeeds = checkbox(mainPage,"PLANT SEEDS",false)
-plantSeedsBtn.LayoutOrder = 6
-
-plantSeedsBtn.MouseButton1Click:Connect(function()
-    local isEnabled = not getPlantSeeds()
-    plantLogic.togglePlanting(isEnabled)
-    statusLabel.Text = "● Auto Plant: " .. (isEnabled and "ON" or "OFF")
-end)
-
--- Botón para mostrar/ocultar las semillas
-local chooseSeedsBtn = actionButton(mainPage, "CHOSEE SEEDS")
-chooseSeedsBtn.LayoutOrder = 7
-
--- Contenedor desplegable para las opciones de semillas
-local seedOptionsContainer = Instance.new("Frame")
-seedOptionsContainer.Parent = mainPage
-seedOptionsContainer.Size = UDim2.new(1, 0, 0, 0) -- Altura se animará
-seedOptionsContainer.BackgroundTransparency = 1
-seedOptionsContainer.ClipsDescendants = true
-seedOptionsContainer.LayoutOrder = 8
-local seedOptionsLayout = Instance.new("UIListLayout", seedOptionsContainer)
-seedOptionsLayout.Padding = UDim.new(0, 4)
-
--- Botón "PLANT ALL" dentro del contenedor
-local plantAllBtn = actionButton(seedOptionsContainer, "PLANT ALL")
-
--- ScrollingFrame para la lista de semillas
-local seedsScrollFrame = Instance.new("ScrollingFrame")
-seedsScrollFrame.Parent = seedOptionsContainer
-seedsScrollFrame.Size = UDim2.new(1, 0, 1, -44)
-seedsScrollFrame.BackgroundTransparency = 1
-seedsScrollFrame.BorderSizePixel = 0
-seedsScrollFrame.ScrollBarThickness = 3
-seedsScrollFrame.ScrollBarImageColor3 = themes[config.theme].accent
-seedsScrollFrame.ScrollBarImageTransparency = 0.3
-seedsScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-table.insert(scrollBars, seedsScrollFrame)
-local seedsScrollLayout = Instance.new("UIListLayout", seedsScrollFrame)
-seedsScrollLayout.Padding = UDim.new(0, 2)
-
-local seedCheckboxes = {}
-
--- Lógica para poblar la lista de semillas
-local function populateSeedList()
-    for i,v in pairs(seedsScrollFrame:GetChildren()) do
-        if v:IsA("Frame") then v:Destroy() end
-    end
-    table.clear(seedCheckboxes)
-    
-    local availableSeeds = plantLogic.getSeedsInBackpack()
-    
-    for plantType, seedData in pairs(availableSeeds) do
-        local initialValue = plantLogic.seedsToPlant[plantType] or false
-        local btn, getValue, forceOff = checkbox(seedsScrollFrame, plantType .. " (" .. seedData.count .. ")", initialValue)
-        seedCheckboxes[plantType] = {button = btn, getValue = getValue, forceOff = forceOff}
-
-        btn.MouseButton1Click:Connect(function()
-            task.wait()
-            local isSelected = getValue()
-            plantLogic.seedsToPlant[plantType] = isSelected
-        end)
-    end
-end
-
--- Lógica para el botón "PLANT ALL"
-plantAllBtn.MouseButton1Click:Connect(function()
-    local allSelected = true
-    for plantType, _ in pairs(plantLogic.getSeedsInBackpack()) do
-        if not plantLogic.seedsToPlant[plantType] then
-            allSelected = false
-            break
-        end
-    end
-
-    local selectAll = not allSelected
-    for plantType, _ in pairs(plantLogic.getSeedsInBackpack()) do
-        plantLogic.seedsToPlant[plantType] = selectAll
-    end
-    
-    populateSeedList()
-    statusLabel.Text = "● All seeds " .. (selectAll and "selected" or "deselected")
-end)
-
--- Lógica para mostrar/ocultar el panel de semillas
-local areSeedOptionsVisible = false
-chooseSeedsBtn.MouseButton1Click:Connect(function()
-    areSeedOptionsVisible = not areSeedOptionsVisible
-    
-    if areSeedOptionsVisible then
-        populateSeedList()
-        tw(seedOptionsContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = UDim2.new(1, 0, 0, 220)})
-    else
-        tw(seedOptionsContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = UDim2.new(1, 0, 0, 0)})
-    end
-end)
-
-
-local option1Btn, getOption1, forceOffOption1 = checkbox(mainPage,"Sell Single",false)
-option1Btn.LayoutOrder = 9
+local option1Row, option1Btn, getOption1, forceOffOption1 = checkbox(mainPage,"Sell Single",0,false)
+option1Row.LayoutOrder = 3
 local selling = false
 
 option1Btn.MouseButton1Click:Connect(function()
@@ -1275,8 +1177,8 @@ option1Btn.MouseButton1Click:Connect(function()
     end
 end)
 
-local option2Btn, getOption2, forceOffOption2 = checkbox(mainPage,"Sell All",false)
-option2Btn.LayoutOrder = 10
+local option2Row, option2Btn, getOption2, forceOffOption2 = checkbox(mainPage,"Sell All",0,false)
+option2Row.LayoutOrder = 2
 local sellAllFlag = false
 
 -- Blacklist de items que no se pueden vender
@@ -1413,11 +1315,11 @@ option2Btn.MouseButton1Click:Connect(function()
     end
 end)
 
-secLabel(mainPage,"ACTIONS").LayoutOrder = 8
+secLabel(mainPage,"PLANT OPTIONS").LayoutOrder = 4
 
 -- Master Toggle
-local plantSeedsBtn, getPlantSeeds, forceOffPlantSeeds = checkbox(mainPage,"PLANT SEEDS",false)
-plantSeedsBtn.LayoutOrder = 9
+local plantSeedsRow, plantSeedsBtn, getPlantSeeds, forceOffPlantSeeds = checkbox(mainPage,"PLANT SEEDS",0,false)
+plantSeedsRow.LayoutOrder = 5
 
 plantSeedsBtn.MouseButton1Click:Connect(function()
     local isEnabled = not getPlantSeeds()
@@ -1426,8 +1328,8 @@ plantSeedsBtn.MouseButton1Click:Connect(function()
 end)
 
 -- Botón para mostrar/ocultar las semillas
-local chooseSeedsBtn = actionButton(mainPage, "CHOSEE SEEDS")
-chooseSeedsBtn.LayoutOrder = 10
+local chooseSeedsBtn = actionButton(mainPage, "CHOSEE SEEDS", 0)
+chooseSeedsBtn.LayoutOrder = 6
 
 -- Contenedor desplegable para las opciones de semillas
 local seedOptionsContainer = Instance.new("Frame")
@@ -1435,7 +1337,7 @@ seedOptionsContainer.Parent = mainPage
 seedOptionsContainer.Size = UDim2.new(1, 0, 0, 0) -- Altura se animará
 seedOptionsContainer.BackgroundTransparency = 1
 seedOptionsContainer.ClipsDescendants = true
-seedOptionsContainer.LayoutOrder = 11
+seedOptionsContainer.LayoutOrder = 7
 local seedOptionsLayout = Instance.new("UIListLayout", seedOptionsContainer)
 seedOptionsLayout.Padding = UDim.new(0, 4)
 
@@ -1469,14 +1371,14 @@ local function populateSeedList()
     
     for plantType, seedData in pairs(availableSeeds) do
         local initialValue = plantLogic.seedsToPlant[plantType] or false
-        local btn, getValue, forceOff = checkbox(seedsScrollFrame, plantType .. " (" .. seedData.count .. ")", initialValue)
-        seedCheckboxes[plantType] = {button = btn, getValue = getValue, forceOff = forceOff}
+        local row, btn, getValue, forceOff = checkbox(seedsScrollFrame, plantType .. " (" .. seedData.count .. ")", 0, initialValue)
+seedCheckboxes[plantType] = {row = row, button = btn, getValue = getValue, forceOff = forceOff}
 
-        btn.MouseButton1Click:Connect(function()
-            task.wait()
-            local isSelected = getValue()
-            plantLogic.seedsToPlant[plantType] = isSelected
-        end)
+btn.MouseButton1Click:Connect(function()
+    task.wait()
+    local isSelected = getValue()
+    plantLogic.seedsToPlant[plantType] = isSelected
+end)
     end
 end
 
@@ -1706,9 +1608,10 @@ end)
 --====================================================
 secLabel(micsPage,"MICS",0)
 
-local micsOption1Btn, getMicsOption1, forceOffMicsOption1 = checkbox(micsPage,"Misc Option 1",20,false)
+local micsOption1Row, micsOption1Btn, getMicsOption1, forceOffMicsOption1 = checkbox(micsPage,"Misc Option 1",20,false)
 micsOption1Btn.MouseButton1Click:Connect(function()
-    -- TU LÓGICA AQUÍ
+    statusLabel.Text="● Misc Option 1: "..(getMicsOption1() and "ON" or "OFF")
+end)    -- TU LÓGICA AQUÍ
     statusLabel.Text="● Misc Option 1: "..(getMicsOption1() and "ON" or "OFF")
 end)
 
