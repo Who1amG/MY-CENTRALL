@@ -679,12 +679,12 @@
         local backpack = localPlayer:FindFirstChild("Backpack")
         if backpack then
             for _, item in ipairs(backpack:GetChildren()) do
-                if item:IsA("Tool") then count += 1 end
+                if item:IsA("Tool") then count = count + 1 end
             end
         end
         if localPlayer.Character then
             for _, item in ipairs(localPlayer.Character:GetChildren()) do
-                if item:IsA("Tool") then count += 1 end
+                if item:IsA("Tool") then count = count + 1 end
             end
         end
         return count
@@ -1380,7 +1380,7 @@
     categoryButtonsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
     categoryButtonsLayout.VerticalAlignment = Enum.VerticalAlignment.Center
     categoryButtonsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    categoryButtonsLayout.Padding = UDim.new(0, 10)
+    categoryButtonsLayout.Padding = UDim.new(0, isMobile and 4 or 10)
 
     local contentContainer = Instance.new("Frame")
     contentContainer.Name = "ContentContainer"
@@ -1455,29 +1455,32 @@
         end
     end
 
-    local function createCategoryButton(title, order)
-        local t = themes[config.theme]
-        local button = Instance.new("TextButton")
-        button.Name = title .. "Button"
-        button.Parent = categoryButtonsContainer
-        button.Text = title
-        button.Font = fonts.Modern
-        button.TextSize = FONT_LG
-        button.LayoutOrder = order
-        button.Size = UDim2.new(0, 100, 1, 0)
-        button.BackgroundColor3 = t.row
-        button.TextColor3 = t.text
-        
-        local corner = Instance.new("UICorner", button)
-        corner.CornerRadius = UDim.new(0, 12)
-        
-        button.MouseButton1Click:Connect(function()
-            switchCategory(title)
-        end)
-        
-        categoryButtons[title] = button
-        return button
-    end
+    local function createCategoryButton(title, order) 
+     local t = themes[config.theme] 
+     local button = Instance.new("TextButton") 
+     button.Name = title .. "Button" 
+     button.Parent = categoryButtonsContainer 
+     button.Text = title 
+     button.Font = fonts.Modern 
+     button.TextSize = isMobile and 7 or FONT_LG 
+     button.TextScaled = false 
+     button.LayoutOrder = order 
+     button.Size = UDim2.new(0, isMobile and 72 or 100, 1, 0) 
+     button.BackgroundColor3 = t.row 
+     button.TextColor3 = t.text 
+     button.TextWrapped = false 
+     button.ClipsDescendants = true 
+     
+     local corner = Instance.new("UICorner", button) 
+     corner.CornerRadius = UDim.new(0, 12) 
+     
+     button.MouseButton1Click:Connect(function() 
+         switchCategory(title) 
+     end) 
+     
+     categoryButtons[title] = button 
+     return button 
+ end
 
     createCategoryButton("SELL OPTIONS", 1)
     createCategoryButton("PLANT OPTIONS", 2)
@@ -2818,45 +2821,60 @@ end
         tbtn.MouseButton1Click:Connect(function() switchTab(i) end)
     end
 
-    --====================================================
-    -- DRAG (mouse + touch)
-    --====================================================
-    local dragging=false; local dragStart=nil; local startPos=nil; local touchId=nil
-
-    root.InputBegan:Connect(function(inp)
-        if inp.UserInputType==Enum.UserInputType.MouseButton1 then
-            if activeSlider or sliderTouchDown then return end
-            if posInSlider(inp.Position.X,inp.Position.Y) then return end
-            dragging=true; dragStart=inp.Position; startPos=root.Position
-            local c; c=inp.Changed:Connect(function()
-                if inp.UserInputState==Enum.UserInputState.End then dragging=false; c:Disconnect() end
-            end)
-        end
-    end)
-
-    root.InputBegan:Connect(function(inp)
-        if inp.UserInputType==Enum.UserInputType.Touch then
-            if sliderTouchDown or activeSlider then return end
-            if posInSlider(inp.Position.X,inp.Position.Y) then return end
-            if not dragging then dragging=true; touchId=inp; dragStart=inp.Position; startPos=root.Position end
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(inp)
-        if dragging and (inp.UserInputType==Enum.UserInputType.MouseMovement or
-            (inp.UserInputType==Enum.UserInputType.Touch and inp==touchId)) then
-            if activeSlider or sliderTouchDown then return end
-            local d=inp.Position-dragStart
-            root.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+d.X,startPos.Y.Scale,startPos.Y.Offset+d.Y)
-        end
-    end)
-
-    UserInputService.InputEnded:Connect(function(inp)
-        if inp.UserInputType==Enum.UserInputType.MouseButton1 then dragging=false
-        elseif inp.UserInputType==Enum.UserInputType.Touch then
-            if inp==touchId then dragging=false; touchId=nil end
-        end
-    end)
+    --==================================================== 
+ -- DRAG (mouse + touch) 
+ --==================================================== 
+ local dragging=false; local dragStart=nil; local startPos=nil; local touchId=nil 
+ local dragThresholdMet = false  -- FIX MOBILE: solo arrastra si se mueve suficiente 
+ 
+ root.InputBegan:Connect(function(inp) 
+     if inp.UserInputType==Enum.UserInputType.MouseButton1 then 
+         if activeSlider or sliderTouchDown then return end 
+         if posInSlider(inp.Position.X,inp.Position.Y) then return end 
+         dragging=true; dragThresholdMet=true; dragStart=inp.Position; startPos=root.Position 
+         local c; c=inp.Changed:Connect(function() 
+             if inp.UserInputState==Enum.UserInputState.End then dragging=false; c:Disconnect() end 
+         end) 
+     end 
+ end) 
+ 
+ root.InputBegan:Connect(function(inp) 
+     if inp.UserInputType==Enum.UserInputType.Touch then 
+         if sliderTouchDown or activeSlider then return end 
+         if posInSlider(inp.Position.X,inp.Position.Y) then return end 
+         if not dragging then 
+             dragging=true 
+             dragThresholdMet=false  -- aún no confirmamos drag 
+             touchId=inp 
+             dragStart=inp.Position 
+             startPos=root.Position 
+         end 
+     end 
+ end) 
+ 
+ UserInputService.InputChanged:Connect(function(inp) 
+     if dragging and (inp.UserInputType==Enum.UserInputType.MouseMovement or 
+         (inp.UserInputType==Enum.UserInputType.Touch and inp==touchId)) then 
+         if activeSlider or sliderTouchDown then return end 
+         local d=inp.Position-dragStart 
+         -- FIX MOBILE: solo mover si el dedo se alejó más de 10px 
+         if not dragThresholdMet then 
+             if math.abs(d.X) > 10 or math.abs(d.Y) > 10 then 
+                 dragThresholdMet = true 
+             else 
+                 return  -- aún no hay suficiente movimiento, ignorar 
+             end 
+         end 
+         root.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+d.X,startPos.Y.Scale,startPos.Y.Offset+d.Y) 
+     end 
+ end) 
+ 
+ UserInputService.InputEnded:Connect(function(inp) 
+     if inp.UserInputType==Enum.UserInputType.MouseButton1 then dragging=false; dragThresholdMet=false 
+     elseif inp.UserInputType==Enum.UserInputType.Touch then 
+         if inp==touchId then dragging=false; touchId=nil; dragThresholdMet=false end 
+     end 
+ end)
 
     --====================================================
     -- ENTRANCE ANIMATION
