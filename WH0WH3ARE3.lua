@@ -2822,10 +2822,10 @@ end
     end
 
     --==================================================== 
- -- DRAG (mouse + touch) 
+ -- DRAG (mouse + touch) — solo desde el header 
  --==================================================== 
  local dragging=false; local dragStart=nil; local startPos=nil; local touchId=nil 
- local dragThresholdMet = false  -- FIX MOBILE: solo arrastra si se mueve suficiente 
+ local dragThresholdMet = false 
  
  root.InputBegan:Connect(function(inp) 
      if inp.UserInputType==Enum.UserInputType.MouseButton1 then 
@@ -2842,9 +2842,14 @@ end
      if inp.UserInputType==Enum.UserInputType.Touch then 
          if sliderTouchDown or activeSlider then return end 
          if posInSlider(inp.Position.X,inp.Position.Y) then return end 
+ 
+         -- FIX MOBILE: solo iniciar drag si el toque está en el header 
+         local relY = inp.Position.Y - root.AbsolutePosition.Y 
+         if relY > HDR_H then return end  -- toque fuera del header = ignorar drag 
+ 
          if not dragging then 
              dragging=true 
-             dragThresholdMet=false  -- aún no confirmamos drag 
+             dragThresholdMet=false 
              touchId=inp 
              dragStart=inp.Position 
              startPos=root.Position 
@@ -2857,12 +2862,11 @@ end
          (inp.UserInputType==Enum.UserInputType.Touch and inp==touchId)) then 
          if activeSlider or sliderTouchDown then return end 
          local d=inp.Position-dragStart 
-         -- FIX MOBILE: solo mover si el dedo se alejó más de 10px 
          if not dragThresholdMet then 
-             if math.abs(d.X) > 10 or math.abs(d.Y) > 10 then 
+             if math.abs(d.X) > 8 or math.abs(d.Y) > 8 then 
                  dragThresholdMet = true 
              else 
-                 return  -- aún no hay suficiente movimiento, ignorar 
+                 return 
              end 
          end 
          root.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+d.X,startPos.Y.Scale,startPos.Y.Offset+d.Y) 
@@ -2874,7 +2878,7 @@ end
      elseif inp.UserInputType==Enum.UserInputType.Touch then 
          if inp==touchId then dragging=false; touchId=nil; dragThresholdMet=false end 
      end 
- end)
+ end) 
 
     --====================================================
     -- ENTRANCE ANIMATION
