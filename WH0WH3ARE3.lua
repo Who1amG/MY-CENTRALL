@@ -1,4 +1,4 @@
-    do     --v1
+    do
     local Players          = game:GetService("Players")
     local TweenService     = game:GetService("TweenService")
     local UserInputService = game:GetService("UserInputService")
@@ -2606,7 +2606,7 @@ end
     --====================================================
     secLabel(micsPage,"MICS",0)
 
-   --====================================================
+    --====================================================
 -- ★ MICS PAGE — MOVEMENT FEATURES ★
 --====================================================
 local micsListLayout = Instance.new("UIListLayout")
@@ -2621,7 +2621,7 @@ movementLabel.LayoutOrder = 1
 -- ============================================
 -- C WALK (CFrame Bypass) - PC & MOBILE
 -- ============================================
-getgenv().Multiplier = 0.5 -- Velocidad global
+getgenv().Multiplier = 0.5
 local walkSpeedActive = false
 local walkSpeedConnection = nil
 
@@ -2632,9 +2632,9 @@ local walkSpeedSlider, getWalkSpeedVal, setWalkSpeedVal = slider(
     micsPage,
     "CFrame Speed",
     0,
-    0.1,   -- Mínimo 0.1 (muy lento)
-    2.0,   --Máximo 2.0 (muy rápido)
-    0.5,   -- Default 0.5 (velocidad media)
+    0.1,
+    2.0,
+    0.5,
     function(val)
         getgenv().Multiplier = val
         statusLabel.Text = "● CFrame Speed: " .. tostring(math.floor(val * 100) / 100)
@@ -2642,9 +2642,8 @@ local walkSpeedSlider, getWalkSpeedVal, setWalkSpeedVal = slider(
 )
 walkSpeedSlider.LayoutOrder = 3
 
--- Función para iniciar CFrame Speed
 local function startCFrameSpeed()
-    if walkSpeedConnection then return end -- Ya está corriendo
+    if walkSpeedConnection then return end
     
     walkSpeedActive = true
     
@@ -2656,7 +2655,6 @@ local function startCFrameSpeed()
                     local hrp = char.HumanoidRootPart
                     local hum = char.Humanoid
                     
-                    -- Mover usando CFrame + MoveDirection
                     hrp.CFrame = hrp.CFrame + (hum.MoveDirection * getgenv().Multiplier)
                 end
             end)
@@ -2664,7 +2662,6 @@ local function startCFrameSpeed()
     end))
 end
 
--- Función para detener CFrame Speed
 local function stopCFrameSpeed()
     walkSpeedActive = false
     
@@ -2674,7 +2671,6 @@ local function stopCFrameSpeed()
     end
 end
 
--- Toggle del checkbox
 walkSpeedBtn.MouseButton1Click:Connect(function()
     task.wait()
     local isEnabled = getWalkSpeed()
@@ -2688,7 +2684,6 @@ walkSpeedBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Auto-restore on respawn
 _trackConn(localPlayer.CharacterAdded:Connect(function(character)
     if walkSpeedActive then
         task.wait(0.5)
@@ -2699,7 +2694,7 @@ _trackConn(localPlayer.CharacterAdded:Connect(function(character)
 end))
 
 -- ============================================
--- C FLY - PC & MOBILE
+-- C FLY - PC & MOBILE (FIXED)
 -- ============================================
 local flyEnabled = false
 local flySpeed = 50
@@ -2722,87 +2717,93 @@ local flySpeedSlider, getFlySpeedVal, setFlySpeedVal = slider(
 )
 flySpeedSlider.LayoutOrder = 5
 
-local function toggleFly()
-    if flyEnabled then
-        -- APAGAR FLY
-        flyEnabled = false
-        statusLabel.Text = "● C Fly: OFF"
+local function stopFly()
+    flyEnabled = false
+    
+    if flyThread then
+        task.cancel(flyThread)
+        flyThread = nil
+    end
+    
+    local char = localPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        local root = char.HumanoidRootPart
         
-        local char = localPlayer.Character
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            local root = char.HumanoidRootPart
-            
-            -- Limpiar BodyMovers
-            if root:FindFirstChild("FlyMover") then root.FlyMover:Destroy() end
-            if root:FindFirstChild("FlyRotator") then root.FlyRotator:Destroy() end
-            
-            -- Restaurar Humanoid
-            if char:FindFirstChild("Humanoid") then
-                char.Humanoid.PlatformStand = false
-                char.Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
-            end
+        if root:FindFirstChild("FlyMover") then root.FlyMover:Destroy() end
+        if root:FindFirstChild("FlyRotator") then root.FlyRotator:Destroy() end
+        
+        if char:FindFirstChild("Humanoid") then
+            char.Humanoid.PlatformStand = false
+            char.Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
         end
-    else
-        -- PRENDER FLY
-        flyEnabled = true
-        statusLabel.Text = isMobile and "● C Fly: ON (Joystick)" or "● C Fly: ON (WASD + E/Q)"
-        
-        local char = localPlayer.Character
-        if not char then return end
-        local root = char:WaitForChild("HumanoidRootPart")
-        local hum = char:WaitForChild("Humanoid")
-        
-        -- BodyVelocity
-        local bv = Instance.new("BodyVelocity")
-        bv.Name = "FlyMover"
-        bv.Parent = root
-        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-        bv.Velocity = Vector3.new(0, 0, 0)
-        
-        -- BodyGyro
-        local bg = Instance.new("BodyGyro")
-        bg.Name = "FlyRotator"
-        bg.Parent = root
-        bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-        bg.P = 10000
-        bg.D = 100
-        
-        flyThread = _trackThread(task.spawn(function()
-            while flyEnabled and char.Parent do
-                -- Bypass Trust Score (Anti-Kick)
-                char:SetAttribute("KM_TELEPORT_TRUST_SCORE", 100)
-                char:SetAttribute("KM_SPEED_TRUST_SCORE", 100)
+    end
+    
+    statusLabel.Text = "● C Fly: OFF"
+end
+
+local function startFly()
+    flyEnabled = true
+    statusLabel.Text = isMobile and "● C Fly: ON (Joystick)" or "● C Fly: ON (WASD + E/Q)"
+    
+    local char = localPlayer.Character
+    if not char then return end
+    
+    local root = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChild("Humanoid")
+    if not root or not hum then return end
+    
+    local bv = Instance.new("BodyVelocity")
+    bv.Name = "FlyMover"
+    bv.Parent = root
+    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bv.Velocity = Vector3.new(0, 0, 0)
+    
+    local bg = Instance.new("BodyGyro")
+    bg.Name = "FlyRotator"
+    bg.Parent = root
+    bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    bg.P = 10000
+    bg.D = 100
+    
+    flyThread = _trackThread(task.spawn(function()
+        while flyEnabled and char.Parent do
+            pcall(function()
+                if char then
+                    char:SetAttribute("KM_TELEPORT_TRUST_SCORE", 100)
+                    char:SetAttribute("KM_SPEED_TRUST_SCORE", 100)
+                end
                 
                 local cam = workspace.CurrentCamera
-                local look = cam.CFrame.LookVector
-                local right = cam.CFrame.RightVector
                 local moveDir = Vector3.new(0, 0, 0)
                 
                 if isMobile then
-                    -- MOBILE: Joystick Virtual (Humanoid.MoveDirection)
                     local joyDir = hum.MoveDirection
                     
                     if joyDir.Magnitude > 0 then
-                        -- Convertir dirección del joystick a dirección de cámara
-                        local cameraLook = Vector3.new(look.X, 0, look.Z).Unit
-                        local cameraRight = Vector3.new(right.X, 0, right.Z).Unit
+                        local camCF = cam.CFrame
+                        local camLookFlat = Vector3.new(camCF.LookVector.X, 0, camCF.LookVector.Z).Unit
+                        local camRightFlat = Vector3.new(camCF.RightVector.X, 0, camCF.RightVector.Z).Unit
                         
-                        moveDir = (cameraLook * joyDir.Z + cameraRight * joyDir.X)
+                        local forwardInput = joyDir.Z
+                        local rightInput = joyDir.X
                         
-                        -- Subir/bajar según inclinación de cámara
-                        if math.abs(look.Y) > 0.1 then
-                            local flatLook = Vector3.new(look.X, 0, look.Z).Unit
+                        moveDir = (camLookFlat * -forwardInput) + (camRightFlat * rightInput)
+                        
+                        if math.abs(camCF.LookVector.Y) > 0.1 then
+                            local flatLook = Vector3.new(camCF.LookVector.X, 0, camCF.LookVector.Z).Unit
                             local dot = joyDir:Dot(flatLook)
                             
-                            if dot > 0.5 then -- Avanzando
-                                moveDir = moveDir + Vector3.new(0, look.Y, 0)
-                            elseif dot < -0.5 then -- Retrocediendo
-                                moveDir = moveDir - Vector3.new(0, look.Y, 0)
+                            if dot < -0.5 then
+                                moveDir = moveDir + Vector3.new(0, camCF.LookVector.Y, 0)
+                            elseif dot > 0.5 then
+                                moveDir = moveDir - Vector3.new(0, camCF.LookVector.Y, 0)
                             end
                         end
                     end
                 else
-                    -- PC: Teclas WASD + E/Q
+                    local look = cam.CFrame.LookVector
+                    local right = cam.CFrame.RightVector
+                    
                     if UserInputService:IsKeyDown(Enum.KeyCode.W) then
                         moveDir = moveDir + look
                     end
@@ -2823,7 +2824,6 @@ local function toggleFly()
                     end
                 end
                 
-                -- Shift para velocidad x3
                 local currentSpeed = flySpeed
                 if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
                     currentSpeed = flySpeed * 3
@@ -2836,29 +2836,30 @@ local function toggleFly()
                 bg.CFrame = cam.CFrame
                 bv.Velocity = moveDir * currentSpeed
                 
-                if hum then
-                    hum.PlatformStand = true
-                    hum:ChangeState(Enum.HumanoidStateType.Physics)
-                end
-                
-                RunService.Heartbeat:Wait()
-            end
+                hum.PlatformStand = true
+                hum:ChangeState(Enum.HumanoidStateType.Physics)
+            end)
             
-            -- Cleanup al salir
-            if root:FindFirstChild("FlyMover") then root.FlyMover:Destroy() end
-            if root:FindFirstChild("FlyRotator") then root.FlyRotator:Destroy() end
-            if hum then
-                hum.PlatformStand = false
-                hum:ChangeState(Enum.HumanoidStateType.GettingUp)
-            end
-        end))
-    end
+            RunService.Heartbeat:Wait()
+        end
+        
+        if root:FindFirstChild("FlyMover") then root.FlyMover:Destroy() end
+        if root:FindFirstChild("FlyRotator") then root.FlyRotator:Destroy() end
+        if hum then
+            hum.PlatformStand = false
+            hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+        end
+    end))
 end
 
 flyBtn.MouseButton1Click:Connect(function()
-    task.wait()
-    flyEnabled = getFly()
-    toggleFly()
+    local shouldEnable = not flyEnabled
+    
+    if shouldEnable then
+        startFly()
+    else
+        stopFly()
+    end
 end)
 
 -- ============================================
@@ -2907,14 +2908,12 @@ infJumpBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Reapply inf jump on respawn
 _trackConn(localPlayer.CharacterAdded:Connect(function(character)
     task.wait(0.5)
     if infJumpEnabled then
         setupInfJump(character)
     end
 end))
-
     --====================================================
     -- ★ TELEPORTS PAGE — PON TUS SPOTS AQUÍ ★
     --====================================================
