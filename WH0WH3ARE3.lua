@@ -1,4 +1,4 @@
-    do
+    do     --v1
     local Players          = game:GetService("Players")
     local TweenService     = game:GetService("TweenService")
     local UserInputService = game:GetService("UserInputService")
@@ -128,17 +128,35 @@
     --====================================================
     -- CLEANUP & GUI
     --====================================================
-    if _G.WH01_SHUTDOWN_TEMPLATE then pcall(_G.WH01_SHUTDOWN_TEMPLATE) end
-    local shutdownFuncs = {}
-    _G.WH01_SHUTDOWN_TEMPLATE = function()
-        for _, f in ipairs(shutdownFuncs) do pcall(f) end
-    end
+    if _G.WH01_SHUTDOWN_TEMPLATE then pcall(_G.WH01_SHUTDOWN_TEMPLATE) end 
+ 
+ local _threads = {} 
+ local _connections = {} 
+ 
+ local function _trackThread(t) table.insert(_threads, t) return t end 
+ local function _trackConn(c) table.insert(_connections, c) return c end 
+ 
+ _G.WH01_SHUTDOWN_TEMPLATE = function() 
+     -- Matar todos los threads 
+     for _, t in ipairs(_threads) do pcall(task.cancel, t) end 
+     table.clear(_threads) 
+     -- Desconectar todos los connections 
+     for _, c in ipairs(_connections) do pcall(function() c:Disconnect() end) end 
+     table.clear(_connections) 
+     -- Limpiar partículas 
+     pcall(clearParticles) 
+     -- Destruir GUI 
+     pcall(function() 
+         for _, v in ipairs(Players.LocalPlayer.PlayerGui:GetChildren()) do 
+             if v:GetAttribute("__mt") == true then v:Destroy() end 
+         end 
+     end) 
+     _G.WH01_SHUTDOWN_TEMPLATE = nil 
+ end
 
-    local function randomStr(len)
-        local chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-        local s = ""
-        for i = 1, len do local r = math.random(1,#chars); s=s..chars:sub(r,r) end
-        return s
+    local function randomStr(len) -- el monte everes no tiene nada en contra de mi 
+        local words = {"PlotSelector", "LuckyBlockGui", "BackpackGui", "PreloadContainerGui", "ChangelogVersion", "FloraBook", "FriendBoost", "GearShop", "GiftModal", "HarvestButton", "Hud_UI", "Notification", "PlantTooltip", "UpdateIn", "Quests", "RNGPack", "RobuxShop", "SeedShop", "Settings", "ShillingsCurrency", "ShovelConfirmation", "SprinklerTooltip", "Tutorial", "WeatherDisplay", "Cmdr", "TopbarCenteredClipped", "TopbarStandardClipped", "TopbarStandard", "ProximityPrompts"}
+        return words[math.random(1, #words)]
     end
     local UI_NAME = randomStr(12)
 
@@ -193,8 +211,8 @@
             if s.track and s.track.Parent then
                 local ap = s.track.AbsolutePosition
                 local as = s.track.AbsoluteSize
-                if posX >= ap.X and posX <= ap.X+as.X and
-                posY >= ap.Y and posY <= ap.Y+as.Y then
+                if posX >= ap.X-12 and posX <= ap.X+as.X+12 and
+                posY >= ap.Y-24 and posY <= ap.Y+as.Y+24 then
                     return true
                 end
             end
@@ -266,7 +284,7 @@
             table.insert(pFlakes,f)
             task.delay(dur,function() active=active-1; if f and f.Parent then f:Destroy() end end)
         end
-        pConn=RunService.Heartbeat:Connect(function(dt) timer=timer+dt; if timer>=0.9 then timer=0; spawn() end end)
+        pConn=_trackConn(RunService.Heartbeat:Connect(function(dt) timer=timer+dt; if timer>=0.9 then timer=0; spawn() end end))
         for i=1,6 do task.delay(i*0.6,spawn) end
     end
 
@@ -286,7 +304,7 @@
             table.insert(pFlakes,f)
             task.delay(dur,function() active=active-1; if f and f.Parent then f:Destroy() end end)
         end
-        pConn=RunService.Heartbeat:Connect(function(dt) timer=timer+dt; if timer>=1.6 then timer=0; spawn() end end)
+        pConn=_trackConn(RunService.Heartbeat:Connect(function(dt) timer=timer+dt; if timer>=1.6 then timer=0; spawn() end end))
         for i=1,5 do task.delay(i*1.4,spawn) end
     end
 
@@ -306,7 +324,7 @@
             table.insert(pFlakes,f)
             task.delay(dur,function() active=active-1; if f and f.Parent then f:Destroy() end end)
         end
-        pConn=RunService.Heartbeat:Connect(function(dt) timer=timer+dt; if timer>=1.6 then timer=0; spawn() end end)
+        pConn=_trackConn(RunService.Heartbeat:Connect(function(dt) timer=timer+dt; if timer>=1.6 then timer=0; spawn() end end))
         for i=1,5 do task.delay(i*1.4,spawn) end
     end
 
@@ -448,6 +466,11 @@
     local plantLogic = {}
     plantLogic.isPlanting = false
     plantLogic.plantThread = nil
+    plantLogic.seedsToPlant = {}
+    plantLogic.ui = {
+        forceOffPlantSeeds = nil,
+        showNotif = nil
+    }
 
     function plantLogic.getSeedsInBackpack()
         local seeds = {}
@@ -597,7 +620,7 @@
         plantLogic.isPlanting = enable
         if enable then
             if plantLogic.plantThread then task.cancel(plantLogic.plantThread) end
-            plantLogic.plantThread = task.spawn(function()
+            plantLogic.plantThread = _trackThread(task.spawn(function()
                 -- Bucle externo: se ejecuta mientras haya tipos de semillas en la lista
                 while plantLogic.isPlanting and next(plantLogic.seedsToPlant) ~= nil do
                     -- 1. Escoger el *primer* tipo de semilla de la lista para enfocarse
@@ -643,15 +666,16 @@
 
                 -- 3. Cuando el bucle externo termina, ya no hay más semillas que plantar
                 plantLogic.isPlanting = false
-                statusLabel.Text = "● Auto Plant: planted"
+                statusLabel.Text = "● Auto Plant: off"
+                if plantLogic.ui.showNotif then plantLogic.ui.showNotif("✅ Auto Plant", "COMPLETE", false) end
                 task.defer(function()
                     if plantLogic.ui.forceOffPlantSeeds then
                         plantLogic.ui.forceOffPlantSeeds()
                     end
                 end)
-            end)
-        else
-            if plantLogic.plantThread then
+            end))
+         else
+             if plantLogic.plantThread then
                 task.cancel(plantLogic.plantThread)
                 plantLogic.plantThread = nil
             end
@@ -696,29 +720,28 @@
         if not clientPlants then return items end
 
         for _, plant in ipairs(clientPlants:GetDescendants()) do
-            if not (plant:IsA("Model") and plant.Parent) then continue end
+            if (plant:IsA("Model") and plant.Parent) then
+                local ownerUserId = plant:GetAttribute("OwnerUserId")
 
-            local ownerUserId = plant:GetAttribute("OwnerUserId")
-            if ownerUserId ~= localPlayer.UserId then continue end
-
-            -- Planta simple (isSingleHarvest)
-            if plant:GetAttribute("HarvestablePlant") == true and plant:GetAttribute("FullyGrown") == true then
-                local uuid = plant:GetAttribute("Uuid")
-                if uuid then
-                    table.insert(items, {Uuid = uuid, GrowthAnchorIndex = nil, plant = plant})
+                -- Planta simple (isSingleHarvest)
+                if plant:GetAttribute("HarvestablePlant") == true and plant:GetAttribute("FullyGrown") == true then
+                    local uuid = plant:GetAttribute("Uuid")
+                    if uuid then
+                        table.insert(items, {Uuid = uuid, GrowthAnchorIndex = nil, plant = plant})
+                    end
                 end
-            end
 
-            -- Frutas individuales (fruitTemplate plants)
-            if plant:GetAttribute("FullyGrown") == true then
-                for _, child in ipairs(plant:GetChildren()) do
-                    if child:IsA("Model") then
-                        local growthAnchorIndex = child:GetAttribute("GrowthAnchorIndex")
-                        local fullyGrown = child:GetAttribute("FullyGrown")
-                        if growthAnchorIndex and fullyGrown == true then
-                            local uuid = plant:GetAttribute("Uuid")
-                            if uuid then
-                                table.insert(items, {Uuid = uuid, GrowthAnchorIndex = growthAnchorIndex, plant = child})
+                -- Frutas individuales (fruitTemplate plants)
+                if plant:GetAttribute("FullyGrown") == true then
+                    for _, child in ipairs(plant:GetChildren()) do
+                        if child:IsA("Model") then
+                            local growthAnchorIndex = child:GetAttribute("GrowthAnchorIndex")
+                            local fullyGrown = child:GetAttribute("FullyGrown")
+                            if growthAnchorIndex and fullyGrown == true then
+                                local uuid = plant:GetAttribute("Uuid")
+                                if uuid then
+                                    table.insert(items, {Uuid = uuid, GrowthAnchorIndex = growthAnchorIndex, plant = child})
+                                end
                             end
                         end
                     end
@@ -755,7 +778,7 @@
                         Uuid = item.Uuid,
                         GrowthAnchorIndex = item.GrowthAnchorIndex
                     })
-                    harvested += 1
+                    harvested = harvested + 1
                 end
             end
 
@@ -775,7 +798,7 @@
         harvestLogic.isHarvesting = enable
         if enable then
             if harvestLogic.harvestThread then task.cancel(harvestLogic.harvestThread) end
-            harvestLogic.harvestThread = task.spawn(function()
+            harvestLogic.harvestThread = _trackThread(task.spawn(function()
                 while harvestLogic.isHarvesting do
                     local countBefore = getBackpackItemCount()
                     if countBefore >= MAX_BACKPACK_ITEMS then
@@ -801,7 +824,7 @@
 
                     if totalHarvested == 0 then
                         harvestLogic.isHarvesting = false
-                        statusLabel.Text = "● Auto Harvest: No plantas"
+                        statusLabel.Text = "● Auto Harvest: No plants"
                         task.defer(function()
                             if harvestLogic.ui.forceOffAutoHarvest then harvestLogic.ui.forceOffAutoHarvest() end
                         end)
@@ -810,9 +833,9 @@
                         task.wait(0.5)
                     end
                 end
-            end)
-        else
-            if harvestLogic.harvestThread then
+             end))
+         else
+             if harvestLogic.harvestThread then
                 task.cancel(harvestLogic.harvestThread)
                 harvestLogic.harvestThread = nil
             end
@@ -977,8 +1000,8 @@
     -- CONTENT AREA
     --====================================================
     local contentPad=SIDEBAR_W+10
-    contentArea=Instance.new("ScrollingFrame"); contentArea.Parent=body
-    contentArea.Size=UDim2.new(1,-(contentPad+10),1,-24); contentArea.Position=UDim2.new(0,contentPad,0,10)
+contentArea=Instance.new("ScrollingFrame"); contentArea.Parent=body
+contentArea.Size=UDim2.new(1,-(contentPad+10),1,-62); contentArea.Position=UDim2.new(0,contentPad,0,48)
     contentArea.BackgroundTransparency=1; contentArea.ZIndex=3
     contentArea.ScrollBarThickness=isMobile and 2 or 4
     contentArea.ScrollBarImageColor3=themes[config.theme].accent; contentArea.ScrollBarImageTransparency=0.3
@@ -1368,11 +1391,12 @@
     -- CATEGORY TABS SYSTEM
     -- =================================================================
     local categoryButtonsContainer = Instance.new("Frame")
-    categoryButtonsContainer.Name = "CategoryButtonsContainer"
-    categoryButtonsContainer.Parent = mainPage
-    categoryButtonsContainer.BackgroundTransparency = 1
-    categoryButtonsContainer.Size = UDim2.new(1, 0, 0, 30)
-    categoryButtonsContainer.LayoutOrder = 1
+categoryButtonsContainer.Name = "CategoryButtonsContainer"
+categoryButtonsContainer.Parent = body
+categoryButtonsContainer.BackgroundTransparency = 1
+categoryButtonsContainer.Size = UDim2.new(1,-(contentPad+10), 0, 36)
+categoryButtonsContainer.Position = UDim2.new(0,contentPad, 0, 6)
+categoryButtonsContainer.ZIndex = 10
 
     local categoryButtonsLayout = Instance.new("UIListLayout")
     categoryButtonsLayout.Parent = categoryButtonsContainer
@@ -1386,8 +1410,8 @@
     contentContainer.Name = "ContentContainer"
     contentContainer.Parent = mainPage
     contentContainer.BackgroundTransparency = 1
-    contentContainer.Size = UDim2.new(1, 0, 0, 300)  -- altura suficiente para el contenido
-    contentContainer.Position = UDim2.new(0, 0, 0, 35)
+    contentContainer.Size = UDim2.new(1, 0, 1, 0) -- altura suficiente para el contenido
+    contentContainer.Position = UDim2.new(0, 0, 0, 0)
     contentContainer.ClipsDescendants = true
     contentContainer.LayoutOrder = 2
 
@@ -2175,6 +2199,7 @@ end)
 
     harvestLogic.ui.forceOffAutoHarvest = forceOffAutoHarvest
     harvestLogic.ui.showNotif = showNotif
+    plantLogic.ui.showNotif = showNotif
 
     autoHarvestBtn.MouseButton1Click:Connect(function()
         -- Verificar backpack ANTES de que el checkbox cambie de estado
@@ -2522,7 +2547,7 @@ end
     end
 
     -- Monitor loop
-    task.spawn(function()
+    _trackThread(task.spawn(function()
         while true do
             pcall(function()
                 local shopData = ReplicatedStorage.RemoteEvents.GetShopData:InvokeServer("SeedShop")
@@ -2574,22 +2599,321 @@ end
             
             task.wait(1)
         end
-    end)
+    end))
 
     --====================================================
     -- ★ MICS PAGE — PON TUS OPCIONES AQUÍ ★
     --====================================================
     secLabel(micsPage,"MICS",0)
 
-    local micsOption1Row, micsOption1Btn, getMicsOption1, forceOffMicsOption1, forceOnMicsOption1 = checkbox(micsPage,"Misc Option 1",20,false)
-    micsOption1Btn.MouseButton1Click:Connect(function()
-        statusLabel.Text="● Misc Option 1: "..(getMicsOption1() and "ON" or "OFF")
-    end)    -- TU LÓGICA AQUÍ
+   --====================================================
+-- ★ MICS PAGE — MOVEMENT FEATURES ★
+--====================================================
+local micsListLayout = Instance.new("UIListLayout")
+micsListLayout.Parent = micsPage
+micsListLayout.Padding = UDim.new(0, 8)
+micsListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
-    slider(micsPage,"Misc Slider",62,1,100,50,function(val)
-        -- TU LÓGICA AQUÍ
-        statusLabel.Text="● Misc Slider: "..tostring(math.floor(val))
-    end)
+-- MOVEMENT SECTION
+local movementLabel = secLabel(micsPage, "MOVEMENT")
+movementLabel.LayoutOrder = 1
+
+-- ============================================
+-- C WALK (CFrame Bypass) - PC & MOBILE
+-- ============================================
+getgenv().Multiplier = 0.5 -- Velocidad global
+local walkSpeedActive = false
+local walkSpeedConnection = nil
+
+local walkSpeedRow, walkSpeedBtn, getWalkSpeed, forceOffWalkSpeed = checkbox(micsPage, "C WALK", 0, false)
+walkSpeedRow.LayoutOrder = 2
+
+local walkSpeedSlider, getWalkSpeedVal, setWalkSpeedVal = slider(
+    micsPage,
+    "CFrame Speed",
+    0,
+    0.1,   -- Mínimo 0.1 (muy lento)
+    2.0,   --Máximo 2.0 (muy rápido)
+    0.5,   -- Default 0.5 (velocidad media)
+    function(val)
+        getgenv().Multiplier = val
+        statusLabel.Text = "● CFrame Speed: " .. tostring(math.floor(val * 100) / 100)
+    end
+)
+walkSpeedSlider.LayoutOrder = 3
+
+-- Función para iniciar CFrame Speed
+local function startCFrameSpeed()
+    if walkSpeedConnection then return end -- Ya está corriendo
+    
+    walkSpeedActive = true
+    
+    walkSpeedConnection = _trackConn(RunService.Stepped:Connect(function()
+        if walkSpeedActive then
+            pcall(function()
+                local char = localPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
+                    local hrp = char.HumanoidRootPart
+                    local hum = char.Humanoid
+                    
+                    -- Mover usando CFrame + MoveDirection
+                    hrp.CFrame = hrp.CFrame + (hum.MoveDirection * getgenv().Multiplier)
+                end
+            end)
+        end
+    end))
+end
+
+-- Función para detener CFrame Speed
+local function stopCFrameSpeed()
+    walkSpeedActive = false
+    
+    if walkSpeedConnection then
+        walkSpeedConnection:Disconnect()
+        walkSpeedConnection = nil
+    end
+end
+
+-- Toggle del checkbox
+walkSpeedBtn.MouseButton1Click:Connect(function()
+    task.wait()
+    local isEnabled = getWalkSpeed()
+    
+    if isEnabled then
+        startCFrameSpeed()
+        statusLabel.Text = "● C Walk: ON (" .. tostring(math.floor(getgenv().Multiplier * 100) / 100) .. ")"
+    else
+        stopCFrameSpeed()
+        statusLabel.Text = "● C Walk: OFF"
+    end
+end)
+
+-- Auto-restore on respawn
+_trackConn(localPlayer.CharacterAdded:Connect(function(character)
+    if walkSpeedActive then
+        task.wait(0.5)
+        stopCFrameSpeed()
+        task.wait(0.1)
+        startCFrameSpeed()
+    end
+end))
+
+-- ============================================
+-- C FLY - PC & MOBILE
+-- ============================================
+local flyEnabled = false
+local flySpeed = 50
+local flyThread = nil
+
+local flyRow, flyBtn, getFly, forceOffFly = checkbox(micsPage, "C FLY", 0, false)
+flyRow.LayoutOrder = 4
+
+local flySpeedSlider, getFlySpeedVal, setFlySpeedVal = slider(
+    micsPage,
+    "Fly Speed",
+    0,
+    10,
+    150,
+    50,
+    function(val)
+        flySpeed = val
+        statusLabel.Text = "● Fly Speed: " .. tostring(math.floor(val))
+    end
+)
+flySpeedSlider.LayoutOrder = 5
+
+local function toggleFly()
+    if flyEnabled then
+        -- APAGAR FLY
+        flyEnabled = false
+        statusLabel.Text = "● C Fly: OFF"
+        
+        local char = localPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local root = char.HumanoidRootPart
+            
+            -- Limpiar BodyMovers
+            if root:FindFirstChild("FlyMover") then root.FlyMover:Destroy() end
+            if root:FindFirstChild("FlyRotator") then root.FlyRotator:Destroy() end
+            
+            -- Restaurar Humanoid
+            if char:FindFirstChild("Humanoid") then
+                char.Humanoid.PlatformStand = false
+                char.Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+            end
+        end
+    else
+        -- PRENDER FLY
+        flyEnabled = true
+        statusLabel.Text = isMobile and "● C Fly: ON (Joystick)" or "● C Fly: ON (WASD + E/Q)"
+        
+        local char = localPlayer.Character
+        if not char then return end
+        local root = char:WaitForChild("HumanoidRootPart")
+        local hum = char:WaitForChild("Humanoid")
+        
+        -- BodyVelocity
+        local bv = Instance.new("BodyVelocity")
+        bv.Name = "FlyMover"
+        bv.Parent = root
+        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bv.Velocity = Vector3.new(0, 0, 0)
+        
+        -- BodyGyro
+        local bg = Instance.new("BodyGyro")
+        bg.Name = "FlyRotator"
+        bg.Parent = root
+        bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+        bg.P = 10000
+        bg.D = 100
+        
+        flyThread = _trackThread(task.spawn(function()
+            while flyEnabled and char.Parent do
+                -- Bypass Trust Score (Anti-Kick)
+                char:SetAttribute("KM_TELEPORT_TRUST_SCORE", 100)
+                char:SetAttribute("KM_SPEED_TRUST_SCORE", 100)
+                
+                local cam = workspace.CurrentCamera
+                local look = cam.CFrame.LookVector
+                local right = cam.CFrame.RightVector
+                local moveDir = Vector3.new(0, 0, 0)
+                
+                if isMobile then
+                    -- MOBILE: Joystick Virtual (Humanoid.MoveDirection)
+                    local joyDir = hum.MoveDirection
+                    
+                    if joyDir.Magnitude > 0 then
+                        -- Convertir dirección del joystick a dirección de cámara
+                        local cameraLook = Vector3.new(look.X, 0, look.Z).Unit
+                        local cameraRight = Vector3.new(right.X, 0, right.Z).Unit
+                        
+                        moveDir = (cameraLook * joyDir.Z + cameraRight * joyDir.X)
+                        
+                        -- Subir/bajar según inclinación de cámara
+                        if math.abs(look.Y) > 0.1 then
+                            local flatLook = Vector3.new(look.X, 0, look.Z).Unit
+                            local dot = joyDir:Dot(flatLook)
+                            
+                            if dot > 0.5 then -- Avanzando
+                                moveDir = moveDir + Vector3.new(0, look.Y, 0)
+                            elseif dot < -0.5 then -- Retrocediendo
+                                moveDir = moveDir - Vector3.new(0, look.Y, 0)
+                            end
+                        end
+                    end
+                else
+                    -- PC: Teclas WASD + E/Q
+                    if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                        moveDir = moveDir + look
+                    end
+                    if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                        moveDir = moveDir - look
+                    end
+                    if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                        moveDir = moveDir - right
+                    end
+                    if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                        moveDir = moveDir + right
+                    end
+                    if UserInputService:IsKeyDown(Enum.KeyCode.E) then
+                        moveDir = moveDir + Vector3.new(0, 1, 0)
+                    end
+                    if UserInputService:IsKeyDown(Enum.KeyCode.Q) then
+                        moveDir = moveDir - Vector3.new(0, 1, 0)
+                    end
+                end
+                
+                -- Shift para velocidad x3
+                local currentSpeed = flySpeed
+                if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+                    currentSpeed = flySpeed * 3
+                end
+                
+                if moveDir.Magnitude > 0 then
+                    moveDir = moveDir.Unit
+                end
+                
+                bg.CFrame = cam.CFrame
+                bv.Velocity = moveDir * currentSpeed
+                
+                if hum then
+                    hum.PlatformStand = true
+                    hum:ChangeState(Enum.HumanoidStateType.Physics)
+                end
+                
+                RunService.Heartbeat:Wait()
+            end
+            
+            -- Cleanup al salir
+            if root:FindFirstChild("FlyMover") then root.FlyMover:Destroy() end
+            if root:FindFirstChild("FlyRotator") then root.FlyRotator:Destroy() end
+            if hum then
+                hum.PlatformStand = false
+                hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+            end
+        end))
+    end
+end
+
+flyBtn.MouseButton1Click:Connect(function()
+    task.wait()
+    flyEnabled = getFly()
+    toggleFly()
+end)
+
+-- ============================================
+-- INF JUMP - PC & MOBILE
+-- ============================================
+local infJumpEnabled = false
+local infJumpConnection = nil
+
+local infJumpRow, infJumpBtn, getInfJump, forceOffInfJump = checkbox(micsPage, "INF JUMP", 0, false)
+infJumpRow.LayoutOrder = 6
+
+local function setupInfJump(character)
+    if infJumpConnection then
+        infJumpConnection:Disconnect()
+        infJumpConnection = nil
+    end
+    
+    if not infJumpEnabled then return end
+    
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+    
+    infJumpConnection = _trackConn(humanoid:GetPropertyChangedSignal("Jump"):Connect(function()
+        if infJumpEnabled and humanoid.Jump then
+            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end))
+end
+
+infJumpBtn.MouseButton1Click:Connect(function()
+    task.wait()
+    infJumpEnabled = getInfJump()
+    
+    if infJumpEnabled then
+        local character = localPlayer.Character
+        if character then
+            setupInfJump(character)
+        end
+        statusLabel.Text = "● Inf Jump: ON"
+    else
+        if infJumpConnection then
+            infJumpConnection:Disconnect()
+            infJumpConnection = nil
+        end
+        statusLabel.Text = "● Inf Jump: OFF"
+    end
+end)
+
+-- Reapply inf jump on respawn
+_trackConn(localPlayer.CharacterAdded:Connect(function(character)
+    task.wait(0.5)
+    if infJumpEnabled then
+        setupInfJump(character)
+    end
+end))
 
     --====================================================
     -- ★ TELEPORTS PAGE — PON TUS SPOTS AQUÍ ★
@@ -2762,8 +3086,16 @@ end
     activeTabIdx=nil
 
     local function switchTab(idx)
-        if activeTabIdx==idx then return end
-        local t=themes[config.theme]
+    if activeTabIdx==idx then return end
+    categoryButtonsContainer.Visible = (idx == 1)
+    if idx == 1 then
+        contentArea.Size = UDim2.new(1,-(contentPad+10),1,-62)
+        contentArea.Position = UDim2.new(0,contentPad,0,48)
+    else
+        contentArea.Size = UDim2.new(1,-(contentPad+10),1,-24)
+        contentArea.Position = UDim2.new(0,contentPad,0,10)
+    end
+    local t=themes[config.theme]
         local pages={mainPage,micsPage,otherPage,teleportsPage,settingsPage}
         if activeTabIdx then
             local out=pages[activeTabIdx]; local dir=(idx>activeTabIdx) and -1 or 1
