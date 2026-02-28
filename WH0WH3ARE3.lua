@@ -193,8 +193,8 @@
             if s.track and s.track.Parent then
                 local ap = s.track.AbsolutePosition
                 local as = s.track.AbsoluteSize
-                if posX >= ap.X-12 and posX <= ap.X+as.X+12 and
-                posY >= ap.Y-24 and posY <= ap.Y+as.Y+24 then
+                if posX >= ap.X and posX <= ap.X+as.X and
+                posY >= ap.Y and posY <= ap.Y+as.Y then
                     return true
                 end
             end
