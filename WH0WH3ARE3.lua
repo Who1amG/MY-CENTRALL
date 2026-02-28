@@ -1,4 +1,4 @@
-    do
+    do --V2
     local Players          = game:GetService("Players")
     local TweenService     = game:GetService("TweenService")
     local UserInputService = game:GetService("UserInputService")
@@ -2694,7 +2694,7 @@ _trackConn(localPlayer.CharacterAdded:Connect(function(character)
 end))
 
 -- ============================================
--- C FLY - PC & MOBILE (FIXED)
+-- C FLY - PC & MOBILE (FIXED - CONTROLES NORMALES)
 -- ============================================
 local flyEnabled = false
 local flySpeed = 50
@@ -2777,30 +2777,40 @@ local function startFly()
                 local moveDir = Vector3.new(0, 0, 0)
                 
                 if isMobile then
+                    -- MOBILE: Controles NORMALES (como caminar)
                     local joyDir = hum.MoveDirection
                     
                     if joyDir.Magnitude > 0 then
+                        -- Obtener vectores de cámara
                         local camCF = cam.CFrame
-                        local camLookFlat = Vector3.new(camCF.LookVector.X, 0, camCF.LookVector.Z).Unit
-                        local camRightFlat = Vector3.new(camCF.RightVector.X, 0, camCF.RightVector.Z).Unit
+                        local camLook = camCF.LookVector
+                        local camRight = camCF.RightVector
                         
-                        local forwardInput = joyDir.Z
-                        local rightInput = joyDir.X
+                        -- Proyectar en plano horizontal (ignorar Y para movimiento horizontal)
+                        local camLookFlat = Vector3.new(camLook.X, 0, camLook.Z).Unit
+                        local camRightFlat = Vector3.new(camRight.X, 0, camRight.Z).Unit
                         
-                        moveDir = (camLookFlat * -forwardInput) + (camRightFlat * rightInput)
+                        -- CORREGIDO: Usar joyDir directamente SIN invertir
+                        -- joyDir.Z es el componente forward/backward del joystick
+                        -- joyDir.X es el componente left/right del joystick
+                        moveDir = (camLookFlat * joyDir.Z) + (camRightFlat * joyDir.X)
                         
-                        if math.abs(camCF.LookVector.Y) > 0.1 then
-                            local flatLook = Vector3.new(camCF.LookVector.X, 0, camCF.LookVector.Z).Unit
+                        -- Subir/bajar basado en inclinación de cámara (opcional)
+                        if math.abs(camLook.Y) > 0.2 then
+                            local flatLook = Vector3.new(camLook.X, 0, camLook.Z).Unit
                             local dot = joyDir:Dot(flatLook)
                             
-                            if dot < -0.5 then
-                                moveDir = moveDir + Vector3.new(0, camCF.LookVector.Y, 0)
-                            elseif dot > 0.5 then
-                                moveDir = moveDir - Vector3.new(0, camCF.LookVector.Y, 0)
+                            -- Si empujas hacia adelante y la cámara mira arriba -> sube
+                            if dot > 0.5 then
+                                moveDir = moveDir + Vector3.new(0, camLook.Y, 0)
+                            -- Si empujas hacia atrás y la cámara mira arriba -> baja
+                            elseif dot < -0.5 then
+                                moveDir = moveDir - Vector3.new(0, camLook.Y, 0)
                             end
                         end
                     end
                 else
+                    -- PC: Teclas WASD + E/Q
                     local look = cam.CFrame.LookVector
                     local right = cam.CFrame.RightVector
                     
@@ -2824,15 +2834,18 @@ local function startFly()
                     end
                 end
                 
+                -- Boost con Shift
                 local currentSpeed = flySpeed
                 if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
                     currentSpeed = flySpeed * 3
                 end
                 
+                -- Normalizar dirección
                 if moveDir.Magnitude > 0 then
                     moveDir = moveDir.Unit
                 end
                 
+                -- Aplicar movimiento
                 bg.CFrame = cam.CFrame
                 bv.Velocity = moveDir * currentSpeed
                 
@@ -2843,6 +2856,7 @@ local function startFly()
             RunService.Heartbeat:Wait()
         end
         
+        -- Cleanup
         if root:FindFirstChild("FlyMover") then root.FlyMover:Destroy() end
         if root:FindFirstChild("FlyRotator") then root.FlyRotator:Destroy() end
         if hum then
@@ -2914,6 +2928,36 @@ _trackConn(localPlayer.CharacterAdded:Connect(function(character)
         setupInfJump(character)
     end
 end))
+
+-- ============================================
+-- CLEANUP AL CERRAR SCRIPT
+-- ============================================
+local originalShutdown = _G.WH01_SHUTDOWN_TEMPLATE
+
+_G.WH01_SHUTDOWN_TEMPLATE = function()
+    -- Apagar todos los features de MICS
+    if walkSpeedActive then
+        stopCFrameSpeed()
+    end
+    
+    if flyEnabled then
+        stopFly()
+    end
+    
+    if infJumpEnabled then
+        infJumpEnabled = false
+        if infJumpConnection then
+            infJumpConnection:Disconnect()
+            infJumpConnection = nil
+        end
+    end
+    
+    -- Llamar al shutdown original
+    if originalShutdown then
+        originalShutdown()
+    end
+end
+
     --====================================================
     -- ★ TELEPORTS PAGE — PON TUS SPOTS AQUÍ ★
     --====================================================
