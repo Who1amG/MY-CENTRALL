@@ -2231,7 +2231,6 @@ end)
     -- ============================================================
     -- LÓGICA DE AUTO BUY
     -- ============================================================
-    -- IMPORTANTE: inicializar PRIMERO antes de cualquier Heartbeat
     local autoBuyLogic = {
         selectedSeeds = {},
         isRunning = false,
@@ -2273,8 +2272,7 @@ end)
     local SELECTOR_W = isMobile and 220 or 260
     local SELECTOR_H = isMobile and 320 or 380
 
-    -- Forward declaration para que openSeedSelector pueda llamarla
-    local buildSeedSelectorUI
+    local buildSeedSelectorUI  -- forward declaration
 
     local function closeSeedSelector(selectorRoot)
         selectorUpdateActive = false
@@ -2299,7 +2297,8 @@ end)
     end
 
     buildSeedSelectorUI = function()
-        if seedSelectorGui and seedSelectorGui.Parent then
+        -- FIX 4 (PC doble UI): si ya existe, solo cerrar, no abrir otro
+        if seedSelectorOpen or (seedSelectorGui and seedSelectorGui.Parent) then
             closeSeedSelector(seedSelectorGui)
             return
         end
@@ -2441,19 +2440,19 @@ end)
         for _, s in ipairs(withStock)    do table.insert(sortedSeeds, s) end
         for _, s in ipairs(withoutStock) do table.insert(sortedSeeds, s) end
 
-        local ITEM_H      = isMobile and 36 or 38
-        local BADGE_W     = isMobile and 58 or 62
-        local CB_SZ       = isMobile and 18 or 20
-        local CB_RIGHT    = -(CB_SZ + 8)
-        local BADGE_RIGHT = CB_RIGHT - BADGE_W - 6
+        local ITEM_H        = isMobile and 36 or 38
+        local BADGE_W       = isMobile and 58 or 62
+        local CB_SZ         = isMobile and 18 or 20
+        local CB_RIGHT      = -(CB_SZ + 8)
+        local BADGE_RIGHT   = CB_RIGHT - BADGE_W - 6
         local NAME_W_OFFSET = BADGE_RIGHT - 20
 
         selScroll.CanvasSize = UDim2.new(0, 0, 0, #sortedSeeds * (ITEM_H + 4) + 4)
 
         for i, seedInfo in ipairs(sortedSeeds) do
-            local pt       = seedInfo.pt
-            local shopName = seedInfo.shopName
-            local hasStock = seedInfo.amount > 0
+            local pt        = seedInfo.pt
+            local shopName  = seedInfo.shopName
+            local hasStock  = seedInfo.amount > 0
             local isSelected = autoBuyLogic.selectedSeeds[pt] or false
 
             local seedRow = Instance.new("Frame")
@@ -2558,12 +2557,12 @@ end)
                 isSelected = val
                 autoBuyLogic.selectedSeeds[pt] = val and true or nil
                 local nowHasStock = selectorBadgeLabels[pt] and selectorBadgeLabels[pt].Text ~= "NO STOCK"
-                tw(seedRow,    T_FAST, {BackgroundTransparency = val and 0.1 or (nowHasStock and 0.2 or 0.45)})
+                tw(seedRow,     T_FAST, {BackgroundTransparency = val and 0.1 or (nowHasStock and 0.2 or 0.45)})
                 seedRowStroke.Color        = val and t.accent or t.stroke
                 seedRowStroke.Transparency = val and 0.5 or 0.93
                 seedRowStroke.Thickness    = val and 1.5 or 1
-                tw(accentBar,  T_FAST, {BackgroundTransparency = val and 0.2 or 1})
-                tw(checkBox,   T_FAST, {BackgroundColor3 = val and t.accent or t.row})
+                tw(accentBar,   T_FAST, {BackgroundTransparency = val and 0.2 or 1})
+                tw(checkBox,    T_FAST, {BackgroundColor3 = val and t.accent or t.row})
                 cbCheck.Visible = val
                 tw(seedNameLbl, T_FAST, {TextColor3 = val and t.accent or (nowHasStock and t.text or t.subtext)})
             end
@@ -2573,6 +2572,12 @@ end)
                 getSelected = function() return isSelected end,
             }
 
+            -- FIX 1 y 2 (MOBILE): botón invisible encima de la fila para manejar
+            -- tap vs scroll sin conflicto.
+            -- Usamos un TextButton con PassThroughInput = false para capturar SOLO
+            -- taps cortos. El ScrollingFrame maneja el scroll porque el botón NO
+            -- consume InputChanged — solo MouseButton1Click (tap rápido PC) y
+            -- TouchTap (tap rápido móvil SIN arrastrar).
             local seedBtn = Instance.new("TextButton")
             seedBtn.Parent = seedRow
             seedBtn.Size = UDim2.fromScale(1, 1)
@@ -2580,12 +2585,47 @@ end)
             seedBtn.Text = ""
             seedBtn.ZIndex = 56
 
-            local function toggleSeed() setSelected(not isSelected) end
-
-            seedBtn.MouseButton1Click:Connect(toggleSeed)
-            seedBtn.InputBegan:Connect(function(inp)
-                if inp.UserInputType == Enum.UserInputType.Touch then toggleSeed() end
+            -- PC: click normal
+            seedBtn.MouseButton1Click:Connect(function()
+                setSelected(not isSelected)
             end)
+
+            -- MOBILE FIX 1 & 2: detectar tap vs scroll con threshold de movimiento
+            -- Si el dedo se mueve más de 8px antes de soltar → es scroll, ignorar
+            -- Si se mueve menos → es tap, togglear selección
+            if isMobile then
+                local touchStartPos = nil
+                local touchMoved = false
+
+                seedBtn.InputBegan:Connect(function(inp)
+                    if inp.UserInputType == Enum.UserInputType.Touch then
+                        touchStartPos = inp.Position
+                        touchMoved = false
+                    end
+                end)
+
+                seedBtn.InputChanged:Connect(function(inp)
+                    if inp.UserInputType == Enum.UserInputType.Touch and touchStartPos then
+                        local dx = math.abs(inp.Position.X - touchStartPos.X)
+                        local dy = math.abs(inp.Position.Y - touchStartPos.Y)
+                        if dx > 8 or dy > 8 then
+                            touchMoved = true
+                        end
+                    end
+                end)
+
+                seedBtn.InputEnded:Connect(function(inp)
+                    if inp.UserInputType == Enum.UserInputType.Touch then
+                        if not touchMoved then
+                            -- Es un tap limpio → toggle
+                            setSelected(not isSelected)
+                        end
+                        touchStartPos = nil
+                        touchMoved = false
+                    end
+                end)
+            end
+
             seedBtn.MouseEnter:Connect(function()
                 if not isSelected then
                     tw(seedRow,     T_FAST, {BackgroundTransparency = 0.3})
@@ -2601,6 +2641,7 @@ end)
             end)
         end
 
+        -- Marcar abierto ANTES de la animación para que el debounce lo vea inmediatamente
         seedSelectorGui      = selectorRoot
         seedSelectorOpen     = true
         selectorUpdateActive = true
@@ -2671,8 +2712,9 @@ end)
             )
         end))
 
+        -- FIX 4: animación de entrada SIN saltar — empieza pequeño y crece
         selectorRoot.Size = UDim2.new(0, 0, 0, 0)
-        tw(selectorRoot, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        tw(selectorRoot, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
             Size = UDim2.new(0, SELECTOR_W, 0, SELECTOR_H)
         })
     end
@@ -2740,30 +2782,53 @@ end)
         tw(chooseBuyCountLbl, T_FAST, {TextColor3 = themes[config.theme].subtext})
     end)
 
+    -- FIX 4 (PC doble UI): debounce unificado para PC y móvil
+    -- En PC: MouseButton1Click dispara una sola vez → sin problema
+    -- En móvil: MouseButton1Click + Touch se disparan juntos →
+    --           el debounce de 0.6s bloquea el segundo evento
     local selectorDebounce = false
 
     local function openSeedSelector()
         if selectorDebounce then return end
-        if not buildSeedSelectorUI then return end
         selectorDebounce = true
         buildSeedSelectorUI()
-        task.delay(0.5, function()
+        task.delay(0.6, function()
             selectorDebounce = false
         end)
     end
 
+    -- Solo MouseButton1Click para PC (Touch en móvil también lo dispara,
+    -- pero el debounce bloquea el duplicado de InputBegan)
     chooseBuyBtn.MouseButton1Click:Connect(openSeedSelector)
+
+    -- InputBegan Touch como respaldo en caso de que MouseButton1Click
+    -- no se dispare en algunos dispositivos móviles
     chooseBuyBtn.InputBegan:Connect(function(inp)
-        if inp.UserInputType == Enum.UserInputType.Touch then openSeedSelector() end
+        if inp.UserInputType == Enum.UserInputType.Touch then
+            openSeedSelector()
+        end
     end)
 
-    -- Contador en tiempo real — con guard para evitar nil spam
+    -- Contador en tiempo real con guard nil
     _trackConn(RunService.Heartbeat:Connect(function()
         if not autoBuyLogic or not autoBuyLogic.selectedSeeds then return end
         local count = 0
         for _ in pairs(autoBuyLogic.selectedSeeds) do count = count + 1 end
         chooseBuyCountLbl.Text = count > 0 and ("(" .. count .. ")") or "→"
     end))
+
+    -- ============================================================
+    -- FIX 3: forzar canvas del contentArea al iniciar para que
+    -- el scroll de PLANT OPTIONS aparezca sin necesidad de cambiar tab
+    -- ============================================================
+    task.defer(function()
+        if mainPage and mainPage.Visible then
+            local layout = mainPage:FindFirstChildOfClass("UIListLayout")
+            if layout then
+                contentArea.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 20)
+            end
+        end
+    end)
 
     -- ============================================================
     -- CHECKBOX "Auto buy selected seeds"
