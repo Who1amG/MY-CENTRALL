@@ -1,4 +1,4 @@
-    do --V2
+    do
     local Players          = game:GetService("Players")
     local TweenService     = game:GetService("TweenService")
     local UserInputService = game:GetService("UserInputService")
@@ -81,6 +81,7 @@
             teleportTabIcon="124656414586890",
             settingsTabIcon="84417015405492",
             micsTabIcon="129896879015985",
+            otherTabIcon="123575195343302",  -- NUEVO
             bgId="108458500083995",
         },
         Valentine = {
@@ -93,6 +94,7 @@
             teleportTabIcon="93867203416430",
             settingsTabIcon="92027932993173",
             micsTabIcon="81212960677084",
+            otherTabIcon="124282150472433",  -- NUEVO
             bgId="86406538802929",
         },
         Snow = {
@@ -105,6 +107,7 @@
             teleportTabIcon="99769954902270",
             settingsTabIcon="98653576343548",
             micsTabIcon="96765613903347",
+            otherTabIcon="114565311099421",  -- NUEVO
             bgId="103508032104468",
         },
         Garden = {
@@ -117,6 +120,7 @@
             teleportTabIcon="124656414586890",
             settingsTabIcon="84417015405492",
             micsTabIcon="129896879015985",
+            otherTabIcon="123575195343302",  -- NUEVO
             bgId="113023242212701",
         },
     }
@@ -426,6 +430,7 @@
                 tw(tb.ico,T_SMOOTH,{ImageColor3=on and t.primary or t.subtext})
                 if tabData[i].name=="Main"      and t.mainTabIcon     then tb.ico.Image="rbxassetid://"..t.mainTabIcon end
                 if tabData[i].name=="Mics"      and t.micsTabIcon     then tb.ico.Image="rbxassetid://"..t.micsTabIcon end
+                if tabData[i].name=="Other"     and t.otherTabIcon    then tb.ico.Image="rbxassetid://"..t.otherTabIcon end 
                 if tabData[i].name=="Teleports" and t.teleportTabIcon then tb.ico.Image="rbxassetid://"..t.teleportTabIcon end
                 if tabData[i].name=="Settings"  and t.settingsTabIcon then tb.ico.Image="rbxassetid://"..t.settingsTabIcon end
             else
@@ -914,6 +919,10 @@
     statusLabel.Font=Enum.Font.GothamMedium; statusLabel.TextSize=FONT_SM
     statusLabel.TextColor3=themes[config.theme].subtext
     statusLabel.TextXAlignment=Enum.TextXAlignment.Left; statusLabel.ZIndex=10
+
+    -- OCULTAR STATUS LABEL
+    statusLabel.Visible = false
+    statusLabel.Text = ""
 
     --====================================================
     -- MINIMIZE & CLOSE
@@ -2194,6 +2203,669 @@ end)
         end
     end)
 
+-- ============================================================
+    -- AUTO BUY SECTION
+    -- ============================================================
+
+    -- Tag "AUTO BUY"
+    local autoBuyTagRow = Instance.new("Frame")
+    autoBuyTagRow.Parent = plantOptionsContainer
+    autoBuyTagRow.Size = UDim2.new(1, 0, 0, 24)
+    autoBuyTagRow.BackgroundTransparency = 1
+    autoBuyTagRow.LayoutOrder = 8
+    autoBuyTagRow.ZIndex = 5
+
+    local autoBuyTagLabel = Instance.new("TextLabel")
+    autoBuyTagLabel.Parent = autoBuyTagRow
+    autoBuyTagLabel.Size = UDim2.new(1, 0, 1, 0)
+    autoBuyTagLabel.BackgroundTransparency = 1
+    autoBuyTagLabel.Text = "AUTO BUY"
+    autoBuyTagLabel.Font = Enum.Font.GothamBold
+    autoBuyTagLabel.TextSize = FONT_SM
+    autoBuyTagLabel.TextColor3 = themes[config.theme].subtext
+    autoBuyTagLabel.TextXAlignment = Enum.TextXAlignment.Left
+    autoBuyTagLabel.ZIndex = 6
+    table.insert(textSub, autoBuyTagLabel)
+    table.insert(fontObjs, autoBuyTagLabel)
+
+    -- ============================================================
+    -- LÓGICA DE AUTO BUY
+    -- ============================================================
+    local autoBuyLogic = {}
+    autoBuyLogic.selectedSeeds = {}
+    autoBuyLogic.isRunning = false
+    autoBuyLogic.thread = nil
+    local SEED_SHOP_TP = Vector3.new(176.64, 204.01, 674.15)
+    local purchaseEvent = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("PurchaseShopItem")
+
+    local function getSeedShopStock()
+        local stock = {}
+        pcall(function()
+            local data = ReplicatedStorage.RemoteEvents.GetShopData:InvokeServer("SeedShop")
+            if data and data.Items then
+                for name, tbl in pairs(data.Items) do
+                    stock[name] = tbl.Amount or 0
+                end
+            end
+        end)
+        return stock
+    end
+
+    -- ============================================================
+    -- SEED SELECTOR UI
+    -- ============================================================
+    local seedSelectorOpen = false
+    local seedSelectorGui  = nil
+
+    local selectorBadgeLabels  = {}
+    local selectorBadgePills   = {}
+    local selectorBadgeStrokes = {}
+    local selectorNameLabels   = {}
+    local selectorRows         = {}
+    local selectorRowStrokes   = {}
+    local selectorAccentBars   = {}
+    local selectorCheckBoxes   = {}
+    local selectorUpdateThread = nil
+    local selectorUpdateActive = false
+
+    local SELECTOR_W = isMobile and 220 or 260
+    local SELECTOR_H = isMobile and 320 or 380
+
+    local function closeSeedSelector(selectorRoot)
+        selectorUpdateActive = false
+        if selectorUpdateThread then
+            pcall(task.cancel, selectorUpdateThread)
+            selectorUpdateThread = nil
+        end
+        tw(selectorRoot, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0)})
+        task.delay(0.22, function()
+            if selectorRoot and selectorRoot.Parent then selectorRoot:Destroy() end
+            seedSelectorGui = nil
+            seedSelectorOpen = false
+            table.clear(selectorBadgeLabels)
+            table.clear(selectorBadgePills)
+            table.clear(selectorBadgeStrokes)
+            table.clear(selectorNameLabels)
+            table.clear(selectorRows)
+            table.clear(selectorRowStrokes)
+            table.clear(selectorAccentBars)
+            table.clear(selectorCheckBoxes)
+        end)
+    end
+
+    local function buildSeedSelectorUI()
+        if seedSelectorGui and seedSelectorGui.Parent then
+            closeSeedSelector(seedSelectorGui)
+            return
+        end
+
+        local t = themes[config.theme]
+
+        local selectorRoot = Instance.new("Frame")
+        selectorRoot.Name = "SeedSelectorPanel"
+        selectorRoot.Parent = gui
+        selectorRoot.Size = UDim2.new(0, SELECTOR_W, 0, SELECTOR_H)
+        selectorRoot.AnchorPoint = Vector2.new(0, 0.5)
+        selectorRoot.Position = UDim2.new(
+            root.Position.X.Scale,
+            root.Position.X.Offset + UI_W/2 + 14,
+            root.Position.Y.Scale,
+            root.Position.Y.Offset
+        )
+        selectorRoot.BackgroundColor3 = t.primary
+        selectorRoot.BackgroundTransparency = 0.02
+        selectorRoot.ClipsDescendants = true
+        selectorRoot.ZIndex = 50
+
+        local selCorner = Instance.new("UICorner", selectorRoot)
+        selCorner.CornerRadius = UDim.new(0, 20)
+        local selStroke = Instance.new("UIStroke", selectorRoot)
+        selStroke.Color = t.stroke
+        selStroke.Transparency = 0.88
+        selStroke.Thickness = 1.2
+
+        -- Fondo imagen
+        local selBg = Instance.new("ImageLabel")
+        selBg.Parent = selectorRoot
+        selBg.Size = UDim2.new(1, -2, 1, -2)
+        selBg.Position = UDim2.new(0, 1, 0, 1)
+        selBg.BackgroundTransparency = 1
+        selBg.Image = "rbxassetid://" .. (config.bgImageId or "108458500083995")
+        selBg.ScaleType = Enum.ScaleType.Crop
+        selBg.ImageTransparency = math.clamp(tonumber(config.bgTransparency) or 0.82, 0, 1)
+        selBg.ZIndex = 50
+        local selBgCorner = Instance.new("UICorner", selBg)
+        selBgCorner.CornerRadius = UDim.new(0, 20)
+
+        -- Header
+        local HDR = isMobile and 40 or 46
+        local selHeader = Instance.new("Frame")
+        selHeader.Parent = selectorRoot
+        selHeader.Size = UDim2.new(1, 0, 0, HDR)
+        selHeader.BackgroundColor3 = t.secondary
+        selHeader.BackgroundTransparency = 0.25
+        selHeader.BorderSizePixel = 0
+        selHeader.ZIndex = 52
+        selHeader.ClipsDescendants = true
+        local selHeaderCorner = Instance.new("UICorner", selHeader)
+        selHeaderCorner.CornerRadius = UDim.new(0, 20)
+
+        local selTitle = Instance.new("TextLabel")
+        selTitle.Parent = selHeader
+        selTitle.Size = UDim2.new(1, -42, 1, 0)
+        selTitle.Position = UDim2.new(0, 14, 0, 0)
+        selTitle.BackgroundTransparency = 1
+        selTitle.Text = "🌱  SELECT SEEDS"
+        selTitle.Font = fonts[config.fontStyle] or Enum.Font.GothamBold
+        selTitle.TextSize = FONT_MD
+        selTitle.TextColor3 = t.text
+        selTitle.TextXAlignment = Enum.TextXAlignment.Left
+        selTitle.ZIndex = 53
+        table.insert(textMain, selTitle)
+        table.insert(fontObjs, selTitle)
+
+        -- Botón cerrar
+        local selClose = Instance.new("TextButton")
+        selClose.Parent = selHeader
+        selClose.Size = UDim2.new(0, 22, 0, 22)
+        selClose.Position = UDim2.new(1, -30, 0.5, -11)
+        selClose.Text = "✕"
+        selClose.Font = Enum.Font.GothamBold
+        selClose.TextSize = 11
+        selClose.TextColor3 = t.text
+        selClose.BackgroundColor3 = t.row
+        selClose.AutoButtonColor = false
+        selClose.ZIndex = 54
+        local selCloseCorner = Instance.new("UICorner", selClose)
+        selCloseCorner.CornerRadius = UDim.new(1, 0)
+        local selCloseStroke = Instance.new("UIStroke", selClose)
+        selCloseStroke.Color = t.stroke
+        selCloseStroke.Transparency = 0.88
+
+        selClose.MouseButton1Click:Connect(function() closeSeedSelector(selectorRoot) end)
+        selClose.InputBegan:Connect(function(inp)
+            if inp.UserInputType == Enum.UserInputType.Touch then closeSeedSelector(selectorRoot) end
+        end)
+
+        -- Divider
+        local selDiv = Instance.new("Frame")
+        selDiv.Parent = selectorRoot
+        selDiv.Size = UDim2.new(1, -20, 0, 1)
+        selDiv.Position = UDim2.new(0, 10, 0, HDR)
+        selDiv.BackgroundColor3 = t.stroke
+        selDiv.BackgroundTransparency = 0.9
+        selDiv.BorderSizePixel = 0
+        selDiv.ZIndex = 52
+
+        -- ScrollingFrame
+        local selScroll = Instance.new("ScrollingFrame")
+        selScroll.Parent = selectorRoot
+        selScroll.Size = UDim2.new(1, -12, 1, -(HDR + 8))
+        selScroll.Position = UDim2.new(0, 6, 0, HDR + 6)
+        selScroll.BackgroundTransparency = 1
+        selScroll.BorderSizePixel = 0
+        selScroll.ScrollBarThickness = isMobile and 2 or 3
+        selScroll.ScrollBarImageColor3 = t.accent
+        selScroll.ScrollBarImageTransparency = 0.25
+        selScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+        selScroll.AutomaticCanvasSize = Enum.AutomaticSize.None
+        selScroll.ScrollingDirection = Enum.ScrollingDirection.Y
+        selScroll.ClipsDescendants = true
+        selScroll.Active = true
+        selScroll.ZIndex = 52
+        table.insert(scrollBars, selScroll)
+
+        local selLayout = Instance.new("UIListLayout")
+        selLayout.Parent = selScroll
+        selLayout.Padding = UDim.new(0, 4)
+        selLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+        local selPad = Instance.new("UIPadding", selScroll)
+        selPad.PaddingLeft  = UDim.new(0, 2)
+        selPad.PaddingRight = UDim.new(0, 2)
+        selPad.PaddingTop   = UDim.new(0, 2)
+
+        -- Stock inicial
+        local currentStock = getSeedShopStock()
+
+        local withStock, withoutStock = {}, {}
+        for _, pt in ipairs(plantLogic.ALL_SEEDS) do
+            local shopName = pt .. " Seed"
+            local amt = currentStock[shopName] or 0
+            if amt > 0 then
+                table.insert(withStock,    {pt = pt, shopName = shopName, amount = amt})
+            else
+                table.insert(withoutStock, {pt = pt, shopName = shopName, amount = 0})
+            end
+        end
+        local sortedSeeds = {}
+        for _, s in ipairs(withStock)    do table.insert(sortedSeeds, s) end
+        for _, s in ipairs(withoutStock) do table.insert(sortedSeeds, s) end
+
+        local ITEM_H     = isMobile and 36 or 38
+        local BADGE_W    = isMobile and 58 or 62
+        local CB_SZ      = isMobile and 18 or 20
+        local CB_RIGHT   = -(CB_SZ + 8)
+        local BADGE_RIGHT = CB_RIGHT - BADGE_W - 6
+        local NAME_W_OFFSET = BADGE_RIGHT - 20
+
+        selScroll.CanvasSize = UDim2.new(0, 0, 0, #sortedSeeds * (ITEM_H + 4) + 4)
+
+        for i, seedInfo in ipairs(sortedSeeds) do
+            local pt       = seedInfo.pt
+            local shopName = seedInfo.shopName
+            local hasStock = seedInfo.amount > 0
+            local isSelected = autoBuyLogic.selectedSeeds[pt] or false
+
+            local seedRow = Instance.new("Frame")
+            seedRow.Parent = selScroll
+            seedRow.Size = UDim2.new(1, -2, 0, ITEM_H)
+            seedRow.BackgroundColor3 = t.row
+            seedRow.BackgroundTransparency = isSelected and 0.1 or (hasStock and 0.2 or 0.45)
+            seedRow.BorderSizePixel = 0
+            seedRow.ZIndex = 53
+            seedRow.LayoutOrder = i
+            local seedRowCorner = Instance.new("UICorner", seedRow)
+            seedRowCorner.CornerRadius = UDim.new(0, ROW_R)
+            local seedRowStroke = Instance.new("UIStroke", seedRow)
+            seedRowStroke.Color       = isSelected and t.accent or t.stroke
+            seedRowStroke.Transparency = isSelected and 0.5 or 0.93
+            seedRowStroke.Thickness    = isSelected and 1.5 or 1
+            table.insert(rows, {frame = seedRow, stroke = seedRowStroke})
+            selectorRows[pt]       = seedRow
+            selectorRowStrokes[pt] = seedRowStroke
+
+            -- Barra acento izquierda
+            local accentBar = Instance.new("Frame")
+            accentBar.Parent = seedRow
+            accentBar.Size = UDim2.new(0, 3, 0, ITEM_H - 14)
+            accentBar.Position = UDim2.new(0, 6, 0.5, -(ITEM_H - 14)/2)
+            accentBar.BackgroundColor3 = t.accent
+            accentBar.BackgroundTransparency = isSelected and 0.2 or 1
+            accentBar.BorderSizePixel = 0
+            accentBar.ZIndex = 54
+            local accentBarCorner = Instance.new("UICorner", accentBar)
+            accentBarCorner.CornerRadius = UDim.new(1, 0)
+            table.insert(accentFrames, accentBar)
+            selectorAccentBars[pt] = accentBar
+
+            -- Nombre seed
+            local seedNameLbl = Instance.new("TextLabel")
+            seedNameLbl.Parent = seedRow
+            seedNameLbl.Size = UDim2.new(1, NAME_W_OFFSET, 1, 0)
+            seedNameLbl.Position = UDim2.new(0, 16, 0, 0)
+            seedNameLbl.BackgroundTransparency = 1
+            seedNameLbl.Text = shopName
+            seedNameLbl.Font = fonts[config.fontStyle] or Enum.Font.GothamBold
+            seedNameLbl.TextSize = FONT_MD
+            seedNameLbl.TextColor3 = isSelected and t.accent or (hasStock and t.text or t.subtext)
+            seedNameLbl.TextXAlignment = Enum.TextXAlignment.Left
+            seedNameLbl.ZIndex = 54
+            seedNameLbl.TextTruncate = Enum.TextTruncate.AtEnd
+            table.insert(textMain, seedNameLbl)
+            table.insert(fontObjs, seedNameLbl)
+            selectorNameLabels[pt] = seedNameLbl
+
+            -- Badge pill
+            local badgePill = Instance.new("Frame")
+            badgePill.Parent = seedRow
+            badgePill.Size = UDim2.new(0, BADGE_W, 0, ITEM_H - 14)
+            badgePill.Position = UDim2.new(1, BADGE_RIGHT, 0.5, -(ITEM_H - 14)/2)
+            badgePill.BackgroundColor3 = hasStock and t.primary or Color3.fromRGB(60, 15, 15)
+            badgePill.BackgroundTransparency = 0.2
+            badgePill.BorderSizePixel = 0
+            badgePill.ZIndex = 54
+            local badgeCorner = Instance.new("UICorner", badgePill)
+            badgeCorner.CornerRadius = UDim.new(0, 8)
+            local badgeStroke = Instance.new("UIStroke", badgePill)
+            badgeStroke.Color = hasStock and t.accent or Color3.fromRGB(200, 50, 50)
+            badgeStroke.Transparency = 0.7
+            selectorBadgePills[pt]   = badgePill
+            selectorBadgeStrokes[pt] = badgeStroke
+
+            local badgeLbl = Instance.new("TextLabel")
+            badgeLbl.Parent = badgePill
+            badgeLbl.Size = UDim2.fromScale(1, 1)
+            badgeLbl.BackgroundTransparency = 1
+            badgeLbl.Text = hasStock and ("x" .. tostring(seedInfo.amount)) or "NO STOCK"
+            badgeLbl.Font = Enum.Font.GothamBold
+            badgeLbl.TextSize = hasStock and FONT_MD or (FONT_SM - 1)
+            badgeLbl.TextColor3 = hasStock and t.accent or Color3.fromRGB(220, 60, 60)
+            badgeLbl.TextXAlignment = Enum.TextXAlignment.Center
+            badgeLbl.ZIndex = 55
+            selectorBadgeLabels[pt] = badgeLbl
+
+            -- Checkbox
+            local checkBox = Instance.new("Frame")
+            checkBox.Parent = seedRow
+            checkBox.Size = UDim2.new(0, CB_SZ, 0, CB_SZ)
+            checkBox.Position = UDim2.new(1, CB_RIGHT, 0.5, -CB_SZ/2)
+            checkBox.BackgroundColor3 = isSelected and t.accent or t.row
+            checkBox.BorderSizePixel = 0
+            checkBox.ZIndex = 54
+            local cbCorner = Instance.new("UICorner", checkBox)
+            cbCorner.CornerRadius = UDim.new(0, 6)
+            local cbStroke = Instance.new("UIStroke", checkBox)
+            cbStroke.Color = t.stroke
+            cbStroke.Transparency = 0.7
+            local cbCheck = Instance.new("TextLabel")
+            cbCheck.Parent = checkBox
+            cbCheck.Size = UDim2.fromScale(1, 1)
+            cbCheck.BackgroundTransparency = 1
+            cbCheck.Text = "✓"
+            cbCheck.Font = Enum.Font.GothamBold
+            cbCheck.TextSize = 11
+            cbCheck.TextColor3 = t.primary
+            cbCheck.Visible = isSelected
+            cbCheck.ZIndex = 55
+
+            local function setSelected(val)
+                isSelected = val
+                autoBuyLogic.selectedSeeds[pt] = val and true or nil
+                local nowHasStock = selectorBadgeLabels[pt] and selectorBadgeLabels[pt].Text ~= "NO STOCK"
+                tw(seedRow, T_FAST, {BackgroundTransparency = val and 0.1 or (nowHasStock and 0.2 or 0.45)})
+                seedRowStroke.Color       = val and t.accent or t.stroke
+                seedRowStroke.Transparency = val and 0.5 or 0.93
+                seedRowStroke.Thickness    = val and 1.5 or 1
+                tw(accentBar,  T_FAST, {BackgroundTransparency = val and 0.2 or 1})
+                tw(checkBox,   T_FAST, {BackgroundColor3 = val and t.accent or t.row})
+                cbCheck.Visible = val
+                tw(seedNameLbl, T_FAST, {TextColor3 = val and t.accent or (nowHasStock and t.text or t.subtext)})
+            end
+
+            selectorCheckBoxes[pt] = {
+                setSelected = setSelected,
+                getSelected = function() return isSelected end,
+            }
+
+            local seedBtn = Instance.new("TextButton")
+            seedBtn.Parent = seedRow
+            seedBtn.Size = UDim2.fromScale(1, 1)
+            seedBtn.BackgroundTransparency = 1
+            seedBtn.Text = ""
+            seedBtn.ZIndex = 56
+
+            local function toggleSeed()
+                setSelected(not isSelected)
+            end
+
+            seedBtn.MouseButton1Click:Connect(toggleSeed)
+            seedBtn.InputBegan:Connect(function(inp)
+                if inp.UserInputType == Enum.UserInputType.Touch then toggleSeed() end
+            end)
+            seedBtn.MouseEnter:Connect(function()
+                if not isSelected then
+                    tw(seedRow, T_FAST, {BackgroundTransparency = 0.3})
+                    tw(seedNameLbl, T_FAST, {TextColor3 = themes[config.theme].text})
+                end
+            end)
+            seedBtn.MouseLeave:Connect(function()
+                if not isSelected then
+                    local hs = selectorBadgeLabels[pt] and selectorBadgeLabels[pt].Text ~= "NO STOCK"
+                    tw(seedRow, T_FAST, {BackgroundTransparency = hs and 0.2 or 0.45})
+                    tw(seedNameLbl, T_FAST, {TextColor3 = hs and themes[config.theme].text or themes[config.theme].subtext})
+                end
+            end)
+        end
+
+        seedSelectorGui    = selectorRoot
+        seedSelectorOpen   = true
+        selectorUpdateActive = true
+
+        -- ============================================================
+        -- UPDATE EN TIEMPO REAL — loop independiente (sin Heartbeat)
+        -- ============================================================
+        selectorUpdateThread = task.spawn(function()
+            while selectorUpdateActive and seedSelectorGui and seedSelectorGui.Parent do
+                task.wait(1)
+                if not selectorUpdateActive then break end
+                if not (seedSelectorGui and seedSelectorGui.Parent) then break end
+
+                pcall(function()
+                    local freshStock = getSeedShopStock()
+                    local t2 = themes[config.theme]
+
+                    for _, pt2 in ipairs(plantLogic.ALL_SEEDS) do
+                        local shopName2    = pt2 .. " Seed"
+                        local amt          = freshStock[shopName2] or 0
+                        local nowHasStock  = amt > 0
+
+                        local badgeLbl2    = selectorBadgeLabels[pt2]
+                        local badgePill2   = selectorBadgePills[pt2]
+                        local badgeStroke2 = selectorBadgeStrokes[pt2]
+                        local nameLbl2     = selectorNameLabels[pt2]
+                        local row2         = selectorRows[pt2]
+                        local cbInfo       = selectorCheckBoxes[pt2]
+
+                        if badgeLbl2 and badgeLbl2.Parent then
+                            local prevText = badgeLbl2.Text
+                            local newText  = nowHasStock and ("x" .. tostring(amt)) or "NO STOCK"
+
+                            if prevText ~= newText then
+                                badgeLbl2.Text       = newText
+                                badgeLbl2.TextSize   = nowHasStock and FONT_MD or (FONT_SM - 1)
+                                badgeLbl2.TextColor3 = nowHasStock and t2.accent or Color3.fromRGB(220, 60, 60)
+
+                                if badgePill2 and badgePill2.Parent then
+                                    tw(badgePill2, T_FAST, {
+                                        BackgroundColor3 = nowHasStock and t2.primary or Color3.fromRGB(60, 15, 15)
+                                    })
+                                end
+                                if badgeStroke2 then
+                                    badgeStroke2.Color = nowHasStock and t2.accent or Color3.fromRGB(200, 50, 50)
+                                end
+
+                                local isSel = cbInfo and cbInfo.getSelected() or false
+                                if not isSel then
+                                    if row2 and row2.Parent then
+                                        tw(row2, T_FAST, {BackgroundTransparency = nowHasStock and 0.2 or 0.45})
+                                    end
+                                    if nameLbl2 and nameLbl2.Parent then
+                                        tw(nameLbl2, T_FAST, {TextColor3 = nowHasStock and t2.text or t2.subtext})
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end)
+            end
+        end)
+
+        -- Seguir posición del root al arrastrar
+        _trackConn(RunService.Heartbeat:Connect(function()
+            if not selectorRoot or not selectorRoot.Parent then return end
+            selectorRoot.Position = UDim2.new(
+                root.Position.X.Scale,
+                root.Position.X.Offset + UI_W/2 + 14,
+                root.Position.Y.Scale,
+                root.Position.Y.Offset
+            )
+        end))
+
+        -- Animación entrada
+        selectorRoot.Size = UDim2.new(0, 0, 0, 0)
+        tw(selectorRoot, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, SELECTOR_W, 0, SELECTOR_H)
+        })
+    end
+
+    -- ============================================================
+    -- FILA "Choose seeds to buy"
+    -- ============================================================
+    local chooseBuyRow = Instance.new("Frame")
+    chooseBuyRow.Parent = plantOptionsContainer
+    chooseBuyRow.Size = UDim2.new(1, 0, 0, ROW_H)
+    chooseBuyRow.BackgroundColor3 = themes[config.theme].row
+    chooseBuyRow.BackgroundTransparency = 0.2
+    chooseBuyRow.BorderSizePixel = 0
+    chooseBuyRow.ZIndex = 5
+    chooseBuyRow.LayoutOrder = 9
+    local chooseBuyCorner = Instance.new("UICorner", chooseBuyRow)
+    chooseBuyCorner.CornerRadius = UDim.new(0, ROW_R)
+    local chooseBuyStroke = Instance.new("UIStroke", chooseBuyRow)
+    chooseBuyStroke.Color = themes[config.theme].stroke
+    chooseBuyStroke.Transparency = 0.93
+    table.insert(rows, {frame = chooseBuyRow, stroke = chooseBuyStroke})
+
+    local chooseBuyLbl = Instance.new("TextLabel")
+    chooseBuyLbl.Parent = chooseBuyRow
+    chooseBuyLbl.Size = UDim2.new(1, -50, 1, 0)
+    chooseBuyLbl.Position = UDim2.new(0, 12, 0, 0)
+    chooseBuyLbl.BackgroundTransparency = 1
+    chooseBuyLbl.Text = "Choose seeds to buy"
+    chooseBuyLbl.Font = fonts[config.fontStyle] or Enum.Font.GothamBold
+    chooseBuyLbl.TextSize = FONT_MD
+    chooseBuyLbl.TextColor3 = themes[config.theme].text
+    chooseBuyLbl.TextXAlignment = Enum.TextXAlignment.Left
+    chooseBuyLbl.ZIndex = 6
+    table.insert(textMain, chooseBuyLbl)
+    table.insert(fontObjs, chooseBuyLbl)
+
+    local chooseBuyCountLbl = Instance.new("TextLabel")
+    chooseBuyCountLbl.Parent = chooseBuyRow
+    chooseBuyCountLbl.Size = UDim2.new(0, 36, 1, 0)
+    chooseBuyCountLbl.Position = UDim2.new(1, -40, 0, 0)
+    chooseBuyCountLbl.BackgroundTransparency = 1
+    chooseBuyCountLbl.Text = "→"
+    chooseBuyCountLbl.Font = Enum.Font.GothamBold
+    chooseBuyCountLbl.TextSize = 13
+    chooseBuyCountLbl.TextColor3 = themes[config.theme].subtext
+    chooseBuyCountLbl.ZIndex = 6
+    table.insert(textSub, chooseBuyCountLbl)
+
+    local chooseBuyBtn = Instance.new("TextButton")
+    chooseBuyBtn.Parent = chooseBuyRow
+    chooseBuyBtn.Size = UDim2.fromScale(1, 1)
+    chooseBuyBtn.BackgroundTransparency = 1
+    chooseBuyBtn.Text = ""
+    chooseBuyBtn.ZIndex = 7
+
+    chooseBuyBtn.MouseEnter:Connect(function()
+        tw(chooseBuyRow, T_FAST, {BackgroundColor3 = themes[config.theme].accent, BackgroundTransparency = 0.4})
+        tw(chooseBuyLbl,      T_FAST, {TextColor3 = themes[config.theme].primary})
+        tw(chooseBuyCountLbl, T_FAST, {TextColor3 = themes[config.theme].primary})
+    end)
+    chooseBuyBtn.MouseLeave:Connect(function()
+        tw(chooseBuyRow, T_FAST, {BackgroundColor3 = themes[config.theme].row, BackgroundTransparency = 0.2})
+        tw(chooseBuyLbl,      T_FAST, {TextColor3 = themes[config.theme].text})
+        tw(chooseBuyCountLbl, T_FAST, {TextColor3 = themes[config.theme].subtext})
+    end)
+
+    local function openSeedSelector()
+        buildSeedSelectorUI()
+    end
+    chooseBuyBtn.MouseButton1Click:Connect(openSeedSelector)
+    chooseBuyBtn.InputBegan:Connect(function(inp)
+        if inp.UserInputType == Enum.UserInputType.Touch then openSeedSelector() end
+    end)
+
+    -- Contador en tiempo real
+    _trackConn(RunService.Heartbeat:Connect(function()
+        local count = 0
+        for _ in pairs(autoBuyLogic.selectedSeeds) do count = count + 1 end
+        chooseBuyCountLbl.Text = count > 0 and ("(" .. count .. ")") or "→"
+    end))
+
+    -- ============================================================
+    -- CHECKBOX "Auto buy selected seeds"
+    -- ============================================================
+    local autoBuyRow, autoBuyBtn, getAutoBuy, forceOffAutoBuy, forceOnAutoBuy =
+        checkbox(plantOptionsContainer, "Auto buy selected seeds", 0, false)
+    autoBuyRow.LayoutOrder = 10
+
+    autoBuyBtn.MouseButton1Click:Connect(function()
+        task.wait()
+        local isEnabled = getAutoBuy()
+
+        if isEnabled then
+            local hasSelected = next(autoBuyLogic.selectedSeeds) ~= nil
+            if not hasSelected then
+                forceOffAutoBuy()
+                showNotif("Auto Buy", "⚠️ Select seeds to buy first", true)
+                return
+            end
+
+            local char     = localPlayer.Character
+            local hrp      = char and char:FindFirstChild("HumanoidRootPart")
+            local savedPos = hrp and hrp.Position or nil
+
+            autoBuyLogic.isRunning = true
+            showNotif("Auto Buy", "🛒 Watching for seeds in stock...", false)
+
+            if autoBuyLogic.thread then
+                pcall(task.cancel, autoBuyLogic.thread)
+                autoBuyLogic.thread = nil
+            end
+
+            autoBuyLogic.thread = _trackThread(task.spawn(function()
+                while autoBuyLogic.isRunning do
+                    local stock          = getSeedShopStock()
+                    local seedsAvailable = {}
+
+                    for pt, _ in pairs(autoBuyLogic.selectedSeeds) do
+                        local shopName = pt .. " Seed"
+                        if stock[shopName] and stock[shopName] > 0 then
+                            table.insert(seedsAvailable, shopName)
+                        end
+                    end
+
+                    if #seedsAvailable > 0 then
+                        local buyChar = localPlayer.Character
+                        local buyHrp  = buyChar and buyChar:FindFirstChild("HumanoidRootPart")
+
+                        if buyHrp then
+                            buyHrp.CFrame = CFrame.new(SEED_SHOP_TP)
+                            task.wait(0.4)
+
+                            for _, shopSeedName in ipairs(seedsAvailable) do
+                                if not autoBuyLogic.isRunning then break end
+
+                                local freshStock  = getSeedShopStock()
+                                local freshAmount = freshStock[shopSeedName] or 0
+                                local boughtCount = 0
+
+                                while autoBuyLogic.isRunning and freshAmount > 0 do
+                                    pcall(function()
+                                        purchaseEvent:InvokeServer("SeedShop", shopSeedName)
+                                    end)
+                                    task.wait(0.12)
+                                    boughtCount  = boughtCount + 1
+                                    freshStock   = getSeedShopStock()
+                                    freshAmount  = freshStock[shopSeedName] or 0
+                                end
+
+                                if boughtCount > 0 then
+                                    showNotif("Auto Buy", "✅ Bought " .. boughtCount .. "x " .. shopSeedName, false)
+                                end
+                            end
+
+                            task.wait(0.2)
+                            buyChar = localPlayer.Character
+                            buyHrp  = buyChar and buyChar:FindFirstChild("HumanoidRootPart")
+                            if buyHrp and savedPos then
+                                buyHrp.CFrame = CFrame.new(savedPos)
+                            end
+                        end
+
+                        task.wait(2)
+                    else
+                        task.wait(1)
+                    end
+                end
+
+                autoBuyLogic.isRunning = false
+                task.defer(forceOffAutoBuy)
+            end))
+        else
+            autoBuyLogic.isRunning = false
+            if autoBuyLogic.thread then
+                pcall(task.cancel, autoBuyLogic.thread)
+                autoBuyLogic.thread = nil
+            end
+            showNotif("Auto Buy", "⏹️ Auto buy stopped", false)
+        end
+    end)
+
     local autoHarvestRow, autoHarvestBtn, getAutoHarvest, forceOffAutoHarvest, forceOnAutoHarvest = checkbox(harvestOptionsContainer,"AUTO HARVEST",0,false)
     autoHarvestRow.LayoutOrder = 9
 
@@ -2604,7 +3276,6 @@ end
     --====================================================
     -- ★ MICS PAGE — PON TUS OPCIONES AQUÍ ★
     --====================================================
-    secLabel(micsPage,"MICS",0)
 
     --====================================================
 -- ★ MICS PAGE — MOVEMENT FEATURES ★
@@ -2625,7 +3296,7 @@ getgenv().Multiplier = 0.5
 local walkSpeedActive = false
 local walkSpeedConnection = nil
 
-local walkSpeedRow, walkSpeedBtn, getWalkSpeed, forceOffWalkSpeed = checkbox(micsPage, "C WALK", 0, false)
+local walkSpeedRow, walkSpeedBtn, getWalkSpeed, forceOffWalkSpeed = checkbox(micsPage, "WALK SPEED", 0, false)
 walkSpeedRow.LayoutOrder = 2
 
 local walkSpeedSlider, getWalkSpeedVal, setWalkSpeedVal = slider(
@@ -2700,7 +3371,7 @@ local flyEnabled = false
 local flySpeed = 50
 local flyThread = nil
 
-local flyRow, flyBtn, getFly, forceOffFly = checkbox(micsPage, "C FLY", 0, false)
+local flyRow, flyBtn, getFly, forceOffFly = checkbox(micsPage, "FLY", 0, false)
 flyRow.LayoutOrder = 4
 
 local flySpeedSlider, getFlySpeedVal, setFlySpeedVal = slider(
@@ -2967,6 +3638,7 @@ end
         -- {name="Nombre", pos=Vector3.new(X, Y, Z)},
         {name="SEEDS SHOP", pos=Vector3.new(176.70, 204.01, 672.00)},
         {name="SELL PLANTS", pos=Vector3.new(149.39, 204.01, 671.99)},
+        {name="GEAR SHOP", pos=Vector3.new(212.33, 204.02, 610.43)},
         {name="QUEST TASK", pos=Vector3.new(111.53, 203.99, 635.05)},
         {name="GARDEN"},
     }
@@ -3025,7 +3697,6 @@ end
                     pcall(function()
                         local prompt = workspace.MapPhysical.Shops["Seed Shop"].SeedNPC.HumanoidRootPart:WaitForChild("ProximityPrompt")
                         fireproximityprompt(prompt)
-                        statusLabel.Text="● Interacting with Seed Shop..."
                     end)
                 else
                     statusLabel.Text="● Error: Character not found"
@@ -3121,7 +3792,7 @@ end
     tabData={
         {name="Main",      icon="⬡", page=mainPage,      isImage=true},
         {name="Mics",      icon="👤", page=micsPage,      isImage=true},
-        {name="Other",     icon="📦", page=otherPage,     isImage=false},
+        {name="Other",     icon="📦", page=otherPage,     isImage=true},
         {name="Teleports", icon="✈", page=teleportsPage, isImage=true},
         {name="Settings",  icon="⚙", page=settingsPage,  isImage=true},
     }
@@ -3180,6 +3851,7 @@ end
             tico.BackgroundTransparency=1; tico.ScaleType=Enum.ScaleType.Fit; tico.ImageColor3=themes[config.theme].subtext; tico.ZIndex=6
             if data.name=="Main"      then tico.Image="rbxassetid://"..themes[config.theme].mainTabIcon end
             if data.name=="Mics"      then tico.Image="rbxassetid://"..themes[config.theme].micsTabIcon end
+            if data.name=="Other"     then tico.Image="rbxassetid://"..themes[config.theme].otherTabIcon end
             if data.name=="Teleports" then tico.Image="rbxassetid://"..themes[config.theme].teleportTabIcon end
             if data.name=="Settings"  then tico.Image="rbxassetid://"..themes[config.theme].settingsTabIcon end
         else
